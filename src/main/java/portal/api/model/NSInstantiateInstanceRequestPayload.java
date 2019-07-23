@@ -23,8 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import OSM4NBIClient.OSM4Client;
-import ns.yang.nfvo.nsd.rev170228.nsd.catalog.Nsd;
+import OSM5NBIClient.OSM5Client;
 
 public class NSInstantiateInstanceRequestPayload
 {
@@ -47,7 +46,7 @@ public class NSInstantiateInstanceRequestPayload
 	public List<VnF> vnf = new ArrayList<>();
 	//public List<Vld> vld = new ArrayList<>();
 	
-	public NSInstantiateInstanceRequestPayload(OSM4Client osm4client, DeploymentDescriptor deploymentdescriptor)
+	public NSInstantiateInstanceRequestPayload(OSM5Client osm4client, DeploymentDescriptor deploymentdescriptor)
 	{
 		this.nsName = deploymentdescriptor.getName();
 		this.vimAccountId = deploymentdescriptor.getInfrastructureForAll().getVIMid();

@@ -42,7 +42,7 @@
 		<properties>
 			<property name="openjpa.ConnectionDriverName" value="com.mysql.jdbc.Driver" />
 			<property name="openjpa.ConnectionURL"
-				value="jdbc:mysql://localhost/portaldb" />
+				value="jdbc:mysql://localhost/osdb" />
 			<property name="openjpa.ConnectionUserName" value="root" />
 			<property name="openjpa.ConnectionPassword" value="letmein0" />
 			<property name="openjpa.jdbc.SynchronizeMappings" value="buildSchema" />

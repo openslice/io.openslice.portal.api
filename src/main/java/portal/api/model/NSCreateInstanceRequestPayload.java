@@ -15,15 +15,15 @@
 
 package portal.api.model;
 
-import OSM4NBIClient.OSM4Client;
+import OSM5NBIClient.OSM5Client;
 
 public class NSCreateInstanceRequestPayload extends NSInstantiateInstanceRequestPayload
 {	
 	public String notificationType="NsIdentifierCreationNotification";
 	
-	public NSCreateInstanceRequestPayload(OSM4Client osm4client, DeploymentDescriptor deploymentdescriptor)
+	public NSCreateInstanceRequestPayload(OSM5Client osm5client, DeploymentDescriptor deploymentdescriptor)
 	{
-		super(osm4client, deploymentdescriptor);
+		super(osm5client, deploymentdescriptor);
 	}	
 	public NSCreateInstanceRequestPayload(DeploymentDescriptor deploymentdescriptor)
 	{
