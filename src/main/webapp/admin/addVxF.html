@@ -1,0 +1,166 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>JAX-RS Upload Form</title>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/themes/smoothness/jquery-ui.css" />
+	<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.0/jquery-ui.min.js"></script>
+	<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">	
+	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+</head>
+<body>
+  	<div class="page-header">
+		<h1>Add VxF<br><small>Add/Upload a new VxF </small></h1>
+	</div>
+ <div style="padding-left: 30px;padding-bottom: 10px;">
+ <a href="index.html">Main</a> |
+ <a href="viewVxFs.html">View VxFs</a>  |
+ <a href="viewUsers.html">View Users</a> | 
+ <a href="addUser.html">Add User</a> | 
+ <a href="logout">Logout</a>
+  </div>
+
+	<div style="padding-left: 100px; ">
+		<h1 id="headerTitle">VxF Upload Form</h1>
+		<h3 id="headerVxFIDTitle"></h3>
+		<div id="result"></div>
+	</div>
+
+
+	<form class="form-horizontal" role="form" id="vxfForm"
+		action="/portal/services/api/repo/users/"  >
+			
+			
+		<input type="hidden" name="vxfid" value=""  />
+		<input type="hidden" name="vxfuuid" value=""  />
+		<div class="form-group">
+			<label for="vxfname" class="col-sm-2 control-label">VxF name</label>
+			<div class="col-sm-10">
+		   		<input type="text" name="vxfname" value=""/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="userid" class="col-sm-2 control-label">User ID</label>
+			<div class="col-sm-10">
+		   		<input type="text" name="userid" value=""/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="version" class="col-sm-2 control-label">Version</label>
+			<div class="col-sm-10">
+				<input type="text" name="version" value=""/>
+			</div>
+		</div>
+		<div class="form-group">
+			<label for="shortDescription" class="col-sm-2 control-label"></label>
+			<div class="col-sm-10">
+				<input type="text" name="shortDescription"  placeholder="A shortDescription for this vxf"/>
+			</div>
+		
+		</div>
+		<div class="form-group">
+			<label for="longDescription" class="col-sm-2 control-label">Long Description</label>
+			<div class="col-sm-10">
+				<textarea name="longDescription" ></textarea>
+			</div>
+		
+		</div>
+		<div class="form-group">
+				<label for="uploadedVxFIcon" class="col-sm-2 control-label">Icon File</label>
+			<div class="col-sm-10">
+				<input type="file" name="uploadedVxFIcon" size="50" />
+				<p class="help-block">Select logo image</p>
+			</div>
+		
+		</div>
+
+		
+		<div class="form-group">
+			<label for="uploadedVxFFile" class="col-sm-2 control-label">VxF File</label>
+			<div class="col-sm-10">
+				<input type="file" name="uploadedVxFFile" size="50" />
+				<p class="help-block">Select vxf file in tar.gz format</p>
+			</div>
+		
+		</div>
+		<div class="form-group">
+			<div class="col-sm-offset-2 col-sm-10">
+				<input class="btn btn-default"  type="submit" value="Save" />
+			</div>
+		</div>
+	</form>
+	<!-- the result of the search will be rendered inside this div -->
+	
+	<script>	
+	
+	function getUrlVars() {
+        var vars = {};
+        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+            vars[key] = value;
+        });
+        return vars;
+    }
+
+    var userid = getUrlVars()["userid"];
+    var vxfid = getUrlVars()["vxfid"];
+	
+    $(document).ready(function() {
+    	
+		 $("#vxfForm input[name='userid']").val(userid);
+    	if (vxfid){
+    		 $.getJSON('/portal/services/api/repo/vxfs/'+vxfid, function(data) {
+
+    			 document.getElementById("headerTitle").innerHTML = 'Edit VxF Form';
+    			 document.getElementById("headerVxFIDTitle").innerHTML = data.uuid;
+
+    			 $("#vxfForm input[name='vxfid']").val(data.id);
+    			 $("#vxfForm input[name='vxfid']").val(data.id);
+    			 $("#vxfForm input[name='vxfuuid']").val(data.uuid);
+    			 $("#vxfForm input[name='vxfname']").val(data.name);
+    			 $("#vxfForm input[name='version']").val(data.version);
+    			 $("#vxfForm input[name='shortDescription']").val(data.shortDescription);
+    			 $("#vxfForm textarea[name='longDescription']").val(data.longDescription);
+    		 });
+    	}
+  	});
+    
+
+	// Attach a submit handler to the form
+	$("#vxfForm").submit(
+			function(event) {
+				// Stop form from submitting normally
+				event.preventDefault();
+				// Get some values from elements on the page:
+				
+					var url = '/portal/services/api/repo/users/'+userid+'/vxfs/';	
+					var action = 'POST';
+					
+					if (vxfid){
+						url = '/portal/services/api/repo/vxfs/'+vxfid;	
+				    	action = 'PUT';
+					}
+					
+				
+				// Send the data using post
+				$.ajax({
+				  url:url,
+				  type: action,
+				  data: new FormData( this ),
+				  processData: false,
+			      contentType: false,
+				  success: function(){
+						$("#result").empty().append("VxF saved!");
+				  }
+				});
+				
+				
+				
+			});
+	</script>
+    
+
+
+</body>
+</html>
