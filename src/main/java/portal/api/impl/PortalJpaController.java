@@ -17,6 +17,8 @@ package portal.api.impl;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
@@ -77,7 +79,8 @@ public class PortalJpaController {
 			bu.setUsername("admin");
 			bu.setPassword("changeme");
 			bu.setEmail("");
-			bu.setOrganization("");
+			bu.setOrganization("none");
+			bu.setApikey( UUID.randomUUID().toString() );
 			bu.addRole( UserRoleType.PORTALADMIN );
 			bu.setActive(true);
 			saveUser(bu);
@@ -112,11 +115,11 @@ public class PortalJpaController {
 			saveProperty(p);
 		}
 		if (readPropertyByName("maindomain") == null){
-			PortalProperty p = new PortalProperty("maindomain", "https://portal.5ginfire.eu");
+			PortalProperty p = new PortalProperty("maindomain", "https://localhost");
 			saveProperty(p);
 		}
 		if (readPropertyByName("bugzillaurl") == null){
-			PortalProperty p = new PortalProperty("bugzillaurl", "portal.5ginfire.eu:443/bugstaging");
+			PortalProperty p = new PortalProperty("bugzillaurl", "");
 			saveProperty(p);
 		}
 		if (readPropertyByName("bugzillakey") == null){
@@ -124,7 +127,7 @@ public class PortalJpaController {
 			saveProperty(p);
 		}
 		if (readPropertyByName("jenkinsciurl") == null){
-			PortalProperty p = new PortalProperty("jenkinsciurl", "ci.5ginfire.eu");
+			PortalProperty p = new PortalProperty("jenkinsciurl", "");
 			saveProperty(p);
 		}
 		if (readPropertyByName("jenkinscikey") == null){
@@ -140,7 +143,7 @@ public class PortalJpaController {
 			saveProperty(p);
 		}
 		if (readPropertyByName("portaltitle") == null){
-			PortalProperty p = new PortalProperty("portaltitle", "5GinFIRE");
+			PortalProperty p = new PortalProperty("portaltitle", "THE PORTAL");
 			saveProperty(p);
 		}
 		

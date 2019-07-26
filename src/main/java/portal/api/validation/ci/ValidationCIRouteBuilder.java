@@ -23,10 +23,6 @@ import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.model.dataformat.JsonLibrary;
-
-import portal.api.bugzilla.BugzillaClient;
-import portal.api.bugzilla.model.Bug;
 import portal.api.model.ExperimentMetadata;
 import portal.api.model.Product;
 import portal.api.model.ValidationJob;

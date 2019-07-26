@@ -71,7 +71,6 @@ import OSM5Util.OSM5NSReq.OSM5NSRequirements;
 import OSM5Util.OSM5VNFReq.OSM5VNFRequirements;
 import centralLog.api.CLevel;
 import centralLog.api.CentralLogger;
-import portal.api.bugzilla.model.ErrorMsg;
 import portal.api.bus.BusController;
 import portal.api.mano.MANOController;
 import portal.api.model.Category;
