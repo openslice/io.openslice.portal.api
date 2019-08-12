@@ -26,20 +26,33 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import javax.validation.Valid;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.PortalUser;
+import io.openslice.model.Product;
 import io.openslice.model.UserRoleType;
+import io.openslice.model.VxFMetadata;
+import portal.api.bus.BusController;
+import portal.api.service.PortalPropertiesService;
 import portal.api.service.UsersService;
+import portal.api.util.EmailUtil;
 
 //import javax.ws.rs.Consumes;
 //import javax.ws.rs.DELETE;
@@ -169,6 +182,9 @@ public class PortalRepositoryAPIImpl {
 	@Autowired
     UsersService usersService;
 	
+
+	@Autowired
+	PortalPropertiesService propsService;
 	
 	@GetMapping
 	public ResponseEntity<?>  getmain() {
@@ -211,310 +227,276 @@ public class PortalRepositoryAPIImpl {
 		
 	}
 
-//	@PostMapping( value =  "/admin/users/", produces = "application/json", consumes = "application/json" )
-//	public ResponseEntity<?> addUser(PortalUser user) {
-//
-//		logger.info("Received POST for usergetUsername: " + user.getUsername());
-//		// logger.info("Received POST for usergetPassword: " +
-//		// user.getPassword());
-//		// logger.info("Received POST for usergetOrganization: " +
-//		// user.getOrganization());
-//
-//		if ((user.getUsername() == null)
-//				|| (user.getUsername().equals("") || (user.getEmail() == null) || (user.getEmail().equals("")))) {
-//			
-//			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "New user with username=" + user.getUsername() + " cannot be registered" );
-//			
-//		}
-//		
-//		if ( user.getActive() ) {
-//			ResponseBuilder builder = Response.status(Status.BAD_REQUEST);
-//			builder.entity("New user with username=" + user.getUsername() + " cannot be registered, seems ACTIVE already");
-//			logger.info("New user with username=" + user.getUsername() + " cannot be registered BAD_REQUEST, seems ACTIVE already");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//		PortalUser portaluser = portalRepositoryRef.getUserByUsername(user.getUsername());
-//		if (portaluser != null) {
-//			return Response.status(Status.BAD_REQUEST).entity("Username exists").build();
-//		}
-//
-//		portaluser = portalRepositoryRef.getUserByEmail(user.getEmail());
-//		if (portaluser != null) {
-//			return Response.status(Status.BAD_REQUEST).entity("Email exists").build();
-//		}
-//
-//		user.setApikey( UUID.randomUUID().toString() );
-//		portaluser = portalRepositoryRef.addPortalUserToUsers(user);
-//
-//		if (portaluser != null) {
-//			BusController.getInstance().newUserAdded( portaluser.getId() );			
-//			return Response.ok().entity(portaluser).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested user with username=" + user.getUsername() + " cannot be installed");
-//			return builder.build();
-//		}
-//	}
-//
-//	@POST
-//	@Path("/register/")
-//	@Produces("application/json")
-//	@Consumes("multipart/form-data")
-//	public Response addNewRegisterUser(List<Attachment> ats) {
-//
-//		PortalUser user = new PortalUser();
-//		user.setName(AttachmentUtil.getAttachmentStringValue("name", ats));
-//		user.setUsername(AttachmentUtil.getAttachmentStringValue("username", ats));
-//		user.setPassword(AttachmentUtil.getAttachmentStringValue("userpassword", ats));
-//		user.setOrganization(AttachmentUtil.getAttachmentStringValue("userorganization", ats) + "^^"
-//				+ AttachmentUtil.getAttachmentStringValue("randomregid", ats));
-//		user.setEmail(AttachmentUtil.getAttachmentStringValue("useremail", ats));
-//		user.setActive(false);// in any case the user should be not active
-//		user.addRole(UserRoleType.EXPERIMENTER); // otherwise in post he can choose
-//		user.addRole(UserRoleType.VXF_DEVELOPER); // otherwise in post he can choose
-//		// PORTALADMIN, and the
-//		// immediately register :-)
-//
-//		String msg = AttachmentUtil.getAttachmentStringValue("emailmessage", ats);
-//		logger.info("Received register for usergetUsername: " + user.getUsername());
-//
-//		Response r = addUser(user);
-//
-//		if (r.getStatusInfo().getStatusCode() == Status.OK.getStatusCode()) {
-//			logger.info("Email message: " + msg);
-//			String subj = "[" + PortalRepository.getPropertyByName("portaltitle").getValue() + "] " + PortalRepository.getPropertyByName("activationEmailSubject").getValue();
-//			EmailUtil.SendRegistrationActivationEmail(user.getEmail(), msg, subj);
-//		}
-//
-//		return r;
-//	}
-//
-//	@POST
-//	@Path("/register/verify")
-//	@Produces("application/json")
-//	@Consumes("multipart/form-data")
-//	public Response addNewRegisterUserVerify(List<Attachment> ats) {
-//
-//		String username = AttachmentUtil.getAttachmentStringValue("username", ats);
-//		String rid = AttachmentUtil.getAttachmentStringValue("rid", ats);
-//
-//		PortalUser u = portalRepositoryRef.getUserByUsername(username);
-//		if (u.getOrganization().contains("^^")) {
-//			u.setOrganization(u.getOrganization().substring(0, u.getOrganization().indexOf("^^")));
-//			u.setActive(true);
-//		}
-//		u = portalRepositoryRef.updateUserInfo(  u);
-//		// AttachmentUtil.getAttachmentStringValue("username", ats)
-//
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested user with username=" + u.getUsername() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@PUT
-//	@Path("/admin/users/{userid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateUserInfo(@PathParam("userid") int userid, PortalUser user) {
-//		logger.info("Received PUT for user: " + user.getUsername());
-//		
+	@PostMapping( value =  "/admin/users/", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?> addUser( @Valid @RequestBody PortalUser user) {
+
+		logger.info("Received POST for usergetUsername: " + user.getUsername());
+		// logger.info("Received POST for usergetPassword: " +
+		// user.getPassword());
+		// logger.info("Received POST for usergetOrganization: " +
+		// user.getOrganization());
+
+		if ((user.getUsername() == null)
+				|| (user.getUsername().equals("") || (user.getEmail() == null) || (user.getEmail().equals("")))) {
+			
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "New user with username=" + user.getUsername() + " cannot be registered" );
+			
+		}
+		
+		if ( user.getActive() ) {
+
+			logger.info("New user with username=" + user.getUsername() + " cannot be registered BAD_REQUEST, seems ACTIVE already");
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "New user with username=" + user.getUsername() + " cannot be registered, seems ACTIVE already");
+		}
+
+		PortalUser portaluser = usersService.findByUsername(user.getUsername());  
+		
+		if (portaluser != null) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Username exists");
+		}
+
+		portaluser = usersService.findByEmail(user.getEmail() );  
+		if (portaluser != null) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Email exists");
+		}
+
+		user.setApikey( UUID.randomUUID().toString() );
+		portaluser = usersService.addPortalUserToUsers(user);
+
+		if (portaluser != null) {
+			BusController.getInstance().newUserAdded( portaluser );		
+			return ResponseEntity.ok( portaluser  );	
+		} else {
+			logger.info( "Requested user with username=" + user.getUsername() + " cannot be installed" );
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested user with username=" + user.getUsername() + " cannot be installed" );
+		}
+	}
+
+	
+	@PostMapping( value =  "/register/", produces = "application/json", consumes = "multipart/form-data" )
+	public ResponseEntity<?> addNewRegisterUser(  
+			@RequestPart("portaluser") PortalUser user,
+			@RequestPart("emailmessage") String emailmessage) {
+
+		user.setActive(false);// in any case the user should be not active
+		user.getRoles().clear();
+		user.addRole(UserRoleType.EXPERIMENTER); // otherwise in post he can choose
+		user.addRole(UserRoleType.VXF_DEVELOPER); // otherwise in post he can choose
+
+
+		String msg = emailmessage;
+		logger.info("Received register for usergetUsername: " + user.getUsername());
+
+		ResponseEntity<?> r = addUser(user);
+
+		if (r.getStatusCode()  == HttpStatus.OK ) {
+			logger.info("Email message: " + msg);
+			String subj = "[" + propsService.getPropertyByName("portaltitle").getValue() + "] " + propsService.getPropertyByName("activationEmailSubject").getValue();
+			EmailUtil.SendRegistrationActivationEmail(user.getEmail(), msg, subj);
+		}
+
+		return r;
+	}
+
+	@PostMapping( value =  "/register/verify", produces = "application/json", consumes = "multipart/form-data" )
+	public ResponseEntity<?> addNewRegisterUserVerify(
+			@RequestPart("username") String username,
+			@RequestPart("rid") String rid) {
+
+
+		PortalUser u = usersService.findByUsername(username);
+		if (u.getOrganization().contains("^^")) {
+			u.setOrganization(u.getOrganization().substring(0, u.getOrganization().indexOf("^^")));
+			u.setActive(true);
+		}
+		u = usersService.updateUserInfo(  u);
+
+		if (u != null) {
+			return ResponseEntity.ok( u  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested user with username=" + u.getUsername() + " cannot be updated");
+		}
+	}
+
+
+	@PutMapping( value =  "/admin/users/{userid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateUserInfo(  @PathVariable(required = true) long userid , PortalUser user) {
+		logger.info("Received PUT for user: " + user.getUsername());
+		
 //		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
 //			 return Response.status(Status.FORBIDDEN ).build();
 //		}
+
+		PortalUser previousUser = usersService.findById(userid);
+
+//		List<Product> previousProducts = previousUser.getProducts();
 //
-//		PortalUser previousUser = portalRepositoryRef.getUserByID(userid);
-//
-////		List<Product> previousProducts = previousUser.getProducts();
-////
-////		if (user.getProducts().size() == 0) {
-////			user.getProducts().addAll(previousProducts);
-////		}
-////
-//		previousUser.setActive( user.getActive() );
-//		previousUser.setEmail( user.getEmail() );
-//		previousUser.setName( user.getName());
-//		previousUser.setOrganization( user.getOrganization() );
-//		if ( (user.getPassword()!=null) && (!user.getPassword().equals(""))){//else will not change it
-//			previousUser.setPasswordUnencrypted( user.getPassword() ); 	//the unmarshaled object user has already called setPassword, so getPassword provides the encrypted password
-//		}
-//		
-//		previousUser.getRoles().clear();
-//		for (UserRoleType rt : user.getRoles()) {
-//			previousUser.getRoles().add(rt);
-//		}
-//		
-//		if ( (user.getApikey()!=null) && ( !user.getApikey().equals("")) ){
-//			previousUser.setApikey( user.getApikey() );			
-//		} else {
-//			previousUser.setApikey( UUID.randomUUID().toString() );			
+//		if (user.getProducts().size() == 0) {
+//			user.getProducts().addAll(previousProducts);
 //		}
 //
-//		
-//		PortalUser u = portalRepositoryRef.updateUserInfo( previousUser );
-//		
-//
-//		if (u != null) {
-//	
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested user with username=" + user.getUsername() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@DELETE
-//	@Path("/admin/users/{userid}")
-//	@Produces("application/json")
-//	public Response deleteUser(@PathParam("userid") int userid) {
-//		logger.info("Received DELETE for userid: " + userid);
-//		
+		previousUser.setActive( user.getActive() );
+		previousUser.setEmail( user.getEmail() );
+		previousUser.setName( user.getName());
+		previousUser.setOrganization( user.getOrganization() );
+		if ( (user.getPassword()!=null) && (!user.getPassword().equals(""))){//else will not change it
+			previousUser.setPasswordUnencrypted( user.getPassword() ); 	//the unmarshaled object user has already called setPassword, so getPassword provides the encrypted password
+		}
+		
+		previousUser.getRoles().clear();
+		for (UserRoleType rt : user.getRoles()) {
+			previousUser.getRoles().add(rt);
+		}
+		
+		if ( (user.getApikey()!=null) && ( !user.getApikey().equals("")) ){
+			previousUser.setApikey( user.getApikey() );			
+		} else {
+			previousUser.setApikey( UUID.randomUUID().toString() );			
+		}
+
+		
+		PortalUser u = usersService.updateUserInfo( previousUser );
+		
+
+		if (u != null) {
+
+			return ResponseEntity.ok( u  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested user with username=" + u.getUsername() + " cannot be updated");
+		}
+	}
+
+	@DeleteMapping( value =  "/admin/users/{userid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?> deleteUser(@PathVariable("userid") int userid) {
+		logger.info("Received DELETE for userid: " + userid);
+		
 //		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
 //			 return Response.status(Status.FORBIDDEN ).build();
 //		}
-//
-//
-//		return Response.status(Status.INTERNAL_SERVER_ERROR).build();
-//		
-//		/**
-//		 * do not allow for now to delete users!
-//		 */
-//				
-////		portalRepositoryRef.deleteUser(userid);
-////		return Response.ok().build();
-//		
-//	}
-//	
-//	/**
-//	 * @param userID
-//	 * @return true if user logged is equal to the requested id of owner, or is PORTALADMIN
-//	 */
-//	private boolean checkUserIDorIsAdmin(int userID){
-//		
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//		if ( (u !=null )  && (u.getId() == userID) ){
-//			return true;
-//		} 
-//		if ( (u !=null )  && u.getRoles().contains(UserRoleType.PORTALADMIN) ){//sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
-//			 return true;
-//		}
-//		
-//		if ( (u ==null) && (ws.getHttpHeaders().getHeaderString( "X-APIKEY")!=null) ){
-//			//retry again in case where there is no user found but still there is APIKEY
-//			if ( AjaxUserFilter.xapiKeyAuth( ws.getHttpServletRequest(), portalRepositoryRef) ){
-//				PortalUser u2 = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//				if ( u2!=null){
-//					return checkUserIDorIsAdmin( u2.getId() );
-//				}				
-//			}			
-//		}
-//		return false;
-//	}
-//
-//	@GET
-//	@Path("/admin/users/{userid}/vxfs")
-//	@Produces("application/json")
-//	public Response getAllVxFsofUser(@PathParam("userid") int userid) {
-//		logger.info("getAllVxFsofUser for userid: " + userid);
-//		
-//		if ( !checkUserIDorIsAdmin( userid ) ){
-//			 return Response.status(Status.FORBIDDEN ).build();
-//		}
-//		PortalUser u = portalRepositoryRef.getUserByID(userid);
-//
-//		if (u != null) {
-//			List<Product> prods = u.getProducts();
-//			List<VxFMetadata> vxfs = new ArrayList<VxFMetadata>();
-//			for (Product p : prods) {
-//				if (p instanceof VxFMetadata)
-//					vxfs.add((VxFMetadata) p);
-//			}
-//
-//			return Response.ok().entity(vxfs).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User with id=" + userid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/admin/users/{userid}/experiments")
-//	@Produces("application/json")
-//	public Response getAllAppsofUser(@PathParam("userid") int userid) {
-//		logger.info("getAllAppsofUser for userid: " + userid);
-//		
-//		if ( !checkUserIDorIsAdmin( userid ) ){
-//			 return Response.status(Status.FORBIDDEN ).build();
-//		}
-//
-//		
-//		PortalUser u = portalRepositoryRef.getUserByID(userid);
-//
-//		if (u != null) {
-//			List<Product> prods = u.getProducts();
-//			List<ExperimentMetadata> apps = new ArrayList<ExperimentMetadata>();
-//			for (Product p : prods) {
-//				if (p instanceof ExperimentMetadata)
-//					apps.add((ExperimentMetadata) p);
-//			}
-//
-//			return Response.ok().entity(apps).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User with id=" + userid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/admin/users/{userid}/vxfs/{vxfid}")
-//	@Produces("application/json")
-//	public Response getVxFofUser(@PathParam("userid") int userid, @PathParam("vxfid") int vxfid) {
-//		logger.info("getVxFofUser for userid: " + userid + ", vxfid=" + vxfid);
-//
-//		if ( !checkUserIDorIsAdmin( userid ) ){
-//			 return Response.status(Status.FORBIDDEN ).build();
-//		}
-//
-//		
-//		PortalUser u = portalRepositoryRef.getUserByID(userid);
-//
-//		if (u != null) {
-//			VxFMetadata vxf = (VxFMetadata) u.getProductById(vxfid);
-//			return Response.ok().entity(vxf).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User with id=" + userid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/admin/users/{userid}/experiments/{appid}")
-//	@Produces("application/json")
-//	public Response getAppofUser(@PathParam("userid") int userid, @PathParam("appid") int appid) {
-//		logger.info("getAppofUser for userid: " + userid + ", appid=" + appid);
-//		if ( !checkUserIDorIsAdmin( userid ) ){
-//			 return Response.status(Status.FORBIDDEN ).build();
-//		}
-//		
-//		PortalUser u = portalRepositoryRef.getUserByID(userid);
-//
-//		if (u != null) {
-//			ExperimentMetadata appmeta = (ExperimentMetadata) u.getProductById(appid);
-//			return Response.ok().entity(appmeta).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User with id=" + userid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
+
+
+		return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested user cannot be deleted");
+		
+		/**
+		 * do not allow for now to delete users!
+		 */
+				
+//		portalRepositoryRef.deleteUser(userid);
+//		return Response.ok().build();
+		
+	}
+	
+	/**
+	 * @param userID
+	 * @return true if user logged is equal to the requested id of owner, or is PORTALADMIN
+	 */
+	private boolean checkUserIDorIsAdmin(int userID){
+		
+		PortalUser u = usersService.getUserBySessionID( ws.getHttpServletRequest().getSession().getId());
+		if ( (u !=null )  && (u.getId() == userID) ){
+			return true;
+		} 
+		if ( (u !=null )  && u.getRoles().contains(UserRoleType.PORTALADMIN) ){//sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
+			 return true;
+		}
+		
+		if ( (u ==null) && (ws.getHttpHeaders().getHeaderString( "X-APIKEY")!=null) ){
+			//retry again in case where there is no user found but still there is APIKEY
+			if ( AjaxUserFilter.xapiKeyAuth( ws.getHttpServletRequest(), portalRepositoryRef) ){
+				PortalUser u2 = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
+				if ( u2!=null){
+					return checkUserIDorIsAdmin( u2.getId() );
+				}				
+			}			
+		}
+		return false;
+	}
+
+	@GetMapping( value =  "/admin/users/{userid}/vxfs", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?> getAllVxFsofUser(@PathVariable("userid") int userid) {
+		logger.info("getAllVxFsofUser for userid: " + userid);
+		
+		if ( !checkUserIDorIsAdmin( userid ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		PortalUser u = usersService.findById(userid);
+
+		if (u != null) {
+			List<Product> prods = u.getProducts();
+			List<VxFMetadata> vxfs = new ArrayList<VxFMetadata>();
+			for (Product p : prods) {
+				if (p instanceof VxFMetadata)
+					vxfs.add((VxFMetadata) p);
+			}
+
+			return ResponseEntity.ok( vxfs  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "User with id=" + userid + " not found in portal registry");
+			
+		}
+	}
+
+
+	@GetMapping( value =  "/admin/users/{userid}/experiments", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?> getAllAppsofUser(@PathVariable("userid") int userid) {
+		logger.info("getAllAppsofUser for userid: " + userid);
+		
+		if ( !checkUserIDorIsAdmin( userid ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+
+		
+		PortalUser u = usersService.findById(userid);
+
+		if (u != null) {
+			List<Product> prods = u.getProducts();
+			List<ExperimentMetadata> apps = new ArrayList<ExperimentMetadata>();
+			for (Product p : prods) {
+				if (p instanceof ExperimentMetadata)
+					apps.add((ExperimentMetadata) p);
+			}
+
+			return ResponseEntity.ok( apps  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "User with id=" + userid + " not found in portal registry");
+		}
+	}
+
+	@GetMapping( value =  "/admin/users/{userid}/vxfs/{vxfid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?> getVxFofUser(@PathVariable("userid") int userid, @PathVariable("vxfid") int vxfid) {
+		logger.info("getVxFofUser for userid: " + userid + ", vxfid=" + vxfid);
+
+		if ( !checkUserIDorIsAdmin( userid ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+
+		
+		PortalUser u = usersService.findById(userid);
+
+		if (u != null) {
+			VxFMetadata vxf = (VxFMetadata) u.getProductById(vxfid);
+			return ResponseEntity.ok( vxf  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "User with id=" + userid + " not found in portal registry");
+		}
+	}
+
+	@GetMapping( value =  "/admin/users/{userid}/experiments/{appid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?> getAppofUser( @PathVariable("userid") int userid, @PathVariable("appid") int appid) {
+		logger.info("getAppofUser for userid: " + userid + ", appid=" + appid);
+		if ( !checkUserIDorIsAdmin( userid ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		
+		PortalUser u = usersService.findById(userid);
+
+		if (u != null) {
+			ExperimentMetadata appmeta = (ExperimentMetadata) u.getProductById(appid);
+			return ResponseEntity.ok( appmeta );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "User with id=" + userid + " not found in portal registry");
+		}
+	}
 //
 //	// VxFS API
 //

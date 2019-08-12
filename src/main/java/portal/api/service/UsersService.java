@@ -8,14 +8,16 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import io.openslice.model.Category;
 import io.openslice.model.PortalUser;
 import io.openslice.model.UserRoleType;
 import portal.api.repo.UsersRepository;
 
+/**
+ * @author ctranoris
+ *
+ */
 @Service
 public class UsersService {
 
@@ -74,6 +76,24 @@ public class UsersService {
 		Optional<PortalUser> optionalUser = this.usersRepo.findById( id );
 		return optionalUser
 				.orElseThrow(() -> new PortalUserNotFoundException("Couldn't find a Portal User with id: " + id));
+	}
+
+	public PortalUser findByUsername(String username) {
+		Optional<PortalUser> optionalUser = this.usersRepo.findByUsername( username );
+		return optionalUser.orElse(null);
+	}
+
+	public PortalUser findByEmail(String email) {
+		Optional<PortalUser> optionalUser = this.usersRepo.findByEmail( email );
+		return optionalUser.orElse(null);
+	}
+
+	public PortalUser addPortalUserToUsers(PortalUser user) {
+		return usersRepo.save( user );
+	}
+
+	public PortalUser updateUserInfo(PortalUser user) {
+		return usersRepo.save( user );
 	}
 
 }

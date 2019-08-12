@@ -2,6 +2,7 @@ package portal.api.repo;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
@@ -26,6 +27,12 @@ public interface UsersRepository  extends PagingAndSortingRepository<PortalUser,
 	PortalUser findDistinctFirstByUsername( String username );
 
 	@Query( value = "SELECT m FROM PortalUser m INNER JOIN m.roles r WHERE r=4" ) //
-	Collection<PortalUser> findAllMentors(); 
+	Collection<PortalUser> findAllMentors();
+
+	Optional<PortalUser> findByUsername(String username);
+
+	Optional<PortalUser> findByEmail(String email); 
+	
+	
 
 }
