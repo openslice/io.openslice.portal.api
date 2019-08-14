@@ -21,6 +21,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -43,16 +44,23 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.WebApplicationContext;
 
+import io.openslice.model.Category;
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.PortalUser;
 import io.openslice.model.Product;
 import io.openslice.model.UserRoleType;
+import io.openslice.model.UserSession;
 import io.openslice.model.VxFMetadata;
 import portal.api.bus.BusController;
+import portal.api.service.CategoryService;
 import portal.api.service.PortalPropertiesService;
 import portal.api.service.UsersService;
 import portal.api.util.EmailUtil;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 //import javax.ws.rs.Consumes;
 //import javax.ws.rs.DELETE;
@@ -184,13 +192,17 @@ public class PortalRepositoryAPIImpl {
 	
 
 	@Autowired
+	CategoryService categoryService;
+	
+	@Autowired
 	PortalPropertiesService propsService;
+	
+
+    @Autowired
+    private WebApplicationContext wac;
 	
 	@GetMapping
 	public ResponseEntity<?>  getmain() {
-
-
-
 		return ResponseEntity.ok( "ok" );
 	}
 
@@ -198,8 +210,15 @@ public class PortalRepositoryAPIImpl {
 
 	
 	@GetMapping( value = "/admin/users", produces = "application/json" )
-	public ResponseEntity<List<PortalUser>>  getUsers() {
+	public ResponseEntity<List<PortalUser>>  getUsers(Principal principal) {
 
+		logger.info("principal=  " + principal);
+		Authentication authentication = 
+                SecurityContextHolder.getContext().getAuthentication();
+		
+
+		logger.info("authentication=  " + authentication);
+		
 //		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
 //			 return Response.status(Status.FORBIDDEN ).build();
 //		}
@@ -390,33 +409,39 @@ public class PortalRepositoryAPIImpl {
 	 * @param userID
 	 * @return true if user logged is equal to the requested id of owner, or is PORTALADMIN
 	 */
-	private boolean checkUserIDorIsAdmin(int userID){
+	private boolean checkUserIDorIsAdmin(int userID, Principal principal){
+
+		logger.info("checkUserIDorIsAdmin, principal=  " + principal.toString());
 		
-		PortalUser u = usersService.getUserBySessionID( ws.getHttpServletRequest().getSession().getId());
-		if ( (u !=null )  && (u.getId() == userID) ){
-			return true;
-		} 
-		if ( (u !=null )  && u.getRoles().contains(UserRoleType.PORTALADMIN) ){//sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
-			 return true;
-		}
 		
-		if ( (u ==null) && (ws.getHttpHeaders().getHeaderString( "X-APIKEY")!=null) ){
-			//retry again in case where there is no user found but still there is APIKEY
-			if ( AjaxUserFilter.xapiKeyAuth( ws.getHttpServletRequest(), portalRepositoryRef) ){
-				PortalUser u2 = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-				if ( u2!=null){
-					return checkUserIDorIsAdmin( u2.getId() );
-				}				
-			}			
-		}
+//		wac.getServletContext().getSessionCookieConfig().toString();
+		
+//		PortalUser u = usersService.getUserBySessionID( ws.getHttpServletRequest().getSession().getId());
+//		if ( (u !=null )  && (u.getId() == userID) ){
+//			return true;
+//		} 
+//		if ( (u !=null )  && u.getRoles().contains(UserRoleType.PORTALADMIN) ){//sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
+//			 return true;
+//		}
+//		
+//		if ( (u ==null) && (ws.getHttpHeaders().getHeaderString( "X-APIKEY")!=null) ){
+//			//retry again in case where there is no user found but still there is APIKEY
+//			if ( AjaxUserFilter.xapiKeyAuth( ws.getHttpServletRequest(), portalRepositoryRef) ){
+//				PortalUser u2 = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
+//				if ( u2!=null){
+//					return checkUserIDorIsAdmin( u2.getId() );
+//				}				
+//			}			
+//		}
 		return false;
 	}
 
 	@GetMapping( value =  "/admin/users/{userid}/vxfs", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getAllVxFsofUser(@PathVariable("userid") int userid) {
+	public ResponseEntity<?> getAllVxFsofUser(@PathVariable("userid") int userid, Principal principal) {
 		logger.info("getAllVxFsofUser for userid: " + userid);
+		logger.info("principal=  " + principal.toString());
 		
-		if ( !checkUserIDorIsAdmin( userid ) ){
+		if ( !checkUserIDorIsAdmin( userid, principal ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		PortalUser u = usersService.findById(userid);
@@ -438,10 +463,11 @@ public class PortalRepositoryAPIImpl {
 
 
 	@GetMapping( value =  "/admin/users/{userid}/experiments", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getAllAppsofUser(@PathVariable("userid") int userid) {
+	public ResponseEntity<?> getAllAppsofUser(@PathVariable("userid") int userid, Principal principal) {
 		logger.info("getAllAppsofUser for userid: " + userid);
+		logger.info("principal=  " + principal.toString());
 		
-		if ( !checkUserIDorIsAdmin( userid ) ){
+		if ( !checkUserIDorIsAdmin( userid, principal ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 
@@ -463,10 +489,10 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	@GetMapping( value =  "/admin/users/{userid}/vxfs/{vxfid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getVxFofUser(@PathVariable("userid") int userid, @PathVariable("vxfid") int vxfid) {
+	public ResponseEntity<?> getVxFofUser(@PathVariable("userid") int userid, @PathVariable("vxfid") int vxfid, Principal principal) {
 		logger.info("getVxFofUser for userid: " + userid + ", vxfid=" + vxfid);
 
-		if ( !checkUserIDorIsAdmin( userid ) ){
+		if ( !checkUserIDorIsAdmin( userid, principal ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 
@@ -482,9 +508,9 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	@GetMapping( value =  "/admin/users/{userid}/experiments/{appid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getAppofUser( @PathVariable("userid") int userid, @PathVariable("appid") int appid) {
+	public ResponseEntity<?> getAppofUser( @PathVariable("userid") int userid, @PathVariable("appid") int appid, Principal principal) {
 		logger.info("getAppofUser for userid: " + userid + ", appid=" + appid);
-		if ( !checkUserIDorIsAdmin( userid ) ){
+		if ( !checkUserIDorIsAdmin( userid, principal ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		
@@ -497,6 +523,104 @@ public class PortalRepositoryAPIImpl {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "User with id=" + userid + " not found in portal registry");
 		}
 	}
+	
+	// Sessions related API
+
+	// @OPTIONS
+	// @Path("/sessions/")
+	// @Produces("application/json")
+	// @Consumes("application/json")
+	// @LocalPreflight
+	// public Response addUserSessionOption(){
+	//
+	//
+	// logger.info("Received OPTIONS addUserSessionOption ");
+	// String origin = headers.getRequestHeader("Origin").get(0);
+	// if (origin != null) {
+	// return Response.ok()
+	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_METHODS, "GET POST DELETE PUT
+	// HEAD OPTIONS")
+	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_CREDENTIALS, "true")
+	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_HEADERS, "Origin,
+	// X-Requested-With, Content-Type, Accept")
+	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_ORIGIN, origin)
+	// .build();
+	// } else {
+	// return Response.ok().build();
+	// }
+	// }
+
+//
+//	@POST
+//	@Path("/sessions/")
+//	@Produces("application/json")
+//	@Consumes("application/json")
+//	public Response addUserSession(UserSession userSession) {
+//
+//		logger.info("Received POST addUserSession usergetUsername: " + userSession.getUsername());
+//		// logger.info("DANGER, REMOVE Received POST addUserSession password: "
+//		// + userSession.getPassword());
+//
+//		if (sc != null) {
+//			if (sc.getUserPrincipal() != null)
+//				logger.info(" securityContext.getUserPrincipal().toString() >"
+//						+ sc.getUserPrincipal().toString() + "<");
+//
+//		}
+//
+//		Subject currentUser = SecurityUtils.getSubject();
+//		if (currentUser != null) {
+//			AuthenticationToken token = new UsernamePasswordToken(userSession.getUsername(), userSession.getPassword());
+//			try {
+//				currentUser.login(token);
+//				PortalUser portalUser = portalRepositoryRef.getUserByUsername(userSession.getUsername());
+//
+//				if (!portalUser.getActive()) {
+//					logger.info("User [" + currentUser.getPrincipal() + "] is not Active");
+//					return Response.status(Status.UNAUTHORIZED).build();
+//				}
+//
+//				portalUser.setCurrentSessionID(ws.getHttpServletRequest().getSession().getId());
+//				userSession.setPortalUser(portalUser);
+//				userSession.setPassword("");
+//				;// so not tosend in response
+//
+//				logger.info(" currentUser = " + currentUser.toString());
+//				logger.info("User [" + currentUser.getPrincipal() + "] logged in successfully.");
+//				portalRepositoryRef.updateUserInfo(  portalUser);
+//				if ( currentUser.getPrincipal().toString().length()>2 ){
+//					CentralLogger.log( CLevel.INFO, "User [" + currentUser.getPrincipal().toString().substring(0, 3) + "xxx" + "] logged in");					
+//				}
+//
+//				return Response.ok().entity(userSession).build();
+//			} catch (AuthenticationException ae) {
+//
+//				return Response.status(Status.UNAUTHORIZED).build();
+//			}
+//		}
+//
+//		return Response.status(Status.UNAUTHORIZED).build();
+//	}
+//
+//	@GET
+//	@Path("/sessions/logout")
+//	@Produces("application/json")
+//	public Response logoutUser() {
+//
+//		logger.info("Received logoutUser ");
+//
+//		if (sc != null) {
+//			if (sc.getUserPrincipal() != null)
+//				logger.info(" securityContext.getUserPrincipal().toString() >"
+//						+ sc.getUserPrincipal().toString() + "<");
+//
+//			SecurityUtils.getSubject().logout();
+//		}
+//
+//		return Response.ok().build();
+//	}
+	
+	
 //
 //	// VxFS API
 //
@@ -2208,101 +2332,7 @@ public class PortalRepositoryAPIImpl {
 //		this.aMANOController = aMANOController;
 //	}
 //
-//	// Sessions related API
-//
-//	// @OPTIONS
-//	// @Path("/sessions/")
-//	// @Produces("application/json")
-//	// @Consumes("application/json")
-//	// @LocalPreflight
-//	// public Response addUserSessionOption(){
-//	//
-//	//
-//	// logger.info("Received OPTIONS addUserSessionOption ");
-//	// String origin = headers.getRequestHeader("Origin").get(0);
-//	// if (origin != null) {
-//	// return Response.ok()
-//	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_METHODS, "GET POST DELETE PUT
-//	// HEAD OPTIONS")
-//	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_CREDENTIALS, "true")
-//	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_HEADERS, "Origin,
-//	// X-Requested-With, Content-Type, Accept")
-//	// .header(CorsHeaderConstants.HEADER_AC_ALLOW_ORIGIN, origin)
-//	// .build();
-//	// } else {
-//	// return Response.ok().build();
-//	// }
-//	// }
-//
-//
-//	@POST
-//	@Path("/sessions/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addUserSession(UserSession userSession) {
-//
-//		logger.info("Received POST addUserSession usergetUsername: " + userSession.getUsername());
-//		// logger.info("DANGER, REMOVE Received POST addUserSession password: "
-//		// + userSession.getPassword());
-//
-//		if (sc != null) {
-//			if (sc.getUserPrincipal() != null)
-//				logger.info(" securityContext.getUserPrincipal().toString() >"
-//						+ sc.getUserPrincipal().toString() + "<");
-//
-//		}
-//
-//		Subject currentUser = SecurityUtils.getSubject();
-//		if (currentUser != null) {
-//			AuthenticationToken token = new UsernamePasswordToken(userSession.getUsername(), userSession.getPassword());
-//			try {
-//				currentUser.login(token);
-//				PortalUser portalUser = portalRepositoryRef.getUserByUsername(userSession.getUsername());
-//
-//				if (!portalUser.getActive()) {
-//					logger.info("User [" + currentUser.getPrincipal() + "] is not Active");
-//					return Response.status(Status.UNAUTHORIZED).build();
-//				}
-//
-//				portalUser.setCurrentSessionID(ws.getHttpServletRequest().getSession().getId());
-//				userSession.setPortalUser(portalUser);
-//				userSession.setPassword("");
-//				;// so not tosend in response
-//
-//				logger.info(" currentUser = " + currentUser.toString());
-//				logger.info("User [" + currentUser.getPrincipal() + "] logged in successfully.");
-//				portalRepositoryRef.updateUserInfo(  portalUser);
-//				if ( currentUser.getPrincipal().toString().length()>2 ){
-//					CentralLogger.log( CLevel.INFO, "User [" + currentUser.getPrincipal().toString().substring(0, 3) + "xxx" + "] logged in");					
-//				}
-//
-//				return Response.ok().entity(userSession).build();
-//			} catch (AuthenticationException ae) {
-//
-//				return Response.status(Status.UNAUTHORIZED).build();
-//			}
-//		}
-//
-//		return Response.status(Status.UNAUTHORIZED).build();
-//	}
-//
-//	@GET
-//	@Path("/sessions/logout")
-//	@Produces("application/json")
-//	public Response logoutUser() {
-//
-//		logger.info("Received logoutUser ");
-//
-//		if (sc != null) {
-//			if (sc.getUserPrincipal() != null)
-//				logger.info(" securityContext.getUserPrincipal().toString() >"
-//						+ sc.getUserPrincipal().toString() + "<");
-//
-//			SecurityUtils.getSubject().logout();
-//		}
-//
-//		return Response.ok().build();
-//	}
+
 //
 //	// THIS IS NOT USED
 //	@GET
@@ -2907,23 +2937,17 @@ public class PortalRepositoryAPIImpl {
 //		BusController.getInstance().deletedExperiment(nsd.getId());											
 //	}
 //
-//	// categories API
-//	@GET
-//	@Path("/categories/")
-//	@Produces("application/json")
-//	public Response getCategories() {
-//		return Response.ok().entity(portalRepositoryRef.getCategories()).build();
-//	}
-//
-//	@GET
-//	@Path("/admin/categories/")
-//	@Produces("application/json")
-//	public Response getAdminCategories() {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		return Response.ok().entity(portalRepositoryRef.getCategories()).build();
-//	}
+	// categories API
+	
+	@GetMapping( value = "/categories", produces = "application/json" )
+	public ResponseEntity<List<Category>> getCategories() {
+		return ResponseEntity.ok( categoryService.findAll() );
+	}
+
+	@GetMapping( value = "/admin/categories", produces = "application/json" )
+	public ResponseEntity<List<Category>>  getAdminCategories() {
+		return ResponseEntity.ok( categoryService.findAll() );
+	}
 //
 //	@POST
 //	@Path("/admin/categories/")

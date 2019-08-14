@@ -4,7 +4,7 @@ server:
     context-path : /osapi
 spring:
   datasource:
-    url: jdbc:mysql://localhost/osdb
+    url: jdbc:mysql://localhost/osdb?createDatabaseIfNotExist=true
     password: letmein0
     username: root
   jpa:
