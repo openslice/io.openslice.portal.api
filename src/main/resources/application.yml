@@ -20,3 +20,6 @@ spring:
     pool:
       enabled: true
       max-connections: 100
+logging:
+  level:
+    org.springframework: INFO

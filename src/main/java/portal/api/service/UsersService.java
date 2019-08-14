@@ -8,6 +8,7 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import io.openslice.model.PortalUser;
@@ -23,6 +24,10 @@ public class UsersService {
 
 	@Autowired
 	UsersRepository usersRepo;
+	
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
 
 	private static final transient Log logger = LogFactory.getLog( UsersService.class.getName() );
@@ -47,8 +52,9 @@ public class UsersService {
 		if (admin == null) {
 			PortalUser bu = new PortalUser();
 			bu.setName("Portal Administrator");
-			bu.setUsername("admin");
-			bu.setPassword("changeme");
+			bu.setUsername("admin");			
+			bu.setPassword(  passwordEncoder.encode("changeme") );
+			
 			bu.setEmail("");
 			bu.setOrganization("");
 			bu.addRole( UserRoleType.PORTALADMIN );

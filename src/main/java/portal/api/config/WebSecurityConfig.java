@@ -1,6 +1,8 @@
 package portal.api.config;
 
 
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,36 +17,56 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
+    
+
+    @Autowired
+    private DataSource dataSource;
+
+
+    @Autowired
+    private RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+
 
     @Autowired
     public void globalUserDetails(final AuthenticationManagerBuilder auth) throws Exception {
         // @formatter:off
-	auth.inMemoryAuthentication()
-	  .withUser("john").password(passwordEncoder.encode("123")).roles("USER").and()
-	  .withUser("tom").password(passwordEncoder.encode("111")).roles("ADMIN").and()
-	  .withUser("user1").password(passwordEncoder.encode("pass")).roles("USER").and()
-	  .withUser("admin").password(passwordEncoder.encode("nimda")).roles("ADMIN");
+    	auth.jdbcAuthentication()
+    	.dataSource(dataSource)
+    	.usersByUsernameQuery("select username, password, active from portal_user where username = ?")
+    	.authoritiesByUsernameQuery( "select username, roles from portal_user INNER JOIN portal_user_roles ON portal_user.id=portal_user_roles.portal_user_id where username = ?" )
+    	//.authoritiesByUsernameQuery("select username, authority " + "from authorities where username=?")
+        .passwordEncoder(new BCryptPasswordEncoder());
+//	auth.inMemoryAuthentication()
+//	  .withUser("john").password(passwordEncoder.encode("123")).roles("USER").and()
+//	  .withUser("tom").password(passwordEncoder.encode("111")).roles("ADMIN").and()
+//	  .withUser("user1").password(passwordEncoder.encode("pass")).roles("USER").and()
+//	  .withUser("admin").password(passwordEncoder.encode("changeme")).roles("ADMIN");
     }// @formatter:on
 
     @Override
-    @Bean
+    @Bean("authenticationManager")
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
     }
 
+    //see also https://www.baeldung.com/securing-a-restful-web-service-with-spring-security
     @Override
     protected void configure(final HttpSecurity http) throws Exception {
         // @formatter:off
 		http.authorizeRequests()
-		.antMatchers("/categories").permitAll()
-		.antMatchers("/experiments").permitAll()
-		.antMatchers("/vxfs").permitAll()
+		.antMatchers("/repo/sessions").permitAll()
+		.antMatchers("/repo/categories").permitAll()
+		.antMatchers("/repo/experiments").permitAll()
+		.antMatchers("/repo/vxfs").permitAll()
+	    //.antMatchers("/repo/admin/**").hasRole("ADMIN")
 		.antMatchers("/login").permitAll()
 		.antMatchers("/oauth/token/revokeById/**").permitAll()
 		.antMatchers("/tokens/**").permitAll()
 		.anyRequest().authenticated()
-		.and().formLogin().permitAll()
-		.and().csrf().disable();
+		//.and().formLogin().permitAll()
+		.and().csrf().disable()
+		.exceptionHandling()
+	    .authenticationEntryPoint(restAuthenticationEntryPoint);
 		// @formatter:on
     }
 

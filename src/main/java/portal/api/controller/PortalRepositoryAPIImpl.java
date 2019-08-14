@@ -27,6 +27,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import org.apache.commons.logging.Log;
@@ -59,7 +62,10 @@ import portal.api.service.PortalPropertiesService;
 import portal.api.service.UsersService;
 import portal.api.util.EmailUtil;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 //import javax.ws.rs.Consumes;
@@ -185,6 +191,8 @@ public class PortalRepositoryAPIImpl {
 //
 	// PortalUser related API
 	
+    @Resource(name="authenticationManager")
+    private AuthenticationManager authManager;
 
 
 	@Autowired
@@ -339,7 +347,7 @@ public class PortalRepositoryAPIImpl {
 
 
 	@PutMapping( value =  "/admin/users/{userid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateUserInfo(  @PathVariable(required = true) long userid , PortalUser user) {
+	public ResponseEntity<?>  updateUserInfo(  @PathVariable(required = true) long userid ,  @Valid @RequestBody PortalUser user) {
 		logger.info("Received PUT for user: " + user.getUsername());
 		
 //		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) ){
@@ -550,57 +558,75 @@ public class PortalRepositoryAPIImpl {
 	// }
 	// }
 
-//
-//	@POST
-//	@Path("/sessions/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addUserSession(UserSession userSession) {
-//
-//		logger.info("Received POST addUserSession usergetUsername: " + userSession.getUsername());
-//		// logger.info("DANGER, REMOVE Received POST addUserSession password: "
-//		// + userSession.getPassword());
-//
-//		if (sc != null) {
-//			if (sc.getUserPrincipal() != null)
-//				logger.info(" securityContext.getUserPrincipal().toString() >"
-//						+ sc.getUserPrincipal().toString() + "<");
-//
-//		}
-//
-//		Subject currentUser = SecurityUtils.getSubject();
-//		if (currentUser != null) {
-//			AuthenticationToken token = new UsernamePasswordToken(userSession.getUsername(), userSession.getPassword());
-//			try {
-//				currentUser.login(token);
-//				PortalUser portalUser = portalRepositoryRef.getUserByUsername(userSession.getUsername());
-//
-//				if (!portalUser.getActive()) {
-//					logger.info("User [" + currentUser.getPrincipal() + "] is not Active");
-//					return Response.status(Status.UNAUTHORIZED).build();
-//				}
-//
-//				portalUser.setCurrentSessionID(ws.getHttpServletRequest().getSession().getId());
-//				userSession.setPortalUser(portalUser);
-//				userSession.setPassword("");
-//				;// so not tosend in response
-//
-//				logger.info(" currentUser = " + currentUser.toString());
-//				logger.info("User [" + currentUser.getPrincipal() + "] logged in successfully.");
-//				portalRepositoryRef.updateUserInfo(  portalUser);
+
+	@PostMapping( value =  "/sessions", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?> addUserSession( @Valid @RequestBody UserSession userSession, final HttpServletRequest request) {
+
+		logger.info("Received POST addUserSession usergetUsername: " + userSession.getUsername());
+		// logger.info("DANGER, REMOVE Received POST addUserSession password: "
+		// + userSession.getPassword());
+		
+		Authentication authentication = 
+                SecurityContextHolder.getContext().getAuthentication();		
+
+		logger.info("authentication=  " + authentication);
+		
+
+		if (authentication != null) {
+			if (authentication.getPrincipal() != null)
+				logger.info(" securityContext.getPrincipal().toString() >"
+						+ authentication.getPrincipal().toString() + "<");
+
+		}
+		
+		  UsernamePasswordAuthenticationToken authReq =
+		            new UsernamePasswordAuthenticationToken( userSession.getUsername(), userSession.getPassword() );
+		       
+
+		
+			try {
+				 Authentication auth = authManager.authenticate(authReq);
+			        SecurityContext sc = SecurityContextHolder.getContext();
+			        sc.setAuthentication(auth);
+			        HttpSession session = request.getSession(true);
+			        session.setAttribute("SPRING_SECURITY_CONTEXT", sc);
+			        
+				PortalUser portalUser =  usersService.findByUsername(userSession.getUsername());
+				if (portalUser == null ) {
+					return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.NOT_FOUND ).body("user not found");
+				}
+				
+
+				logger.info(" securityContext.getPrincipal().toString() = "
+						+ sc.getAuthentication().getPrincipal().toString()  );
+				
+				
+				if (!portalUser.getActive()) {
+					logger.info("User [" + portalUser.getUsername() + "] is not Active");
+
+					return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.UNAUTHORIZED);
+				}
+
+				portalUser.setCurrentSessionID( request.getSession().getId() );
+				userSession.setPortalUser(portalUser);
+				userSession.setPassword("");
+				;// so not tosend in response
+
+				logger.info("User [" + portalUser.getUsername() + "] logged in successfully.");
+				PortalUser u = usersService.updateUserInfo( portalUser );
+				
 //				if ( currentUser.getPrincipal().toString().length()>2 ){
 //					CentralLogger.log( CLevel.INFO, "User [" + currentUser.getPrincipal().toString().substring(0, 3) + "xxx" + "] logged in");					
 //				}
-//
-//				return Response.ok().entity(userSession).build();
-//			} catch (AuthenticationException ae) {
-//
-//				return Response.status(Status.UNAUTHORIZED).build();
-//			}
-//		}
-//
-//		return Response.status(Status.UNAUTHORIZED).build();
-//	}
+
+				return ResponseEntity.ok( userSession );
+			} catch (Exception ae) {
+
+				return  ResponseEntity.status(HttpStatus.UNAUTHORIZED).body( "exception: " + ae.getMessage());
+			}
+	
+
+	}
 //
 //	@GET
 //	@Path("/sessions/logout")
