@@ -4,8 +4,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
 
 @ResponseStatus(code = HttpStatus.NOT_FOUND, reason = "not found")
-public class PortalUserNotFoundException extends RuntimeException {
-	public PortalUserNotFoundException(String message) {
+public class ItemNotFoundException extends RuntimeException {
+	public ItemNotFoundException(String message) {
         super(message);
     }
 	

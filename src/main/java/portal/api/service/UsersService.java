@@ -2,6 +2,7 @@ package portal.api.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
@@ -54,11 +55,12 @@ public class UsersService {
 			bu.setName("Portal Administrator");
 			bu.setUsername("admin");			
 			bu.setPassword(  passwordEncoder.encode("changeme") );
+			bu.setApikey( UUID.randomUUID().toString() );		
 			
 			bu.setEmail("");
 			bu.setOrganization("");
-			bu.addRole( UserRoleType.PORTALADMIN );
-			bu.addRole( UserRoleType.MENTOR  );
+			bu.addRole( UserRoleType.ROLE_ADMIN );
+			bu.addRole( UserRoleType.ROLE_MENTOR  );
 			bu.setActive(true);
 			usersRepo.save( bu );
 
@@ -81,7 +83,7 @@ public class UsersService {
 
 		Optional<PortalUser> optionalUser = this.usersRepo.findById( id );
 		return optionalUser
-				.orElseThrow(() -> new PortalUserNotFoundException("Couldn't find a Portal User with id: " + id));
+				.orElseThrow(() -> new ItemNotFoundException("Couldn't find a Portal User with id: " + id));
 	}
 
 	public PortalUser findByUsername(String username) {

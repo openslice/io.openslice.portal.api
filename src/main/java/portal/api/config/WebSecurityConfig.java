@@ -6,11 +6,14 @@ import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import io.openslice.model.UserRoleType;
 
 @Configuration
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
@@ -33,9 +36,20 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     	auth.jdbcAuthentication()
     	.dataSource(dataSource)
     	.usersByUsernameQuery("select username, password, active from portal_user where username = ?")
-    	.authoritiesByUsernameQuery( "select username, roles from portal_user INNER JOIN portal_user_roles ON portal_user.id=portal_user_roles.portal_user_id where username = ?" )
+    	.authoritiesByUsernameQuery( "select username, role_type from portal_user INNER JOIN portal_user_roles ON portal_user.id=portal_user_roles.portal_user_id where username = ?" )
+    	//.rolePrefix("ROLE_")
     	//.authoritiesByUsernameQuery("select username, authority " + "from authorities where username=?")
         .passwordEncoder(new BCryptPasswordEncoder());
+    	/**
+    	 * the given roles here are ROLE_0 for UserRoleType.MENTOR.ordinal( 
+    	 * or ROLE_4 for  UserRoleType.MENTOR.ordinal()
+    	 * etc.
+    	 * These are used in Controllers at @Secured({ "ROLE_0" }) annotations
+    	 */
+    	
+    	 
+    	
+    	
 //	auth.inMemoryAuthentication()
 //	  .withUser("john").password(passwordEncoder.encode("123")).roles("USER").and()
 //	  .withUser("tom").password(passwordEncoder.encode("111")).roles("ADMIN").and()
@@ -54,19 +68,23 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(final HttpSecurity http) throws Exception {
         // @formatter:off
 		http.authorizeRequests()
-		.antMatchers("/repo/sessions").permitAll()
-		.antMatchers("/repo/categories").permitAll()
-		.antMatchers("/repo/experiments").permitAll()
-		.antMatchers("/repo/vxfs").permitAll()
+		.antMatchers("/sessions/**").permitAll()
+		//.antMatchers("/sessions/logout").permitAll()
+		.antMatchers("/categories/**").permitAll()
+		.antMatchers("/experiments/**").permitAll()
+		.antMatchers("/vxfs/**").permitAll()
 	    //.antMatchers("/repo/admin/**").hasRole("ADMIN")
 		.antMatchers("/login").permitAll()
+		.antMatchers("/testweb/**").permitAll()		
 		.antMatchers("/oauth/token/revokeById/**").permitAll()
 		.antMatchers("/tokens/**").permitAll()
 		.anyRequest().authenticated()
 		//.and().formLogin().permitAll()
 		.and().csrf().disable()
 		.exceptionHandling()
-	    .authenticationEntryPoint(restAuthenticationEntryPoint);
+	    .authenticationEntryPoint(restAuthenticationEntryPoint)
+	    .and()
+		.logout();
 		// @formatter:on
     }
 
