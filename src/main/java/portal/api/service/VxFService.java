@@ -13,21 +13,45 @@ import portal.api.repo.VxFsRepository;
 
 @Service
 public class VxFService {
-	
 
 	@Autowired
 	VxFsRepository vxfsRepo;
 
-	public VxFMetadata getProductByID( long id) {
-		
+	public VxFMetadata getProductByID(long id) {
+
 		Optional<VxFMetadata> o = this.vxfsRepo.findById(id);
-		
-		return o
-				.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFMetadata with id: " + id));
+
+		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFMetadata with id: " + id));
 	}
 
 	public VxFMetadata updateProductInfo(VxFMetadata refVxF) {
-		return this.vxfsRepo.save( refVxF );
+		return this.vxfsRepo.save(refVxF);
+	}
+
+	public List<VxFMetadata> getPublishedVxFsByCategory(Long categoryid) {
+		if ((categoryid != null) && (categoryid >= 0)) {
+			return (List<VxFMetadata>) this.vxfsRepo.getPublishedVxFsByCategory(categoryid);
+		} else {
+			return (List<VxFMetadata>) this.vxfsRepo.getPublishedVxF();
+		}
+	}
+
+	public List<VxFMetadata> getVxFsByCategory(Long categoryid) {
+		return (List<VxFMetadata>) this.vxfsRepo.getVxFsByCategory(categoryid);
+	}
+
+	public List<VxFMetadata> getVxFsByUserID(long userid) {
+		return (List<VxFMetadata>) this.vxfsRepo.getVxFsByUserID(userid);
+	}
+
+	public VxFMetadata getVxFtByUUID(String uuid) {
+		Optional<VxFMetadata> o = this.vxfsRepo.findByUUID( uuid );
+		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFMetadata with id: " + uuid));
+	}
+
+	public void deleteProduct(VxFMetadata vxf) {
+		this.vxfsRepo.delete( vxf );
+		
 	}
 
 }

@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import io.openslice.model.PortalUser;
+import portal.api.mano.MANOStatus;
 
 
 /**
@@ -80,38 +81,6 @@ public class BusController  {
 
 
 
-//	/**
-//	 * 
-//	 * utility function to stop ProducerTemplate
-//	 * @param result
-//	 * @param template
-//	 */
-//	private void waitAndStopForTemplate(Future<Exchange> result, FluentProducerTemplate template) {
-//		while (true) {			
-//			if (result.isDone()) {
-//				logger.info( "waitAndStopForTemplate: " + template.toString() + " [STOPPED]");
-//				try {
-//					template.stop();
-//					template.clearAll();
-//					template.cleanUp();
-//					break;
-//				} catch (Exception e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
-//			}
-//			
-//			try {
-//				logger.info( "waitAndStopForTemplate: " + template.toString() + " [WAITING...]");
-//				Thread.sleep( 5000 );
-//			} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//
-//		}
-//		
-//	}
 	
 	/**
 	 * Asynchronously sends to the routing bus (seda:users.create?multipleConsumers=true) that a new user is added
@@ -150,7 +119,7 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:deployments.create?multipleConsumers=true) that a new user is added
 	 * @param deployment a {@link DeploymentDescriptor}
 	 */
-	public void updateDeploymentRequest(int deploymentdescriptorid) {
+	public void updateDeploymentRequest( long deploymentdescriptorid) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:deployments.update?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();
@@ -171,17 +140,17 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:vxf.onboard?multipleConsumers=true) to upload a new vxf
 	 * @param deployment a {@link VxFMetadata}
 	 */
-	public void onBoardVxFAdded(int vxfobdid) {
+	public void onBoardVxFAdded(long vxfobdid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard?multipleConsumers=true");
 		template.withBody( vxfobdid ).asyncSend();				
 	}
 
-	public void onBoardVxFFailed(int vxfobdid) {
+	public void onBoardVxFFailed(long l) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard.fail?multipleConsumers=true");
-		template.withBody( vxfobdid ).asyncSend();			
+		template.withBody( l ).asyncSend();			
 	}
 
-	public void onBoardVxFSucceded(int vxfobdid) {
+	public void onBoardVxFSucceded(long vxfobdid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard.success?multipleConsumers=true");
 		template.withBody( vxfobdid ).asyncSend();				
 	}
@@ -196,12 +165,12 @@ public class BusController  {
 		template.withBody( experimentmetadataid ).asyncSend();		
 	}
 
-	public void onBoardNSDFailed(int uexpobdid) {
+	public void onBoardNSDFailed( long uexpobdid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onboard.fail?multipleConsumers=true");
 		template.withBody( uexpobdid ).asyncSend();			
 	}
 
-	public void onBoardNSDSucceded(int uexpobdid) {
+	public void onBoardNSDSucceded(long uexpobdid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onboard.success?multipleConsumers=true");
 		template.withBody( uexpobdid ).asyncSend();				
 	}
@@ -272,17 +241,17 @@ public class BusController  {
 //		template.withBody(manostatus).asyncSend();						
 //	}
 //	
-//	public void osm5CommunicationFailed(Class<MANOStatus> manostatus)
-//	{
-//		FluentProducerTemplate template = actx.createFluentProducerTemplate().to("seda:communication.osm5.fail?multipleConsumers=true");
-//		template.withBody(manostatus).asyncSend();						
-//	}
-//
-//	public void osm5CommunicationRestored(Class<MANOStatus> manostatus)
-//	{
-//		FluentProducerTemplate template = actx.createFluentProducerTemplate().to("seda:communication.osm5.success?multipleConsumers=true");
-//		template.withBody(manostatus).asyncSend();						
-//	}
+	public void osm5CommunicationFailed(Class<MANOStatus> manostatus)
+	{
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:communication.osm5.fail?multipleConsumers=true");
+		template.withBody(manostatus).asyncSend();						
+	}
+
+	public void osm5CommunicationRestored(Class<MANOStatus> manostatus)
+	{
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:communication.osm5.success?multipleConsumers=true");
+		template.withBody(manostatus).asyncSend();						
+	}
 	
 	public void terminateInstanceSucceded(int deploymentdescriptorid)
 	{
@@ -297,13 +266,11 @@ public class BusController  {
 	}
 
 	public void deleteInstanceSucceded(int deploymentdescriptorid) {
-		// TODO Auto-generated method stub
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.instance.deletion.success?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();								
 	}
 		
 	public void deleteInstanceFailed(int deploymentdescriptorid) {
-		// TODO Auto-generated method stub
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.instance.deletion.fail?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();								
 	}
@@ -398,18 +365,6 @@ public class BusController  {
 		
 	}
 
-//	/**
-//	 * @param vfimg
-//	 */
-//	public void newVFImageAdded(VFImage vfimg) {
-//		// TODO Auto-generated method stub
-//		
-//	}
-//
-//	public void aVFImageUpdated(VFImage vfimg) {
-//		// TODO Auto-generated method stub
-//		
-//	}
 
 	/**
 	 * Asynchronously sends to the routing bus (seda:mano.onboard.vxf?multipleConsumers=true) to trigger new VXF onboarding to target MANOs that
@@ -426,9 +381,9 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:vxf.offboard?multipleConsumers=true) to trigger new VXF offboarding 
 	 * @param deployment a {@link VxFOnBoardedDescriptor}
 	 */
-	public void offBoardVxF(int vxfobdsid) {
+	public void offBoardVxF(long l) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.offboard?multipleConsumers=true");
-		template.withBody( vxfobdsid ).asyncSend();		
+		template.withBody( l ).asyncSend();		
 	}
 
 	/**

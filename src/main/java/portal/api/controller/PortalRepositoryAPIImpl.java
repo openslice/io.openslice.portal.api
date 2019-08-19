@@ -297,7 +297,7 @@ public class PortalRepositoryAPIImpl {
 	 * @param userID
 	 * @return true if user logged is equal to the requested id of owner, or is ROLE_ADMIN
 	 */
-	private boolean checkUserIDorIsAdmin(int userID){
+	private boolean checkUserIDorIsAdmin(long userID){
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		

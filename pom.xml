@@ -134,6 +134,13 @@
 			<artifactId>io.openslice.model</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.openslice</groupId>
+			<artifactId>io.openslice.sol005nbi.osm5</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+		
 
 	</dependencies>
 
