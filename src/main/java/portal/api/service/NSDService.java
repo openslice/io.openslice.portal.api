@@ -37,7 +37,7 @@ public class NSDService {
 	}
 
 	public List<ExperimentMetadata> getdNSDsByCategory(Long categoryid) {
-		if ( categoryid >=0 ) {
+		if ((categoryid != null) && (categoryid >= 0)) {
 			return (List<ExperimentMetadata>) this.nsdRepo.getNSDsByCategory(categoryid);
 		} else {
 			return (List<ExperimentMetadata>) this.nsdRepo.findAll();

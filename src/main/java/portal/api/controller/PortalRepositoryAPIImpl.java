@@ -306,15 +306,15 @@ public class PortalRepositoryAPIImpl {
 		logger.info("principal 2=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority(  UserRoleType.ROLE_MENTOR.getValue() ) ));
 		
 
+		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue() ))){
+			logger.info("checkUserIDorIsAdmin, authentication role =  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue()  ) ));
+			return true;
+		}
 		PortalUser uToFind = usersService.findById(  userID );
 		if ( (uToFind !=null )  && ( uToFind.getUsername()  == authentication.getName()) ){
 			logger.info("checkUserIDorIsAdmin, user is equal with request");
 			return true;
 		} 
-		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue() ))){
-			logger.info("checkUserIDorIsAdmin, authentication role =  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue()  ) ));
-			return true;
-		}
 		
 
 		return false;

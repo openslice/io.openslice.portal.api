@@ -38,7 +38,7 @@ public class VxFService {
 	}
 
 	public List<VxFMetadata> getVxFsByCategory(Long categoryid) {
-		if (categoryid>=0) {
+		if ((categoryid != null) && (categoryid >= 0)) {
 			return (List<VxFMetadata>) this.vxfsRepo.getVxFsByCategory(categoryid);			
 		} else {
 			return (List<VxFMetadata>) this.vxfsRepo.findAll();

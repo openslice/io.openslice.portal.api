@@ -11,7 +11,7 @@ spring:
     database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     generate-ddl: true
   activemq:
     broker-url: tcp://localhost:61616
@@ -25,4 +25,10 @@ spring:
     multipart.max-request-size: 10MB
 logging:
   level:
-    org.springframework: DEBUG
+    root: INFO
+    portal.api: INFO
+    org.springframework: INFO
+    org.apache.camel: INFO 
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
+    file: "%d %p %c{1.} [%t] %m%n"

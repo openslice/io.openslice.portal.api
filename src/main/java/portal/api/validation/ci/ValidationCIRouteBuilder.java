@@ -25,6 +25,7 @@ import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import io.openslice.model.ExperimentMetadata;
@@ -41,6 +42,7 @@ import portal.api.service.PortalPropertiesService;
  *
  */
 @Component
+@Configuration
 public class ValidationCIRouteBuilder extends RouteBuilder {
 
 	private static String JENKINSCIKEY = "";
@@ -49,7 +51,7 @@ public class ValidationCIRouteBuilder extends RouteBuilder {
 	
 
 	@Autowired
-	private PortalPropertiesService propsService;
+	PortalPropertiesService propsService;
 	
 	public void configure() {
 

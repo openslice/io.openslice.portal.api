@@ -19,13 +19,13 @@ import io.openslice.model.ExperimentMetadata;
 public interface NSDsRepository extends PagingAndSortingRepository<ExperimentMetadata, Long> {
 
 
-	@Query( value = "SELECT a FROM ExperimentMetadata a WHERE a.published=TRUE AND a.categories.id=?1 ORDER BY a.name" ) //	
+	@Query( value = "SELECT a FROM ExperimentMetadata a JOIN a.categories ac WHERE a.published=TRUE AND ac.id=?1 ORDER BY a.name" ) //	
 	Collection<ExperimentMetadata> getPublishedNSDsByCategory(Long categoryid);
 
 	@Query( value = "SELECT a FROM ExperimentMetadata a WHERE a.published=TRUE ORDER BY a.name" ) //
 	Collection<ExperimentMetadata> getPublishedNSDs();
 
-	@Query( value = "SELECT a FROM ExperimentMetadata a WHERE a.categories.id=?1 ORDER BY a.name" ) //
+	@Query( value = "SELECT a FROM ExperimentMetadata a JOIN a.categories ac WHERE ac.id=?1 ORDER BY a.name" ) //
 	Collection<ExperimentMetadata> getNSDsByCategory(Long categoryid);
 
 	@Query( value ="SELECT a FROM ExperimentMetadata a WHERE a.owner.id=?1 ORDER BY a.id" )

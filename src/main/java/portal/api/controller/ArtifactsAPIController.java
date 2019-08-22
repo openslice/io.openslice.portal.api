@@ -608,7 +608,7 @@ public class ArtifactsAPIController {
 	/******************* VxFs API ***********************/
 
 	@GetMapping( value = "/vxfs", produces = "application/json" )
-	public ResponseEntity<?> getAllVxFs( @RequestParam ("categoryid") Long categoryid) {
+	public ResponseEntity<?> getAllVxFs( @RequestParam ( name = "categoryid", required = false) Long categoryid) {
 		
 		logger.info("getVxFs categoryid=" + categoryid);
 		List<VxFMetadata> vxfs = vxfService.getPublishedVxFsByCategory(categoryid); // portalRepositoryRef.getVxFs(categoryid, true);
@@ -616,7 +616,7 @@ public class ArtifactsAPIController {
 	}
 	
 	@GetMapping( value = "/admin/vxfs", produces = "application/json" )
-	public  ResponseEntity<?> getVxFs(@RequestParam("categoryid") Long categoryid) {
+	public  ResponseEntity<?> getVxFs(@RequestParam( name = "categoryid", required = false) Long categoryid) {
 		logger.info("getVxFs categoryid=" + categoryid);
 		
 
@@ -741,17 +741,17 @@ public class ArtifactsAPIController {
 		logger.info("principal 1=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue()  ) ));
 		logger.info("principal 2=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority(  UserRoleType.ROLE_TESTBED_PROVIDER.getValue() ) ));
 		logger.info("principal 2=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority(  UserRoleType.ROLE_MENTOR.getValue() ) ));
-		
+
+		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue() ))){
+			logger.info("checkUserIDorIsAdmin, authentication role =  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue()  ) ));
+			return true;
+		}
 
 		PortalUser uToFind = usersService.findById(  userID );
 		if ( (uToFind !=null )  && ( uToFind.getUsername()  == authentication.getName()) ){
 			logger.info("checkUserIDorIsAdmin, user is equal with request");
 			return true;
 		} 
-		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue() ))){
-			logger.info("checkUserIDorIsAdmin, authentication role =  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue()  ) ));
-			return true;
-		}
 		
 
 		return false;
@@ -1006,7 +1006,7 @@ public class ArtifactsAPIController {
 
 	
 
-	@GetMapping( value = "/images/{uuid}/{imgfile}", produces = "image/jpeg,image/png" )
+	@GetMapping( value = "/images/{uuid}/{imgfile}", produces = { "image/jpeg",  "image/png" } )
 	public @ResponseBody byte[] getEntityImage( @PathVariable("uuid") String uuid, @PathVariable("imgfile") String imgfile) throws IOException {
 		logger.info("getEntityImage of uuid: " + uuid);
 		String imgAbsfile = METADATADIR + uuid + File.separator + imgfile;
@@ -1235,7 +1235,7 @@ public class ArtifactsAPIController {
 	// Experiments related API
 
 	@GetMapping( value = "/admin/experiments", produces = "application/json" )
-	public ResponseEntity<?> getApps(@RequestParam("categoryid") Long categoryid) {
+	public ResponseEntity<?> getApps(@RequestParam(name= "categoryid", required = false) Long categoryid) {
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
@@ -1258,7 +1258,7 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/experiments", produces = "application/json" )
-	public ResponseEntity<?>  getAllApps(@RequestParam("categoryid") Long categoryid) {
+	public ResponseEntity<?>  getAllApps(@RequestParam( name="categoryid", required = false) Long categoryid) {
 		logger.info("getexperiments categoryid=" + categoryid);
 		List<ExperimentMetadata> nsds = nsdService.getPublishedNSDsByCategory(categoryid); 
 		return ResponseEntity.ok( nsds );		
@@ -1611,7 +1611,7 @@ public class ArtifactsAPIController {
 	}
 	
 
-	@GetMapping( value = "/admin/properties/", produces = "application/json" )
+	@GetMapping( value = "/admin/properties", produces = "application/json" )
 	public ResponseEntity<?>  getProperties() {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2081,12 +2081,12 @@ public class ArtifactsAPIController {
 	 * 
 	 ********************************************************************************/
 
-	@GetMapping( value = "/manoplatforms/", produces = "application/json" )
+	@GetMapping( value = "/manoplatforms", produces = "application/json" )
 	public ResponseEntity<?>  getMANOplatforms() {
 		return ResponseEntity.ok( manoPlatformService.getMANOplatforms()  );
 	}
 
-	@GetMapping( value = "/admin/manoplatforms/", produces = "application/json" )
+	@GetMapping( value = "/admin/manoplatforms", produces = "application/json" )
 	public ResponseEntity<?>  getAdminMANOplatforms() {
 
 		
@@ -2182,7 +2182,7 @@ public class ArtifactsAPIController {
 	/**
 	 * @return
 	 */
-	@GetMapping( value = "/admin/manoproviders/", produces = "application/json" )
+	@GetMapping( value = "/admin/manoproviders", produces = "application/json" )
 	public ResponseEntity<?>  getAdminMANOproviders() {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2290,7 +2290,7 @@ public class ArtifactsAPIController {
 		return (ResponseEntity<?>) ResponseEntity.notFound();
 	}
 
-	@GetMapping( value = "/admin/manoprovider/{mpid}/vnfds/", produces = "application/json" )
+	@GetMapping( value = "/admin/manoprovider/{mpid}/vnfds", produces = "application/json" )
 	public ResponseEntity<?>  getOSMVNFMetadata(@PathVariable("mpid") int manoprovid) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2350,7 +2350,7 @@ public class ArtifactsAPIController {
 	}
 
 
-	@GetMapping( value = "/admin/manoprovider/{mpid}/nsds/", produces = "application/json" )
+	@GetMapping( value = "/admin/manoprovider/{mpid}/nsds", produces = "application/json" )
 	public ResponseEntity<?>  getOSM_NSD_Metadata(@PathVariable("mpid") int manoprovid) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2390,7 +2390,7 @@ public class ArtifactsAPIController {
 	 ********************************************************************************/
 
 
-	@GetMapping( value = "/admin/vxfobds/", produces = "application/json" )
+	@GetMapping( value = "/admin/vxfobds", produces = "application/json" )
 	public ResponseEntity<?>  getVxFOnBoardedDescriptors() {
 		return ResponseEntity.ok( vxfOBDService.getVxFOnBoardedDescriptors()  );
 	}
@@ -2590,7 +2590,7 @@ public class ArtifactsAPIController {
 	 * 
 	 ********************************************************************************/
 
-	@GetMapping( value = "/admin/experimentobds/", produces = "application/json" )
+	@GetMapping( value = "/admin/experimentobds", produces = "application/json" )
 	public ResponseEntity<?>  getExperimentOnBoardDescriptors() {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2792,7 +2792,7 @@ public class ArtifactsAPIController {
 	 * Infrastructure object API
 	 */
 
-	@GetMapping( value = "/admin/infrastructures/", produces = "application/json" )
+	@GetMapping( value = "/admin/infrastructures", produces = "application/json" )
 	public ResponseEntity<?>  getAdminInfrastructures() {	
 		return ResponseEntity.ok( infrastructureService.getInfrastructures()  );
 	}
