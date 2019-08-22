@@ -34,5 +34,8 @@ public interface NSDsRepository extends PagingAndSortingRepository<ExperimentMet
 	@Query( value ="SELECT a FROM ExperimentMetadata a WHERE a.uuid=?1" )
 	Optional<ExperimentMetadata> findByUUID(String uuid);
 
+	@Query( value ="SELECT a FROM ExperimentMetadata a WHERE a.name LIKE ?1" )
+	Optional<ExperimentMetadata> findByName(String name);
+
 
 }

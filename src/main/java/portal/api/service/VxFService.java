@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.VxFMetadata;
 import portal.api.repo.ManoProvidersRepository;
@@ -37,7 +38,11 @@ public class VxFService {
 	}
 
 	public List<VxFMetadata> getVxFsByCategory(Long categoryid) {
-		return (List<VxFMetadata>) this.vxfsRepo.getVxFsByCategory(categoryid);
+		if (categoryid>=0) {
+			return (List<VxFMetadata>) this.vxfsRepo.getVxFsByCategory(categoryid);			
+		} else {
+			return (List<VxFMetadata>) this.vxfsRepo.findAll();
+		}
 	}
 
 	public List<VxFMetadata> getVxFsByUserID(long userid) {
@@ -52,6 +57,11 @@ public class VxFService {
 	public void deleteProduct(VxFMetadata vxf) {
 		this.vxfsRepo.delete( vxf );
 		
+	}
+
+	public VxFMetadata getVxFByName(String name) {
+		Optional<VxFMetadata> o = this.vxfsRepo.findByName( name );
+		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFMetadata with name: " + name));
 	}
 
 }

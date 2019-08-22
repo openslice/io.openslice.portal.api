@@ -24,8 +24,8 @@ public class NSDService {
 		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentMetadata with id: " + id));
 	}
 
-	public ExperimentMetadata updateProductInfo( ExperimentMetadata  refVxF) {
-		return this.nsdRepo.save(refVxF);
+	public ExperimentMetadata updateProductInfo( ExperimentMetadata  refNSD) {
+		return this.nsdRepo.save(refNSD);
 	}
 
 	public List<ExperimentMetadata> getPublishedNSDsByCategory(Long categoryid) {
@@ -36,22 +36,31 @@ public class NSDService {
 		}
 	}
 
-	public List<ExperimentMetadata> getVxFsByCategory(Long categoryid) {
-		return (List<ExperimentMetadata>) this.nsdRepo.getNSDsByCategory(categoryid);
+	public List<ExperimentMetadata> getdNSDsByCategory(Long categoryid) {
+		if ( categoryid >=0 ) {
+			return (List<ExperimentMetadata>) this.nsdRepo.getNSDsByCategory(categoryid);
+		} else {
+			return (List<ExperimentMetadata>) this.nsdRepo.findAll();
+		}
 	}
 
-	public List<ExperimentMetadata> getVxFsByUserID(long userid) {
+	public List<ExperimentMetadata> gedNSDsByUserID(long userid) {
 		return (List<ExperimentMetadata>) this.nsdRepo.getNSDsByUserID(userid);
 	}
 
-	public ExperimentMetadata getVxFtByUUID(String uuid) {
+	public ExperimentMetadata getdNSDByUUID(String uuid) {
 		Optional<ExperimentMetadata> o = this.nsdRepo.findByUUID( uuid );
 		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentMetadata with id: " + uuid));
 	}
 
-	public void deleteProduct(ExperimentMetadata vxf) {
-		this.nsdRepo.delete( vxf );
+	public void deleteProduct(ExperimentMetadata nsd) {
+		this.nsdRepo.delete( nsd );
 		
+	}
+
+	public ExperimentMetadata getNSDByName(String name) {
+		Optional<ExperimentMetadata> o = this.nsdRepo.findByName( name );
+		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentMetadata with name: " + name));
 	}
 
 }

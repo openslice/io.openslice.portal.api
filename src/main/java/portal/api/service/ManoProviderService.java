@@ -1,10 +1,12 @@
 package portal.api.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import io.openslice.model.MANOplatform;
 import io.openslice.model.MANOprovider;
 import portal.api.repo.ManoProvidersRepository;
 
@@ -18,6 +20,29 @@ public class ManoProviderService {
 	public List<MANOprovider> getMANOprovidersEnabledForOnboarding() {
 		
 		return (List<MANOprovider>) this.manoProvidersRepo.findAllEnabled() ;
+	}
+
+	public MANOprovider getMANOproviderByID(long id) {
+		Optional<MANOprovider> o = this.manoProvidersRepo.findById(id);
+		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find MANOprovider with id: " + id));
+	}
+
+	public MANOprovider updateMANOproviderInfo(MANOprovider c) {
+		
+		return this.manoProvidersRepo.save(c);
+	}
+
+	public void deleteMANOprovider(MANOprovider prev) {
+		this.manoProvidersRepo.delete(prev);
+		
+	}
+
+	public MANOprovider addMANOprovider(MANOprovider c) {
+		return this.manoProvidersRepo.save(c);
+	}
+
+	public List<MANOprovider>  getMANOproviders() {
+		return (List<MANOprovider>) this.manoProvidersRepo.findAll();
 	}
 
 }

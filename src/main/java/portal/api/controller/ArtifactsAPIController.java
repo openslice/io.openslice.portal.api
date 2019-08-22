@@ -56,9 +56,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.multipart.MultipartFile;
 
+import OSM5NBIClient.OSM5Client;
 import OSM5Util.OSM5ArchiveExtractor.OSM5NSExtractor;
 import OSM5Util.OSM5ArchiveExtractor.OSM5VNFDExtractor;
 import OSM5Util.OSM5NSReq.OSM5NSRequirements;
@@ -67,10 +69,16 @@ import centralLog.api.CLevel;
 import centralLog.api.CentralLogger;
 import io.openslice.model.Category;
 import io.openslice.model.ConstituentVxF;
+import io.openslice.model.DeploymentDescriptor;
+import io.openslice.model.DeploymentDescriptorStatus;
 import io.openslice.model.ExperimentMetadata;
+import io.openslice.model.ExperimentOnBoardDescriptor;
+import io.openslice.model.Infrastructure;
+import io.openslice.model.MANOplatform;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.PackagingFormat;
+import io.openslice.model.PortalProperty;
 import io.openslice.model.PortalUser;
 import io.openslice.model.Product;
 import io.openslice.model.UserRoleType;
@@ -80,14 +88,20 @@ import io.openslice.model.ValidationStatus;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import net.bytebuddy.implementation.bytecode.Throw;
+import osm5.ns.riftware._1._0.project.nsd.rev170228.project.nsd.catalog.Nsd;
 import portal.api.bus.BusController;
 import portal.api.mano.MANOController;
 import portal.api.repo.ManoProvidersRepository;
 import portal.api.service.CategoryService;
+import portal.api.service.DeploymentDescriptorService;
+import portal.api.service.ManoPlatformService;
 import portal.api.service.ManoProviderService;
+import portal.api.service.NSDOBDService;
 import portal.api.service.NSDService;
 import portal.api.service.PortalPropertiesService;
+import portal.api.service.ProductService;
 import portal.api.service.UsersService;
+import portal.api.service.VFImageService;
 import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
 import portal.api.util.AttachmentUtil;
@@ -102,6 +116,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
 
 //import javax.ws.rs.Consumes;
 //import javax.ws.rs.DELETE;
@@ -224,14 +239,28 @@ public class ArtifactsAPIController {
 
 	@Autowired
 	VxFOBDService vxfOBDService;
+	@Autowired
+	NSDOBDService nsdOBDService;
 
+	@Autowired
+	VFImageService vfImageService;
+
+	@Autowired
+	ProductService productService;
+
+	@Autowired
+	ManoPlatformService manoPlatformService;
+	
+	
 	@Autowired
 	MANOController aMANOController;
 	
-
 	@Autowired
 	CategoryService categoryService;
 
+	@Autowired
+	DeploymentDescriptorService deploymentDescriptorService;
+	
 	// VxFS API
 
 	private Product addNewProductData(Product prod, MultipartFile image, MultipartFile submittedFile,  MultipartFile[] screenshots, HttpServletRequest request ) throws IOException {
@@ -310,7 +339,7 @@ public class ArtifactsAPIController {
 						if(((VxFMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
 							logger.info("VxF OSMvFIVE route");	
-							this.loadVxfMetadataFromOSMvFIVEVxFDescriptorFile( (VxFMetadata) prod, descriptorFile);
+							this.loadVxfMetadataFromOSMvFIVEVxFDescriptorFile( (VxFMetadata) prod, descriptorFile, request);
 						}
 					}
 					catch (NullPointerException e)
@@ -327,7 +356,7 @@ public class ArtifactsAPIController {
 						if(((ExperimentMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
 							logger.info("VxF OSMvFIVE route");	
-							this.loadNSMetadataFromOSMvFIVENSDescriptorFile( (ExperimentMetadata) prod, descriptorFile);															
+							this.loadNSMetadataFromOSMvFIVENSDescriptorFile( (ExperimentMetadata) prod, descriptorFile, request);															
 						}
 					}
 					catch (NullPointerException e)
@@ -403,7 +432,7 @@ public class ArtifactsAPIController {
 	}
 
 
-	private void loadNSMetadataFromOSMvFIVENSDescriptorFile(ExperimentMetadata prod,File aNSDdescriptorFile) throws IOException,NullPointerException
+	private void loadNSMetadataFromOSMvFIVENSDescriptorFile(ExperimentMetadata prod,File aNSDdescriptorFile, HttpServletRequest request) throws IOException,NullPointerException
 	{
 		// Create a nsExtractor Object for the OSMvTWO file 		
 		OSM5NSExtractor nsExtract = new OSM5NSExtractor(aNSDdescriptorFile);
@@ -412,8 +441,9 @@ public class ArtifactsAPIController {
 		if (ns != null) {
 			//*************LOAD THE Product Object from the NSD Descriptor START************************************
 			// Check if a vnfd with this id already exists in the DB
-			Product existingmff = portalRepositoryRef.getProductByName( ns.getAddedId() );														
-			if ( ( existingmff != null  ) && ( existingmff instanceof  ExperimentMetadata )) {
+			
+			ExperimentMetadata existingmff = nsdService.getNSDByName( ns.getAddedId() );														
+			if ( ( existingmff != null  ) ) {
 				throw new IOException( "Descriptor with same name already exists. No updates were performed." );	
 			}
 			prod.setName(ns.getAddedId());
@@ -433,7 +463,8 @@ public class ArtifactsAPIController {
 				cvxf.setMembervnfIndex(Integer.parseInt(v.getMemberVnfIndex())); 
 				cvxf.setVnfdidRef(v.getVnfdIdRef());
 
-				VxFMetadata vxf = (VxFMetadata) portalRepositoryRef.getProductByName(v.getVnfdIdRef());
+				
+				VxFMetadata vxf = (VxFMetadata) vxfService.getVxFByName(v.getVnfdIdRef());
 
 				cvxf.setVxfref(vxf);
 
@@ -449,7 +480,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(nsExtract.getIconfilePath(),
 							METADATADIR + prod.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prod.setIconsrc(uri.getBaseUri().toString().replace("http:", "") + "repo/images/" + prod.getUuid()
+					prod.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prod.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -461,7 +492,7 @@ public class ArtifactsAPIController {
 	}	
 
 
-	private void loadVxfMetadataFromOSMvFIVEVxFDescriptorFile(VxFMetadata prod,File aVxFdescriptorFile) throws IOException, NullPointerException
+	private void loadVxfMetadataFromOSMvFIVEVxFDescriptorFile(VxFMetadata prod,File aVxFdescriptorFile, HttpServletRequest request) throws IOException, NullPointerException
 	{
 		// Create a vnfExtractor Object for the OSMvFIVE file 
 		OSM5VNFDExtractor vnfExtract = new OSM5VNFDExtractor(aVxFdescriptorFile);
@@ -470,8 +501,8 @@ public class ArtifactsAPIController {
 		if (vnfd != null) {							
 			//*************LOAD THE Product Object from the VNFD Descriptor START************************************
 			// Check if a vnfd with this id already exists in the DB
-			Product existingvmf = portalRepositoryRef.getProductByName( vnfd.getAddedId());														
-			if ( ( existingvmf != null  ) && ( existingvmf instanceof  VxFMetadata )) {
+			VxFMetadata existingvmf = vxfService.getVxFByName( vnfd.getAddedId());														
+			if ( ( existingvmf != null  ) ) {
 				throw new IOException( "Descriptor with same name already exists. No updates were performed. Please change the name of the descriptor" );				
 			}
 			// Get the name for the db							
@@ -486,17 +517,17 @@ public class ArtifactsAPIController {
 			for (osm5.ns.riftware._1._0.vnfd.base.rev170228.vnfd.descriptor.Vdu vdu : vnfd.getVdu()) {
 				String imageName = vdu.getImage();
 				if ( ( imageName != null) && (!imageName.equals("")) ){
-					VFImage sm = portalRepositoryRef.getVFImageByName( imageName );
+					VFImage sm = vfImageService.getVFImageByName( imageName );
 					if ( sm == null ){
 						sm = new VFImage();
 						sm.setName( imageName );
-						PortalUser vfImagewner = portalRepositoryRef.getUserByID(prod.getOwner().getId());
+						PortalUser vfImagewner =  usersService.findById(prod.getOwner().getId());
 						sm.setOwner( vfImagewner );
 						sm.setShortDescription( "Automatically created during vxf " + prod.getName() + " submission. Owner must update." );
 						String uuidVFImage = UUID.randomUUID().toString();
 						sm.setUuid( uuidVFImage );
 						sm.setDateCreated(new Date());
-						sm = portalRepositoryRef.saveVFImage( sm );
+						sm = vfImageService.saveVFImage( sm );
 					}
 					((VxFMetadata) prod).getVfimagesVDU().add( sm );
 					
@@ -518,7 +549,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(vnfExtract.getIconfilePath(),
 							METADATADIR + prod.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prod.setIconsrc(uri.getBaseUri().toString().replace("http:", "") + "repo/images/" + prod.getUuid()
+					prod.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prod.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -531,7 +562,7 @@ public class ArtifactsAPIController {
 	}
 	
 
-	private void updateVxfMetadataFromOSMvFIVEVxFDescriptorFile(Product prevProduct,File aVxFdescriptorFile) throws IOException, NullPointerException
+	private void updateVxfMetadataFromOSMvFIVEVxFDescriptorFile(Product prevProduct,File aVxFdescriptorFile, HttpServletRequest request) throws IOException, NullPointerException
 	{
 		// Create a vnfExtractor Object for the OSMvFIVE file 
 		OSM5VNFDExtractor vnfExtract = new OSM5VNFDExtractor(aVxFdescriptorFile);
@@ -559,28 +590,28 @@ public class ArtifactsAPIController {
 			
 			for (VFImage img : ((VxFMetadata) prevProduct).getVfimagesVDU()) {
 				logger.info("img.getUsedByVxFs().remove(prevProduct) = " + img.getUsedByVxFs().remove(prevProduct));
-				portalRepositoryRef.updateVFImageInfo(img);
+				vfImageService.updateVFImageInfo(img);
 			}			
 			((VxFMetadata) prevProduct).getVfimagesVDU().clear();//clear previous referenced images
 			for (osm5.ns.riftware._1._0.vnfd.base.rev170228.vnfd.descriptor.Vdu vdu : vnfd.getVdu()) {
 				String imageName = vdu.getImage();
 				if ( ( imageName != null) && (!imageName.equals("")) ){
-					VFImage sm = portalRepositoryRef.getVFImageByName( imageName );
+					VFImage sm = vfImageService.getVFImageByName( imageName );
 					if ( sm == null ){
 						sm = new VFImage();
 						sm.setName( imageName );
-						PortalUser vfImagewner = portalRepositoryRef.getUserByID(prevProduct.getOwner().getId());
+						PortalUser vfImagewner = usersService.findById(prevProduct.getOwner().getId());
 						sm.setOwner( vfImagewner );
 						sm.setShortDescription( "Automatically created during vxf " + prevProduct.getName() + " submission. Owner must update." );
 						String uuidVFImage = UUID.randomUUID().toString();
 						sm.setUuid( uuidVFImage );
 						sm.setDateCreated(new Date());
-						sm = portalRepositoryRef.saveVFImage( sm );
+						sm = vfImageService.saveVFImage( sm );
 					}
 					if ( !((VxFMetadata) prevProduct).getVfimagesVDU().contains(sm) ){
 						((VxFMetadata) prevProduct).getVfimagesVDU().add( sm );
 						sm.getUsedByVxFs().add( ((VxFMetadata) prevProduct) );
-						portalRepositoryRef.updateVFImageInfo( sm );
+						vfImageService.updateVFImageInfo( sm );
 						
 					}
 					
@@ -602,7 +633,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(vnfExtract.getIconfilePath(),
 							METADATADIR + prevProduct.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prevProduct.setIconsrc(uri.getBaseUri().toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid()
+					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -614,7 +645,7 @@ public class ArtifactsAPIController {
 		}
 	}
 	
-	private void updateNSMetadataFromOSMvFIVENSDescriptorFile(Product prevProduct, File aNSDdescriptorFile) throws IOException,NullPointerException {
+	private void updateNSMetadataFromOSMvFIVENSDescriptorFile(Product prevProduct, File aNSDdescriptorFile, HttpServletRequest request) throws IOException,NullPointerException {
 		// Create a nsExtractor Object for the OSMvTWO file 		
 		OSM5NSExtractor nsExtract = new OSM5NSExtractor(aNSDdescriptorFile);
 		// Get the nsd object out of the file info		
@@ -646,7 +677,7 @@ public class ArtifactsAPIController {
 				cvxf.setMembervnfIndex(Integer.parseInt(v.getMemberVnfIndex())); 
 				cvxf.setVnfdidRef(v.getVnfdIdRef());
 
-				VxFMetadata vxf = (VxFMetadata) portalRepositoryRef.getProductByName(v.getVnfdIdRef());
+				VxFMetadata vxf = vxfService.getVxFByName(v.getVnfdIdRef());
 
 				cvxf.setVxfref(vxf);
 
@@ -662,7 +693,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(nsExtract.getIconfilePath(),
 							METADATADIR + prevProduct.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prevProduct.setIconsrc(uri.getBaseUri().toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid()
+					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -747,6 +778,8 @@ public class ArtifactsAPIController {
 			// Need to select MANO Provider, convert vxfMetadata to VxFOnBoardedDescriptor and pass it as an input.
 			
 			// Get the MANO providers which are set for automatic onboarding
+			
+			BusController.getInstance().newVxFAdded( vxf.getId() );
 			
 			List<MANOprovider> MANOprovidersEnabledForOnboarding =  manoProviderService.getMANOprovidersEnabledForOnboarding();
 			
@@ -851,7 +884,7 @@ public class ArtifactsAPIController {
 			logger.info("Received @PUT for vxf : " + vxf.getName());
 			logger.info("Received @PUT for vxf.extensions : " + vxf.getExtensions());
 
-			vxfsaved = (VxFMetadata) updateProductMetadata( vxf, prodIcon, prodFile, screenshots );
+			vxfsaved = (VxFMetadata) updateProductMetadata( vxf, prodIcon, prodFile, screenshots, request );
 		}
 		catch (IOException e) {
 			vxfsaved = null;
@@ -884,8 +917,8 @@ public class ArtifactsAPIController {
 
 	// VxFs related API
 
-	private Product updateProductMetadata(Product prod, MultipartFile image, MultipartFile submittedFile,  
-			MultipartFile[] screenshots ) throws IOException {
+	private Product updateProductMetadata(Product prod, MultipartFile image, MultipartFile prodFile,  
+			MultipartFile[] screenshots, HttpServletRequest request  ) throws IOException {
 
 		logger.info("userid = " + prod.getOwner().getId());
 		logger.info("prodname = " + prod.getName());
@@ -898,14 +931,14 @@ public class ArtifactsAPIController {
 
 		
 		
-		// get User
-//		PortalUser vxfOwner = portalRepositoryRef.getUserByID(prod.getOwner().getId());
-//		prod.setOwner(vxfOwner); // replace given owner with the one from our DB
-
 
 		// first remove all references of the product from the previous
 		// categories
-		Product prevProduct = (Product) portalRepositoryRef.getProductByID(prod.getId());
+		
+		
+		Product prevProduct =  (Product) productService.getProductByID(prod.getId());
+		
+		
 		prevProduct.setDateUpdated(new Date());
 		
 		for (Category c : prevProduct.getCategories()) {
@@ -926,7 +959,7 @@ public class ArtifactsAPIController {
 			prevProduct.getCategories().add(catToUpdate);
 		}
 
-		URI endpointUrl = uri.getBaseUri();
+		String endpointUrl = request.getRequestURI();
 
 		String tempDir = METADATADIR + prevProduct.getUuid() + File.separator;
 
@@ -935,7 +968,7 @@ public class ArtifactsAPIController {
 		// If an icon is submitted
 		if (image != null) {
 			// Get the icon filename			
-			String imageFileNamePosted = AttachmentUtil.getFileName(image.getHeaders());
+			String imageFileNamePosted =  image.getOriginalFilename();// AttachmentUtil.getFileName(image.getHeaders());
 			logger.info("image = " + imageFileNamePosted);
 			// If there is an icon name			
 			if (!imageFileNamePosted.equals("unknown")) {
@@ -957,7 +990,7 @@ public class ArtifactsAPIController {
 			((VxFMetadata) prevProduct).setCertifiedBy( ((VxFMetadata) prod).getCertifiedBy() );
 			((VxFMetadata) prevProduct).getSupportedMANOPlatforms().clear();
 			for (MANOplatform mp : ((VxFMetadata) prod).getSupportedMANOPlatforms()) {
-				MANOplatform mpdb = portalRepositoryRef.getMANOplatformByID( mp.getId());
+				MANOplatform mpdb = manoPlatformService.getMANOplatformByID( mp.getId());
 				((VxFMetadata) prevProduct).getSupportedMANOPlatforms().add( mpdb );
 			}
 			//if ( !((VxFMetadata) prevProduct).isCertified() ){ //allow for now to change state
@@ -979,7 +1012,7 @@ public class ArtifactsAPIController {
 
 		if (prodFile != null) {
 			// Get the filename			
-			String vxfFileNamePosted = AttachmentUtil.getFileName(prodFile.getHeaders());
+			String vxfFileNamePosted = prodFile.getOriginalFilename() ;// AttachmentUtil.getFileName(prodFile.getHeaders());
 			logger.info("vxfFile = " + vxfFileNamePosted);
 			// Is the filename is not an empty string			
 			if (!vxfFileNamePosted.equals("unknown")) {
@@ -999,7 +1032,7 @@ public class ArtifactsAPIController {
 						if(((VxFMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
 							logger.info("VxF OSMvFIVE route");	
-							this.updateVxfMetadataFromOSMvFIVEVxFDescriptorFile(prevProduct, descriptorFile);
+							this.updateVxfMetadataFromOSMvFIVEVxFDescriptorFile(prevProduct, descriptorFile, request);
 						}
 					}
 					catch (NullPointerException e)
@@ -1015,7 +1048,7 @@ public class ArtifactsAPIController {
 						if(((ExperimentMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
 							logger.info("NSD OSMvFIVE route");
-							this.updateNSMetadataFromOSMvFIVENSDescriptorFile(prevProduct, descriptorFile);															
+							this.updateNSMetadataFromOSMvFIVENSDescriptorFile(prevProduct, descriptorFile, request);															
 						}
 					}
 					catch (NullPointerException e)
@@ -1028,11 +1061,10 @@ public class ArtifactsAPIController {
 			}
 		}
 
-			List<Attachment> ss = screenshots;
 			String screenshotsFilenames = "";
 			int i = 1;
-			for (Attachment shot : ss) {
-				String shotFileNamePosted = AttachmentUtil.getFileName(shot.getHeaders());
+			for ( MultipartFile shot : screenshots ) {
+				String shotFileNamePosted = shot.getOriginalFilename(); //AttachmentUtil.getFileName(shot.getHeaders());
 				logger.info("Found screenshot image shotFileNamePosted = " + shotFileNamePosted);
 				logger.info("shotFileNamePosted = " + shotFileNamePosted);
 				if (!shotFileNamePosted.equals("")) {
@@ -1052,14 +1084,14 @@ public class ArtifactsAPIController {
 
 
 		// save product
-		prevProduct = portalRepositoryRef.updateProductInfo( prevProduct );
+		prevProduct = productService.updateProductInfo( prevProduct );
 
 		// now fix category product references
 		for (Category catToUpdate : prevProduct.getCategories()) {
 			//Product p = portalRepositoryRef.getProductByID(prod.getId());
-			Category c = portalRepositoryRef.getCategoryByID( catToUpdate.getId() );
+			Category c = categoryService.findById(catToUpdate.getId() );
 			c.addProduct( prevProduct );
-			portalRepositoryRef.updateCategoryInfo(c);
+			categoryService.updateCategoryInfo(c);
 		}
 		
 
@@ -1299,2083 +1331,1766 @@ public class ArtifactsAPIController {
 
 
 
-//	// Applications related API
-//
-//	@GET
-//	@Path("/admin/experiments")
-//	@Produces("application/json")
-//	public Response getApps(@QueryParam("categoryid") Long categoryid) {
-//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		if (u != null) {
-//			List<ExperimentMetadata> apps;
-//
-//			if (u.getRoles().contains(UserRoleType.PORTALADMIN)) {
-//				apps = portalRepositoryRef.getExperiments(categoryid, false);
-//			} else {
-//				apps = portalRepositoryRef.getAppsByUserID((long) u.getId());
-//			}
-//
-//			return Response.ok().entity(apps).build();
-//
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User not found in portal registry or not logged in");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@GET
-//	@Path("/experiments")
-//	@Produces("application/json")
-//	public Response getAllApps(@QueryParam("categoryid") Long categoryid) {
-//		logger.info("getexperiments categoryid=" + categoryid);
-//		List<ExperimentMetadata> vxfs = portalRepositoryRef.getExperiments(categoryid, true);
-//		return Response.ok().entity(vxfs).build();
-//	}
-//	
-//	
-//	/**
-//	 * @return all User's Valid experiments as well as all Public and Valid experiments 
-//	 */
-//	@GET
-//	@Path("/admin/experiments/deployable")
-//	@Produces("application/json")
-//	public Response getAllDeployableExperiments() {
-//		
-//		//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		if (u != null) {
-//			List<ExperimentMetadata> userexpr;
-//
-//			if (u.getRoles().contains(UserRoleType.PORTALADMIN)) {
-//				userexpr = portalRepositoryRef.getExperiments( (long) -1 , false);
-//			} else {
-//				userexpr = portalRepositoryRef.getAppsByUserID((long) u.getId());
-//			}
-//
-//			
-//			List<ExperimentMetadata> deplExps = new ArrayList<ExperimentMetadata>( userexpr );
-//			List<ExperimentMetadata> pubExps = new ArrayList<ExperimentMetadata>( portalRepositoryRef.getExperiments( (long) -1 , true) );
-//			List<ExperimentMetadata> returnedExps = new ArrayList<ExperimentMetadata>();
-//			for (ExperimentMetadata e : pubExps) {
-//				
-//				boolean found = false;
-//				boolean onboarded = false;
-//				for (ExperimentMetadata depl : deplExps) {
-//					if (  depl.getId() == e.getId() ) {
-//						found = true;					
-//					}
-//				}				
-//				if ( !found ) {
-//					deplExps.add(e);//add no duplicate public experiments
-//				}				
-//			}
-//			for (ExperimentMetadata depl : deplExps) {
-//				// If it is not already included and it has been onboarded
-//				if( depl.getExperimentOnBoardDescriptors().size()>0 )
-//				{
-//					for(ExperimentOnBoardDescriptor eobd : depl.getExperimentOnBoardDescriptors())
-//					{
-//						if(eobd.getOnBoardingStatus() == OnBoardingStatus.ONBOARDED)
-//						{
-//							returnedExps.add(depl);
-//						}
-//					}
-//				}
-//			}
-//			
-////			for (Iterator<ExperimentMetadata> iter = deplExps.listIterator(); iter.hasNext(); ) { //filter only valid
-////				ExperimentMetadata a = iter.next();
-////			    if ( !a.isValid() ) {
-////			        iter.remove();
-////			    }
-////			}			
-//			
-//			return Response.ok().entity( returnedExps ).build();
-//
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User not found in portal registry or not logged in");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/experiments/{appid}")
-//	@Produces("application/json")
-//	public Response getExperimentMetadataByID(@PathParam("appid") int appid) {
-//		logger.info("getAppMetadataByID  appid=" + appid);
-//		ExperimentMetadata app = (ExperimentMetadata) portalRepositoryRef.getProductByID(appid);
-//		
-//
-//		if (app != null) {
-//			if ( !app.isPublished() ){
-//				return Response.status(Status.FORBIDDEN ).build() ;
-//			}
-//			return Response.ok().entity(app).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("App with id=" + appid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/admin/experiments/{appid}")
-//	@Produces("application/json")
-//	public Response getAdminExperimentMetadataByID(@PathParam("appid") int appid) {
-//		
-//		logger.info("getAppMetadataByID  appid=" + appid);
-//		ExperimentMetadata app = (ExperimentMetadata) portalRepositoryRef.getProductByID(appid);
-//		
-//
-//		if (app != null) {
-//
-//			if ( !checkUserIDorIsAdmin( app.getOwner().getId() ) ){
-//				return Response.status(Status.FORBIDDEN ).build() ;
-//			}
-//			
-//			return Response.ok().entity(app).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("App with id=" + appid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/experiments/uuid/{uuid}")
-//	@Produces("application/json")
-//	public Response getAppMetadataByUUID(@PathParam("uuid") String uuid) {
-//		logger.info("Received GET for app uuid: " + uuid);
-//		ExperimentMetadata app = null;
-//
-//		app = (ExperimentMetadata) portalRepositoryRef.getProductByUUID(uuid);
-//
-//		if (app != null) {
-//			if ( !app.isPublished() ){
-//				return Response.status(Status.FORBIDDEN ).build() ;
-//			}
-//			return Response.ok().entity(app).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("Installed app with uuid=" + uuid + " not found in local registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@POST
-//	@Path("/admin/experiments/")
-//	@Consumes("multipart/form-data")
-//	public Response addExperimentMetadata(List<Attachment> ats) {
-//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		if (u == null) {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User not found in portal registry or not logged in ");
-//			throw new WebApplicationException(builder.build());
-//		}			
-//
-//		ExperimentMetadata experiment = new ExperimentMetadata();
-//
-//		String emsg = "";
-//		try {
-//			MappingJsonFactory factory = new MappingJsonFactory();
-//			JsonParser parser = factory.createJsonParser(AttachmentUtil.getAttachmentStringValue("exprm", ats));
-//			experiment = parser.readValueAs(ExperimentMetadata.class);
-//			
-//			logger.info("Received @POST for experiment : " + experiment.getName());
-//			// ExperimentMetadata sm = new ExperimentMetadata();
-//			experiment = (ExperimentMetadata) addNewProductData(experiment, AttachmentUtil.getAttachmentByName("prodIcon", ats),
-//					AttachmentUtil.getAttachmentByName("prodFile", ats), AttachmentUtil.getListOfAttachmentsByName("screenshots", ats));
-//
-//		}catch (JsonProcessingException e) {
-//			experiment = null;
-//			e.printStackTrace();
-//			logger.error( e.getMessage() );
-//			emsg =  e.getMessage();
-//		} catch (IOException e) {
-//			experiment = null;
-//			e.printStackTrace();
-//			logger.error( e.getMessage() );
-//			emsg =  e.getMessage();
-//		}
-//
-//		if (experiment != null) {
-//
-//			BusController.getInstance().newNSDAdded( experiment.getId() );		
-//			BusController.getInstance().validateNSD( experiment.getId() );
-//
-//			//======================================================
-//			// AUTOMATIC ONBOARDING PROCESS -START
-//			// Need to select MANO Provider, convert vxfMetadata to VxFOnBoardedDescriptor and pass it as an input.
-//			
-//			// Get the MANO providers which are set for automatic onboarding
-//			
-//			List<MANOprovider> MANOprovidersEnabledForOnboarding=portalRepositoryRef.getMANOprovidersEnabledForOnboarding();
-//			if(MANOprovidersEnabledForOnboarding.size()>0 && experiment.getPackagingFormat() == PackagingFormat.OSMvFOUR)
-//			{
-//				for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
-//				{
-//					//Create NSDOnboardDescriptor
-//					ExperimentOnBoardDescriptor obd = new ExperimentOnBoardDescriptor( );
-//					// Get the first one for now			
-//					obd.setObMANOprovider(mp);
-//					obd.setUuid( UUID.randomUUID().toString() ); 
-//					ExperimentMetadata refNSD =  ( ExperimentMetadata )portalRepositoryRef.getProductByID( experiment.getId() );
-//					// Fill the NSDMetadata of NSDOnBoardedDescriptor
-//					obd.setExperiment( refNSD );
-//					// Update the NSDMetadata Object with the obd Object
-//					refNSD.getExperimentOnBoardDescriptors().add( obd ) ;				
-//					
-//					// ???????
-//					obd.setExperiment( refNSD );
-//					
-//					// save product
-//					refNSD = (ExperimentMetadata) portalRepositoryRef.updateProductInfo( refNSD );
-//					// save VxFonBoardedDescriptor or not ???
-//					obd = portalRepositoryRef.updateExperimentOnBoardDescriptor(obd);
-//					
-//	//				try
-//	//				{
-//	//					aMANOController.onBoardNSDToMANOProvider(obd);					
-//	//				}
-//	//				catch(Exception e)
-//	//				{
-//	//					System.out.println("OnBoarding Failed");					
-//	//					System.out.println(e.getMessage());
-//	//					e.printStackTrace();
-//	//				}
-//					// Send the message for automatic onboarding
-//					//BusController.getInstance().newNSDAdded( vxf );
-//					
-//					//set proper scheme (http or https)
-//					MANOController.setHTTPSCHEME( ws.getHttpServletRequest().getScheme().toString() );
-//					BusController.getInstance().onBoardNSD( obd.getId() );
-//				}
-//			}
-//			if(MANOprovidersEnabledForOnboarding.size()>0 && experiment.getPackagingFormat() == PackagingFormat.OSMvFIVE)
-//			{
-//				for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
-//				{
-//					//Create NSDOnboardDescriptor
-//					ExperimentOnBoardDescriptor obd = new ExperimentOnBoardDescriptor( );
-//					// Get the first one for now			
-//					obd.setObMANOprovider(mp);
-//					obd.setUuid( UUID.randomUUID().toString() ); 
-//					ExperimentMetadata refNSD =  ( ExperimentMetadata )portalRepositoryRef.getProductByID( experiment.getId() );
-//					// Fill the NSDMetadata of NSDOnBoardedDescriptor
-//					obd.setExperiment( refNSD );
-//					// Update the NSDMetadata Object with the obd Object
-//					refNSD.getExperimentOnBoardDescriptors().add( obd ) ;				
-//					
-//					// ???????
-//					obd.setExperiment( refNSD );
-//					
-//					// save product
-//					refNSD = (ExperimentMetadata) portalRepositoryRef.updateProductInfo( refNSD );
-//					// save VxFonBoardedDescriptor or not ???
-//					obd = portalRepositoryRef.updateExperimentOnBoardDescriptor(obd);
-//					
-//	//				try
-//	//				{
-//	//					aMANOController.onBoardNSDToMANOProvider(obd);					
-//	//				}
-//	//				catch(Exception e)
-//	//				{
-//	//					System.out.println("OnBoarding Failed");					
-//	//					System.out.println(e.getMessage());
-//	//					e.printStackTrace();
-//	//				}
-//					// Send the message for automatic onboarding
-//					//BusController.getInstance().newNSDAdded( vxf );
-//					
-//					//set proper scheme (http or https)
-//					MANOController.setHTTPSCHEME( ws.getHttpServletRequest().getScheme().toString() );
-//					BusController.getInstance().onBoardNSD( obd.getId() );
-//				}
-//			}
-//
-//			// AUTOMATIC ONBOARDING PROCESS -END
-//			//======================================================
-//			
-//			ExperimentMetadata experimentr = (ExperimentMetadata) portalRepositoryRef.getProductByID( experiment.getId()) ; //rereading this, seems to keep the DB connection
-//			return Response.ok().entity(experimentr).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity( new ErrorMsg( "Requested entity cannot be installed. " + emsg )  );	
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@PUT
-//	@Path("/admin/experiments/{aid}")
-//	@Consumes("multipart/form-data")
-//	public Response updateExperimentMetadata(@PathParam("aid") int aid, List<Attachment> ats) {
-//
-//		ExperimentMetadata expmeta = null;
-//		
-//		String emsg= "";
-//
-//		try {
-//			MappingJsonFactory factory = new MappingJsonFactory();
-//			JsonParser parser = factory.createJsonParser(AttachmentUtil.getAttachmentStringValue("exprm", ats));
-//			expmeta = parser.readValueAs(ExperimentMetadata.class);
-//
-//			if ( !checkUserIDorIsAdmin( expmeta.getOwner().getId() ) ){
-//				return Response.status(Status.FORBIDDEN ).build() ;
-//			}
-//			
-//			logger.info("Received @POST for experiment : " + expmeta.getName());
-//			// logger.info("Received @POST for app.containers : " +
-//			// appmeta.getContainers().size());
-//
-//			expmeta = (ExperimentMetadata) updateProductMetadata(expmeta, AttachmentUtil.getAttachmentByName("prodIcon", ats),
-//					AttachmentUtil.getAttachmentByName("prodFile", ats), AttachmentUtil.getListOfAttachmentsByName("screenshots", ats));
-//
-//		} catch (JsonProcessingException e) {
-//			expmeta = null;
-//			e.printStackTrace();
-//			logger.error( e.getMessage() );
-//			emsg =  e.getMessage();
-//		} catch (IOException e) {
-//			expmeta = null;
-//			e.printStackTrace();
-//			logger.error( e.getMessage() );
-//			emsg =  e.getMessage();
-//		}
-//		
-//		
-//		if ( expmeta != null) { 
-//
-//			BusController.getInstance().updateNSD(expmeta.getId());	
-//			
-//			if ( AttachmentUtil.getAttachmentByName("prodFile", ats) != null ) { //if the descriptor changed then we must re-trigger validation
-//				Attachment prodFile =  AttachmentUtil.getAttachmentByName("prodFile", ats);
-//				String vxfFileNamePosted = AttachmentUtil.getFileName(prodFile.getHeaders());
-//				if ( !vxfFileNamePosted.equals("unknown") ){
-//					BusController.getInstance().validationUpdateNSD(expmeta.getId());
-//				}
-//			}
-//			
-//			
-//			
-//			
-//			
-//			return Response.ok().entity(expmeta).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity( new ErrorMsg( "Requested entity cannot be installed. " + emsg )  );	
-//			throw new WebApplicationException(builder.build());
-//		}
-//		
-//		
-//	}
-//
-//	@DELETE
-//	@Path("/admin/experiments/{appid}")
-//	public void deleteExperiment(@PathParam("appid") int appid) {
-//		
-//		ExperimentMetadata nsd = (ExperimentMetadata) portalRepositoryRef.getProductByID( appid );
-//
-//		if ( !checkUserIDorIsAdmin( nsd.getOwner().getId() ) ){
-//			throw new WebApplicationException( Response.status(Status.FORBIDDEN ).build() );
-//		}
-//		// Get the OnBoarded Descriptors to OffBoard them
-//		List<ExperimentOnBoardDescriptor> expobds = nsd.getExperimentOnBoardDescriptors();
-//		ResponseBuilder builder = Response.status(Status.FORBIDDEN );
-//		if ( nsd.isValid()   ) 
-//		{
-//			builder.entity( new ErrorMsg( "ExperimentMetadata with id=" + appid + " is Validated and will not be deleted" )  );	
-//			throw new WebApplicationException(builder.build());
-//		}
-//		if(expobds.size()>0)
-//		{
-//			for(ExperimentOnBoardDescriptor expobd_tmp : expobds)
-//			{
-//				if(expobd_tmp.getOnBoardingStatus()!=OnBoardingStatus.ONBOARDED)
-//				{
-//					continue;
-//				}
-//				OnBoardingStatus previous_status = expobd_tmp.getOnBoardingStatus();
-//				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-//				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																										
-//				ExperimentOnBoardDescriptor u = portalRepositoryRef.updateExperimentOnBoardDescriptor(expobd_tmp);
-//
-//				ResponseEntity<String> response = null;
-//				try {
-//					response = aMANOController.offBoardNSDFromMANOProvider( expobd_tmp );
-//				}
-//				catch( HttpClientErrorException e)
-//				{
-//					expobd_tmp.setOnBoardingStatus(previous_status);
-//					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
-//					expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());					
-//					u = portalRepositoryRef.updateExperimentOnBoardDescriptor(expobd_tmp);
-//					JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
-//					builder = Response.status(e.getRawStatusCode()).type(MediaType.TEXT_PLAIN).entity("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
-//					throw new WebApplicationException(builder.build());
-//				}        
-//				
-//				if (response == null) {
-//					expobd_tmp.setOnBoardingStatus(previous_status);
-//					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
-//					expobd_tmp.setFeedbackMessage("Null response on OffBoarding request.Requested VxFOnBoardedDescriptor with ID=\" + expobd_tmp.getId() + \" cannot be offboarded.");
-//					u = portalRepositoryRef.updateExperimentOnBoardDescriptor(expobd_tmp);
-//					builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//					builder.entity("Requested VxFOnBoardedDescriptor with ID=" + expobd_tmp.getId() + " cannot be offboarded");
-//					throw new WebApplicationException(builder.build());
-//				}
-//				// UnCertify Upon OffBoarding
-//				expobd_tmp.getExperiment().setValid(false);
-//				expobd_tmp.setFeedbackMessage(response.getBody().toString());
-//				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
-//				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																															
-//				u = portalRepositoryRef.updateExperimentOnBoardDescriptor(expobd_tmp);
-//				BusController.getInstance().offBoardNSD(u.getId());
-//				
-//			}
-//		}
-//		portalRepositoryRef.deleteProduct(appid);
-//		BusController.getInstance().deletedExperiment(nsd.getId());											
-//	}
-//	
-//
-//	@GET
-//	@Path("/admin/properties/")
-//	@Produces("application/json")
-//	public Response getProperties() {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		
-//		List<PortalProperty> props = portalRepositoryRef.getProperties();
-//		for (PortalProperty portalProperty : props) {
-//			if (portalProperty.getName().equals("mailpassword")) {
-//				portalProperty.setValue("***");
-//			}
-//		}
-//		return Response.ok().entity(props).build();
-//	}
-//
-//	@PUT
-//	@Path("/admin/properties/{propid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateProperty(@PathParam("catid") int propid, PortalProperty p) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		
-//		PortalProperty previousProperty = portalRepositoryRef.getPropertyByID(propid);
-//
-//		PortalProperty u = portalRepositoryRef.updateProperty(p);
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested PortalProperty with name=" + p.getName() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@GET
-//	@Path("/admin/properties/{propid}")
-//	@Produces("application/json")
-//	public Response getPropertyById(@PathParam("propid") int propid) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		PortalProperty sm = portalRepositoryRef.getPropertyByID(propid);
-//
-//		if (sm.getName().equals("mailpassword")) {
-//			sm.setValue("");
-//		}
-//		if (sm != null) {
-//			return Response.ok().entity(sm).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("PortalProperty " + propid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//	
-//
-//	
-//	@GET
-//	@Path("/admin/deployments")
-//	@Produces("application/json")
-//	public Response getAllDeployments( @QueryParam("status") String status ) {
-//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//		if (u != null) {
-//			logger.info("getAllDeployments for userid: " + u.getId());
-//			List<DeploymentDescriptor> deployments;
-//			if ( (u.getRoles().contains(UserRoleType.PORTALADMIN)) ) {
-//				if ( (status!=null) && status.equals( "COMPLETED" )){
-//					deployments = portalRepositoryRef.getAllCompletedDeploymentDescriptors();
-//				} else if (  (status!=null) &&  status.equals( "REJECTED" )){
-//					deployments = portalRepositoryRef.getAllRejectedDeploymentDescriptors();
-//				} else if (  (status!=null) &&  status.equals( "FAILED" )){
-//					deployments = portalRepositoryRef.getAllFailedDeploymentDescriptors();
-//				} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
-//					deployments = portalRepositoryRef.getAllRemovedDeploymentDescriptors();					
-//				} else {
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptors();			
-//				}			
-//			} else if ( (u.getRoles().contains(UserRoleType.MENTOR))) {							
-//				if ( (status!=null) && status.equals( "COMPLETED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByMentor(  (long) u.getId(), "COMPLETED" );
-//				} else if (  (status!=null) &&  status.equals( "REJECTED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByMentor(  (long) u.getId(), "REJECTED" );
-//				} else if (  (status!=null) &&  status.equals( "FAILED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED" );
-//				} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED_OSM_REMOVED" );
-//				} else {
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByMentor(  (long) u.getId(), null );
-//				}			
-//			} else {
-//
-//				if ( (status!=null) && status.equals( "COMPLETED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(),  "COMPLETED"  );
-//				} else if (  (status!=null) &&  status.equals( "REJECTED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "REJECTED" );
-//				} else if (  (status!=null) &&  status.equals( "FAILED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED" );
-//				} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED_OSM_REMOVED" );
-//				} else {
-//					deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), null );
-//				}			
-//			}
-//			return Response.ok().entity(deployments).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User not found in portal registry or not logged in");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//	
-//	
-////	@GET
-////	@Path("/admin/deployments/user")
-////	@Produces("application/json")
-////	public Response getAllDeploymentsofUser() {
-////
-////		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-////
-////		if (u != null) {
-////			logger.info("getAllDeploymentsofUser for userid: " + u.getId());
-////			List<DeploymentDescriptor> deployments;
-////			deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId() ); 
-////
-////			return Response.ok().entity(deployments).build();
-////		} else {
-////			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-////			builder.entity("User not found in portal registry or not logged in");
-////			throw new WebApplicationException(builder.build());
-////		}
-////
-////	}
-//	
+	// Experiments related API
+
+	@GetMapping( value = "/admin/experiments", produces = "application/json" )
+	public ResponseEntity<?> getApps(@RequestParam("categoryid") Long categoryid) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			List<ExperimentMetadata> apps;
+
+			if (u.getRoles().contains(UserRoleType.ROLE_ADMIN)) {
+				apps = nsdService.getdNSDsByCategory(categoryid);
+			} else {
+				apps = nsdService.gedNSDsByUserID((long) u.getId());
+			}
+
+			return ResponseEntity.ok( apps  );	
+
+		} else {
+	
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+
+	}
+
+	@GetMapping( value = "/experiments", produces = "application/json" )
+	public ResponseEntity<?>  getAllApps(@RequestParam("categoryid") Long categoryid) {
+		logger.info("getexperiments categoryid=" + categoryid);
+		List<ExperimentMetadata> nsds = nsdService.getPublishedNSDsByCategory(categoryid); 
+		return ResponseEntity.ok( nsds );		
+	}
+	
+	
+	/**
+	 * @return all User's Valid experiments as well as all Public and Valid experiments 
+	 */
+	@GetMapping( value = "/admin/experiments/deployable", produces = "application/json" )
+	public ResponseEntity<?>  getAllDeployableExperiments() {
+		
+		//
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			List<ExperimentMetadata> userexpr;
+
+			if (u.getRoles().contains(UserRoleType.ROLE_ADMIN)) {
+				userexpr = nsdService.getdNSDsByCategory( (long) -1 );
+			} else {
+				userexpr = nsdService.gedNSDsByUserID((long) u.getId());
+			}
+
+			
+			List<ExperimentMetadata> deplExps = new ArrayList<ExperimentMetadata>( userexpr );
+			List<ExperimentMetadata> pubExps = new ArrayList<ExperimentMetadata>( nsdService.getPublishedNSDsByCategory( (long) -1 ) );
+			List<ExperimentMetadata> returnedExps = new ArrayList<ExperimentMetadata>();
+			for (ExperimentMetadata e : pubExps) {
+				
+				boolean found = false;
+				boolean onboarded = false;
+				for (ExperimentMetadata depl : deplExps) {
+					if (  depl.getId() == e.getId() ) {
+						found = true;					
+					}
+				}				
+				if ( !found ) {
+					deplExps.add(e);//add no duplicate public experiments
+				}				
+			}
+			for (ExperimentMetadata depl : deplExps) {
+				// If it is not already included and it has been onboarded
+				if( depl.getExperimentOnBoardDescriptors().size()>0 )
+				{
+					for(ExperimentOnBoardDescriptor eobd : depl.getExperimentOnBoardDescriptors())
+					{
+						if(eobd.getOnBoardingStatus() == OnBoardingStatus.ONBOARDED)
+						{
+							returnedExps.add(depl);
+						}
+					}
+				}
+			}
+			
+//			for (Iterator<ExperimentMetadata> iter = deplExps.listIterator(); iter.hasNext(); ) { //filter only valid
+//				ExperimentMetadata a = iter.next();
+//			    if ( !a.isValid() ) {
+//			        iter.remove();
+//			    }
+//			}			
+			
+			return ResponseEntity.ok( returnedExps );		
+
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+	@GetMapping( value = "/experiments/{appid}", produces = "application/json" )
+	public ResponseEntity<?>  getExperimentMetadataByID(@PathVariable("appid") int appid) {
+		logger.info("getAppMetadataByID  appid=" + appid);
+		ExperimentMetadata app = nsdService.getProductByID(appid);
+		
+
+		if (app != null) {
+			if ( !app.isPublished() ){
+				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			}
+			
+			return ResponseEntity.ok( app );		
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+	@GetMapping( value = "/admin/experiments/{appid}", produces = "application/json" )
+	public ResponseEntity<?>  getAdminExperimentMetadataByID(@PathVariable("appid") int appid) {
+		
+		logger.info("getAppMetadataByID  appid=" + appid);
+		ExperimentMetadata app = nsdService.getProductByID(appid);
+		
+
+		if (app != null) {
+
+			if ( !checkUserIDorIsAdmin( app.getOwner().getId() ) ){
+				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			}
+			
+			return ResponseEntity.ok( app );	
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+
+	@GetMapping( value = "/experiments/uuid/{uuid}", produces = "application/json" )
+	public ResponseEntity<?>  getAppMetadataByUUID(@PathVariable("uuid") String uuid) {
+		logger.info("Received GET for app uuid: " + uuid);
+		
+		ExperimentMetadata app = nsdService.getdNSDByUUID(uuid);
+
+		if (app != null) {
+			if ( !app.isPublished() ){
+				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			}
+			return ResponseEntity.ok( app );
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+
+	}
+
+	
+	@PostMapping( value =  "/admin/experiments/", produces = "application/json", consumes = "multipart/form-data" )
+	public ResponseEntity<?>  addExperimentMetadata(
+			final @RequestPart("exprm") ExperimentMetadata experiment,
+			@RequestPart("prodIcon") MultipartFile  prodIcon,
+			@RequestPart("prodFile") MultipartFile  prodFile,
+			@RequestPart("screenshots") MultipartFile[] screenshots,
+			HttpServletRequest request) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u == null) {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}			
+
+
+		String emsg = "";
+		
+
+		ExperimentMetadata experimentSaved = null;
+		
+		try {
+			
+			logger.info("Received @POST for experiment : " + experiment.getName());
+
+			experimentSaved = (ExperimentMetadata) addNewProductData(experiment, prodIcon, prodFile, screenshots, request );				
+
+		} catch (IOException e) {
+			experimentSaved = null;
+			e.printStackTrace();
+			logger.error( e.getMessage() );
+			emsg =  e.getMessage();
+		}
+
+		if (experimentSaved != null) {
+
+			BusController.getInstance().newNSDAdded( experimentSaved.getId() );		
+			BusController.getInstance().validateNSD( experimentSaved.getId() );
+
+			//======================================================
+			// AUTOMATIC ONBOARDING PROCESS -START
+			// Need to select MANO Provider, convert vxfMetadata to VxFOnBoardedDescriptor and pass it as an input.
+			
+			// Get the MANO providers which are set for automatic onboarding
+			List<MANOprovider> MANOprovidersEnabledForOnboarding=manoProviderService.getMANOprovidersEnabledForOnboarding();
+		
+			if(MANOprovidersEnabledForOnboarding.size()>0 && experimentSaved.getPackagingFormat() == PackagingFormat.OSMvFIVE)
+			{
+				for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
+				{
+					//Create NSDOnboardDescriptor
+					ExperimentOnBoardDescriptor obd = new ExperimentOnBoardDescriptor( );
+					// Get the first one for now			
+					obd.setObMANOprovider(mp);
+					obd.setUuid( UUID.randomUUID().toString() ); 
+					ExperimentMetadata refNSD =  ( ExperimentMetadata )nsdService.getProductByID( experimentSaved.getId() );
+					// Fill the NSDMetadata of NSDOnBoardedDescriptor
+					obd.setExperiment( refNSD );
+					// Update the NSDMetadata Object with the obd Object
+					refNSD.getExperimentOnBoardDescriptors().add( obd ) ;				
+					
+					// ???????
+					obd.setExperiment( refNSD );
+					
+					// save product
+					refNSD = (ExperimentMetadata) nsdService.updateProductInfo( refNSD );
+					// save VxFonBoardedDescriptor or not ???
+					obd = nsdOBDService.updateExperimentOnBoardDescriptor(obd);
+					
+	//				try
+	//				{
+	//					aMANOController.onBoardNSDToMANOProvider(obd);					
+	//				}
+	//				catch(Exception e)
+	//				{
+	//					System.out.println("OnBoarding Failed");					
+	//					System.out.println(e.getMessage());
+	//					e.printStackTrace();
+	//				}
+					// Send the message for automatic onboarding
+					//BusController.getInstance().newNSDAdded( vxf );
+					
+					//set proper scheme (http or https)
+					MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
+					BusController.getInstance().onBoardNSD( obd.getId() );
+				}
+			}
+
+			// AUTOMATIC ONBOARDING PROCESS -END
+			//======================================================
+			
+			ExperimentMetadata experimentr = (ExperimentMetadata) nsdService.getProductByID( experimentSaved.getId()) ; //rereading this, seems to keep the DB connection
+			
+			return ResponseEntity.ok( experimentr );
+		} else {
+	
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+
+	}
+
+	
+	@PutMapping( value =  "/admin/experiments/{aid}", produces = "application/json", consumes = "multipart/form-data" )
+	public ResponseEntity<?>  updateExperimentMetadata(@PathVariable("aid") int aid, 
+			final @RequestPart("exprm") ExperimentMetadata expmeta,
+			@RequestPart("prodIcon") MultipartFile  prodIcon,
+			@RequestPart("prodFile") MultipartFile  prodFile,
+			@RequestPart("screenshots") MultipartFile[] screenshots,
+			HttpServletRequest request) {
+
+		
+		String emsg= "";
+		ExperimentMetadata expmetasaved = null;
+		try {
+		
+			if ( !checkUserIDorIsAdmin( expmeta.getOwner().getId() ) ){
+				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			}
+			
+			logger.info("Received @POST for experiment : " + expmeta.getName());
+			// logger.info("Received @POST for app.containers : " +
+			// appmeta.getContainers().size());
+
+			expmetasaved = (ExperimentMetadata) updateProductMetadata(expmeta, prodIcon, prodFile, screenshots, request );
+
+	
+		} catch (IOException e) {
+			expmetasaved = null;
+			e.printStackTrace();
+			logger.error( e.getMessage() );
+			emsg =  e.getMessage();
+		}
+		
+		
+		if ( expmetasaved != null) { 
+
+			BusController.getInstance().updateNSD(expmetasaved.getId());	
+			
+
+			if ( prodFile!= null ) { //if the descriptor changed then we must re-trigger validation
+				String a = prodFile.getName();
+				if ( !a.equals("unknown") ){
+					BusController.getInstance().validationUpdateNSD(expmetasaved.getId());
+				}
+			}
+			
+			return ResponseEntity.ok( expmetasaved );
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+		
+		
+	}
+
+	@DeleteMapping( value =  "/admin/experiments/{appid}", produces = "application/json", consumes = "application/json" )
+	public  ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid) {
+		
+		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID( appid );
+
+		if ( !checkUserIDorIsAdmin( nsd.getOwner().getId() ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		// Get the OnBoarded Descriptors to OffBoard them
+		List<ExperimentOnBoardDescriptor> expobds = nsd.getExperimentOnBoardDescriptors();
+		
+		if ( nsd.isValid()   ) 
+		{
+				
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
+		}
+		if(expobds.size()>0)
+		{
+			for(ExperimentOnBoardDescriptor expobd_tmp : expobds)
+			{
+				if(expobd_tmp.getOnBoardingStatus()!=OnBoardingStatus.ONBOARDED)
+				{
+					continue;
+				}
+				OnBoardingStatus previous_status = expobd_tmp.getOnBoardingStatus();
+				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
+				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																										
+				ExperimentOnBoardDescriptor u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
+
+				ResponseEntity<String> response = null;
+				try {
+					response = aMANOController.offBoardNSDFromMANOProvider( expobd_tmp );
+				}
+				catch( HttpClientErrorException e)
+				{
+					expobd_tmp.setOnBoardingStatus(previous_status);
+					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
+					expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());					
+					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
+					JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
+					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status(e.getRawStatusCode()).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
+					
+				}        
+				
+				if (response == null) {
+					expobd_tmp.setOnBoardingStatus(previous_status);
+					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
+					expobd_tmp.setFeedbackMessage("Null response on OffBoarding request.Requested VxFOnBoardedDescriptor with ID=\" + expobd_tmp.getId() + \" cannot be offboarded.");
+					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
+					
+					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body( "Requested ExperimentOnBoardedDescriptor with ID=" + expobd_tmp.getId() + " cannot be offboarded" );
+				}
+				// UnCertify Upon OffBoarding
+				expobd_tmp.getExperiment().setValid(false);
+				expobd_tmp.setFeedbackMessage(response.getBody().toString());
+				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
+				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																															
+				u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
+				BusController.getInstance().offBoardNSD(u.getId());
+				
+			}
+		}
+		BusController.getInstance().deletedExperiment(nsd.getId());		
+		nsdService.deleteProduct(nsd);		
+		return ResponseEntity.ok().body("{}");									
+	}
+	
+
+	@GetMapping( value = "/admin/properties/", produces = "application/json" )
+	public ResponseEntity<?>  getProperties() {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		List<PortalProperty> props = propsService.getProperties();
+		for (PortalProperty portalProperty : props) {
+			if (portalProperty.getName().equals("mailpassword")) {
+				portalProperty.setValue("***");
+			}
+		}
+		return ResponseEntity.ok( props  );	
+	}
+
+
+	@PutMapping( value =  "/admin/properties/{propid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateProperty(@PathVariable("catid") long propid, PortalProperty p) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		PortalProperty previousProperty = propsService.getPropertyByID(propid);
+
+		PortalProperty u = propsService.updateProperty(p);
+		if (u != null) {
+			return ResponseEntity.ok( u  );	
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+
+	}
+
+	@GetMapping( value = "/admin/properties/{propid}", produces = "application/json" )
+	public ResponseEntity<?>  getPropertyById(@PathVariable("propid") long propid) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		PortalProperty sm = propsService.getPropertyByID(propid);
+
+		if (sm.getName().equals("mailpassword")) {
+			sm.setValue("");
+		}
+		if (sm != null) {
+			return ResponseEntity.ok( sm );	
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+	
+
+	
+	@GetMapping( value = "/admin/deployments", produces = "application/json" )
+	public ResponseEntity<?>  getAllDeployments( @RequestParam("status") String status ) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+		if (u != null) {
+			logger.info("getAllDeployments for userid: " + u.getId());
+			List<DeploymentDescriptor> deployments;
+			if ( (u.getRoles().contains(UserRoleType.ROLE_ADMIN)) ) {
+				if ( (status!=null) && status.equals( "COMPLETED" )){
+					deployments = deploymentDescriptorService.getAllCompletedDeploymentDescriptors();
+				} else if (  (status!=null) &&  status.equals( "REJECTED" )){
+					deployments = deploymentDescriptorService.getAllRejectedDeploymentDescriptors();
+				} else if (  (status!=null) &&  status.equals( "FAILED" )){
+					deployments = deploymentDescriptorService.getAllFailedDeploymentDescriptors();
+				} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
+					deployments = deploymentDescriptorService.getAllRemovedDeploymentDescriptors();					
+				} else {
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptors();			
+				}			
+			} else if ( (u.getRoles().contains(UserRoleType.ROLE_MENTOR))) {							
+				if ( (status!=null) && status.equals( "COMPLETED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByMentor(  (long) u.getId(), "COMPLETED" );
+				} else if (  (status!=null) &&  status.equals( "REJECTED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByMentor(  (long) u.getId(), "REJECTED" );
+				} else if (  (status!=null) &&  status.equals( "FAILED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByMentor( (long) u.getId(), "FAILED" );
+				} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByMentor( (long) u.getId(), "FAILED_OSM_REMOVED" );
+				} else {
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByMentor(  (long) u.getId(), null );
+				}			
+			} else {
+
+				if ( (status!=null) && status.equals( "COMPLETED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(),  "COMPLETED"  );
+				} else if (  (status!=null) &&  status.equals( "REJECTED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), "REJECTED" );
+				} else if (  (status!=null) &&  status.equals( "FAILED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED" );
+				} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED_OSM_REMOVED" );
+				} else {
+					deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), null );
+				}			
+			}
+			
+			return ResponseEntity.ok( deployments  );	
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+
+	}
+	
+	
 //	@GET
 //	@Path("/admin/deployments/user")
 //	@Produces("application/json")
-//	public Response getAllDeploymentsofUser( @QueryParam("status") String status ) {
-//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		if (u != null) {
-//			logger.info("getAllDeploymentsofUser for userid: " + u.getId());
-//			List<DeploymentDescriptor> deployments = new ArrayList<DeploymentDescriptor>();
-//			
-//			if ( (status!=null) && status.equals( "COMPLETED" )){
-//				deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(),  "COMPLETED"  );
-//			} else if (  (status!=null) &&  status.equals( "REJECTED" )){
-//				deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "REJECTED" );
-//			} else if (  (status!=null) &&  status.equals( "FAILED" )){
-//				deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED" );
-//			} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
-//				deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED_OSM_REMOVED" );
-//			} else {
-//				deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), null );
-//			}
-//			
-//			return Response.ok().entity(deployments).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User not found in portal registry or not logged in");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//	
-//	
-//	@GET
-//	@Path("/admin/deployments/scheduled")
-//	@Produces("application/json")
-//	public Response getAllScheduledDeploymentsofUser() {
+//	public Response getAllDeploymentsofUser() {
 //
 //		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
 //
 //		if (u != null) {
 //			logger.info("getAllDeploymentsofUser for userid: " + u.getId());
 //			List<DeploymentDescriptor> deployments;
-//
-//			if ( (u.getRoles().contains(UserRoleType.PORTALADMIN)) ||  (u.getRoles().contains(UserRoleType.TESTBED_PROVIDER )) ) {
-//				deployments = portalRepositoryRef.getAllDeploymentDescriptorsScheduled();
-//			} else {
-//				deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId(), null ); 
-//			}
+//			deployments = portalRepositoryRef.getAllDeploymentDescriptorsByUser( (long) u.getId() ); 
 //
 //			return Response.ok().entity(deployments).build();
 //		} else {
 //			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
 //			builder.entity("User not found in portal registry or not logged in");
 //			throw new WebApplicationException(builder.build());
-//			
 //		}
 //
 //	}
-//
-//	@POST
-//	@Path("/admin/deployments")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addDeployment(DeploymentDescriptor deployment) {
-//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		if (u != null) {
-//			logger.info("addDeployment for userid: " + u.getId());
-//
-//			for (DeploymentDescriptor d : u.getDeployments()) {
-//				logger.info("deployment already for userid: " + d.getId());
+	
+	@GetMapping( value = "/admin/deployments/user", produces = "application/json" )
+	public ResponseEntity<?>  getAllDeploymentsofUser( @RequestParam("status") String status ) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			logger.info("getAllDeploymentsofUser for userid: " + u.getId());
+			List<DeploymentDescriptor> deployments = new ArrayList<DeploymentDescriptor>();
+			
+			if ( (status!=null) && status.equals( "COMPLETED" )){
+				deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(),  "COMPLETED"  );
+			} else if (  (status!=null) &&  status.equals( "REJECTED" )){
+				deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), "REJECTED" );
+			} else if (  (status!=null) &&  status.equals( "FAILED" )){
+				deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED" );
+			} else if (  (status!=null) &&  status.equals( "FAILED_OSM_REMOVED" )){
+				deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), "FAILED_OSM_REMOVED" );
+			} else {
+				deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), null );
+			}
+
+			return ResponseEntity.ok( deployments  );	
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+
+	}
+	
+	
+	@GetMapping( value = "/admin/deployments/scheduled", produces = "application/json" )
+	public ResponseEntity<?>  getAllScheduledDeploymentsofUser() {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			logger.info("getAllDeploymentsofUser for userid: " + u.getId());
+			List<DeploymentDescriptor> deployments;
+
+			if ( (u.getRoles().contains(UserRoleType.ROLE_ADMIN)) ||  (u.getRoles().contains(UserRoleType.ROLE_TESTBED_PROVIDER )) ) {
+				deployments = deploymentDescriptorService.getAllDeploymentDescriptorsScheduled();
+			} else {
+				deployments = deploymentDescriptorService.getAllDeploymentDescriptorsByUser( (long) u.getId(), null ); 
+			}
+
+
+			return ResponseEntity.ok( deployments  );	
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+			
+		}
+
+	}
+
+	@PostMapping( value =  "/admin/deployments", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addDeployment(DeploymentDescriptor deployment) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			logger.info("addDeployment for userid: " + u.getId());
+
+			for (DeploymentDescriptor d : u.getDeployments()) {
+				logger.info("deployment already for userid: " + d.getId());
+			}
+			String uuid = UUID.randomUUID().toString();
+			deployment.setUuid(uuid);
+			deployment.setDateCreated(new Date());
+			deployment.setStatus(DeploymentDescriptorStatus.UNDER_REVIEW);
+			CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus());
+			logger.info( "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus());			
+
+			u = usersService.findById(u.getId());
+			deployment.setOwner(u); // reattach from the DB model
+			u.getDeployments().add(deployment);
+			
+			// Get the Experiment Metadata from the id of the experiment from the deployment request
+			ExperimentMetadata baseApplication = (ExperimentMetadata) nsdService
+					.getProductByID(deployment.getExperiment().getId());
+			deployment.setExperiment(baseApplication); // reattach from the DB model
+
+			
+			deployment = deploymentDescriptorService.updateDeploymentDescriptor(deployment);
+			logger.info("NS status change is now "+deployment.getStatus());														
+
+//			u = portalRepositoryRef.updateUserInfo(u);
+			
+//			deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
+			
+			BusController.getInstance().newDeploymentRequest( deployment.getId() );	
+
+//			String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
+//			if ((adminemail != null) && (!adminemail.equals(""))) {
+//				String subj = "[5GinFIREPortal] New Deployment Request";
+//				EmailUtil.SendRegistrationActivationEmail(adminemail,
+//						"5GinFIREPortal New Deployment Request by user : " + u.getUsername() + ", " + u.getEmail()+ "\n<br/> Status: " + deployment.getStatus().name()+ "\n<br/> Description: " + deployment.getDescription()   ,
+//						subj);
 //			}
-//			String uuid = UUID.randomUUID().toString();
-//			deployment.setUuid(uuid);
-//			deployment.setDateCreated(new Date());
-//			deployment.setStatus(DeploymentDescriptorStatus.UNDER_REVIEW);
-//			CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus());
-//			logger.info( "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus());			
+
+			return ResponseEntity.ok( deployment  );	
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+	@DeleteMapping( value =  "/admin/deployments/{id}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  deleteDeployment(@PathVariable("id") int id) {
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		DeploymentDescriptor dep = deploymentDescriptorService.getDeploymentByID(id);
+		if (u != null) {
+			if (u.getRoles().contains(UserRoleType.ROLE_ADMIN) || u.getId() == dep.getOwner().getId()) {
+				deploymentDescriptorService.deleteDeployment( dep );
+				return ResponseEntity.ok( "{}"  );
+			}
+		}
+
+		return (ResponseEntity<?>) ResponseEntity.notFound();
+	}
+
+	@GetMapping( value = "/admin/deployments/{id}", produces = "application/json" )
+	public ResponseEntity<?>  getDeploymentById(@PathVariable("id") int deploymentId) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			logger.info("getDeploymentById for id: " + deploymentId);
+			DeploymentDescriptor deployment = deploymentDescriptorService.getDeploymentByID(deploymentId);
+
+			if ((u.getRoles().contains(UserRoleType.ROLE_ADMIN)) || (deployment.getMentor().getId() == u.getId()) || (deployment.getOwner().getId() == u.getId())) {
+				
+				return ResponseEntity.ok( deployment  );
+			}
+		}
+
+		return (ResponseEntity<?>) ResponseEntity.notFound();
+
+	}
+
+
+	@PutMapping( value =  "/admin/deployments/{id}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateDeployment(@PathVariable("id") int id, DeploymentDescriptor receivedDeployment) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if ((u != null)) {
+
+			if ((u.getRoles().contains(UserRoleType.ROLE_ADMIN)) || u.getApikey().equals(receivedDeployment.getMentor().getApikey())) // only admin or Deployment Mentor can alter a deployment
+			{
+				DeploymentDescriptor aDeployment = deploymentDescriptorService.getDeploymentByID( receivedDeployment.getId() );
+												
+				//PortalUser deploymentOwner = portalRepositoryRef.getUserByID(d.getOwner().getId());
+				//d.setOwner(deploymentOwner); // reattach from the DB model
+
+//				ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
+//						.getProductByID(d.getExperiment().getId());
+//				d.setExperiment(baseApplication); // reattach from the DB model
 //
-//			u = portalRepositoryRef.getUserByID(u.getId());
-//			deployment.setOwner(u); // reattach from the DB model
-//			u.getDeployments().add(deployment);
-//			
-//			// Get the Experiment Metadata from the id of the experiment from the deployment request
-//			ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
-//					.getProductByID(deployment.getExperiment().getId());
-//			deployment.setExperiment(baseApplication); // reattach from the DB model
-//
-//			
-//			deployment = portalRepositoryRef.updateDeploymentDescriptor(deployment);
-//			logger.info("NS status change is now "+deployment.getStatus());														
-//
-////			u = portalRepositoryRef.updateUserInfo(u);
-//			
-////			deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
-//			
-//			BusController.getInstance().newDeploymentRequest( deployment.getId() );	
-//
-////			String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
-////			if ((adminemail != null) && (!adminemail.equals(""))) {
-////				String subj = "[5GinFIREPortal] New Deployment Request";
-////				EmailUtil.SendRegistrationActivationEmail(adminemail,
-////						"5GinFIREPortal New Deployment Request by user : " + u.getUsername() + ", " + u.getEmail()+ "\n<br/> Status: " + deployment.getStatus().name()+ "\n<br/> Description: " + deployment.getDescription()   ,
-////						subj);
-////			}
-//
-//			return Response.ok().entity(deployment).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("User not found in portal registry or not logged in. DeploymentDescriptor not added.");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@DELETE
-//	@Path("/admin/deployments/{id}")
-//	@Consumes("application/json")
-//	@Produces("application/json")
-//	public Response deleteDeployment(@PathParam("id") int id) {
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		DeploymentDescriptor dep = portalRepositoryRef.getDeploymentByID(id);
-//		if (u != null) {
-//			if (u.getRoles().contains(UserRoleType.PORTALADMIN) || u.getId() == dep.getOwner().getId()) {
-//				portalRepositoryRef.deleteDeployment(id);
-//				return Response.ok().build();
-//			}
-//		}
-//
-//		ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//		builder.entity("User not found in portal registry or not logged in");
-//		throw new WebApplicationException(builder.build());
-//	}
-//
-//	@GET
-//	@Path("/admin/deployments/{id}")
-//	@Produces("application/json")
-//	public Response getDeploymentById(@PathParam("id") int deploymentId) {
-//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		if (u != null) {
-//			logger.info("getDeploymentById for id: " + deploymentId);
-//			DeploymentDescriptor deployment = portalRepositoryRef.getDeploymentByID(deploymentId);
-//
-//			if ((u.getRoles().contains(UserRoleType.PORTALADMIN)) || (deployment.getMentor().getId() == u.getId()) || (deployment.getOwner().getId() == u.getId())) {
-//				return Response.ok().entity(deployment).build();
-//			}
-//		}
-//
-//		ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//		builder.entity("User not found in portal registry or not logged in");
-//		throw new WebApplicationException(builder.build());
-//
-//	}
-//
-//	@PUT
-//	@Path("/admin/deployments/{id}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateDeployment(@PathParam("id") int id, DeploymentDescriptor receivedDeployment) {
-//
-//		PortalUser u = portalRepositoryRef.getUserBySessionID(ws.getHttpServletRequest().getSession().getId());
-//
-//		if ((u != null)) {
-//
-//			if ((u.getRoles().contains(UserRoleType.PORTALADMIN)) || u.getApikey().equals(receivedDeployment.getMentor().getApikey())) // only admin or Deployment Mentor can alter a deployment
-//			{
-//				DeploymentDescriptor aDeployment = portalRepositoryRef.getDeploymentByID( receivedDeployment.getId() );
-//												
-//				//PortalUser deploymentOwner = portalRepositoryRef.getUserByID(d.getOwner().getId());
-//				//d.setOwner(deploymentOwner); // reattach from the DB model
-//
-////				ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
-////						.getProductByID(d.getExperiment().getId());
-////				d.setExperiment(baseApplication); // reattach from the DB model
-////
-////				DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
-////				List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
-////				for (DeploymentDescriptor deploymentDescriptor : deployments) {
-////					logger.info("Deployment id = " + deploymentDescriptor.getId() );
-////				}
-////				if ( ! deployments.contains(deployment) ) {
-////					deploymentOwner.getDeployments().add(deployment);
-////					deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
-////				}
-//				
-//				aDeployment.setName( receivedDeployment.getName() );
-//				aDeployment.setFeedback( receivedDeployment.getFeedback() );
-//				aDeployment.setStartDate( receivedDeployment.getStartDate());
-//				aDeployment.setEndDate( receivedDeployment.getEndDate() );
-//
-//				logger.info("Previous Status is :"+aDeployment.getStatus()+",New Status is:"+receivedDeployment.getStatus()+" and Instance Id is "+aDeployment.getInstanceId());
-//								
-//				//prevDeployment = portalRepositoryRef.updateDeploymentDescriptor(prevDeployment);
-//				if( receivedDeployment.getStatus() != aDeployment.getStatus() )
-//				{
-//					aDeployment.setStatus( receivedDeployment.getStatus() );
-//					CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
-//					logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());			
-//					aDeployment.getExperimentFullDetails();
-//					aDeployment.getInfrastructureForAll();
-//					
-//					logger.info("updateDeployment for id: " + aDeployment.getId());
-//					
-//					
-//	//				String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
-//	//				if ((adminemail != null) && (!adminemail.equals(""))) {
-//	//					String subj = "[5GinFIREPortal] Deployment Request";
-//	//					EmailUtil.SendRegistrationActivationEmail(prevDeployment.getOwner().getEmail(),
-//	//							"5GinFIREPortal Deployment Request for experiment: " + prevDeployment.getName() + "\n<br/>Status: " + prevDeployment.getStatus().name()+ "\n<br/>Feedback: " + prevDeployment.getFeedback() + "\n\n<br/><br/> The 5GinFIRE team" ,
-//	//							subj);
-//	//				}
-//	
-//					DeploymentDescriptor dd = portalRepositoryRef.getDeploymentByID( receivedDeployment.getId() );  //rereading this, seems to keep the DB connection
-//	
-//
-//					if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED && aDeployment.getInstanceId() == null)
-//					{
-//						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails().getExperimentOnBoardDescriptors())
-//						{
-//							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FOUR"))
-//							{							
-//								aDeployment.setStatus( receivedDeployment.getStatus() );
-//								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
-//								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-//								aDeployment = portalRepositoryRef.updateDeploymentDescriptor(aDeployment);
-//								logger.info("NS status change is now "+aDeployment.getStatus());															
-//								BusController.getInstance().scheduleExperiment( aDeployment.getId() );								
-//							}
-//							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
-//							{							
-//								aDeployment.setStatus( receivedDeployment.getStatus() );
-//								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
-//								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-//								aDeployment = portalRepositoryRef.updateDeploymentDescriptor(aDeployment);
-//								logger.info("NS status change is now "+aDeployment.getStatus());															
-//								BusController.getInstance().scheduleExperiment( aDeployment.getId() );								
-//							}
-//						}
-//					}
-//					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING && aDeployment.getInstanceId() == null)
-//					{
-//						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails().getExperimentOnBoardDescriptors())
-//						{
-//							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FOUR"))
-//							{
-//								//Trigger Automatic Instantiation
-//								//Initially we try synchronously
-//								//aMANOController.deployNSDToMANOProvider(prevDeployment);
-//								//Then try asynchronously
-//								aDeployment.setStatus( receivedDeployment.getStatus() );
-//								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
-//								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-//								aDeployment = portalRepositoryRef.updateDeploymentDescriptor(aDeployment);
-//								logger.info("NS status change is now "+aDeployment.getStatus());															
-//	
-//								BusController.getInstance().deployExperiment( aDeployment.getId() );	
-//							}
-//							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
-//							{
-//								//Trigger Automatic Instantiation
-//								//Initially we try synchronously
-//								//aMANOController.deployNSDToMANOProvider(prevDeployment);
-//								//Then try asynchronously
-//	
-//								aDeployment.setStatus( receivedDeployment.getStatus() );
-//								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
-//								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-//								aDeployment = portalRepositoryRef.updateDeploymentDescriptor(aDeployment);
-//								logger.info("NS status change is now "+aDeployment.getStatus());															
-//								BusController.getInstance().deployExperiment( aDeployment.getId() );	
-//							}
-//						}
-//					}
-//					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED && aDeployment.getInstanceId() != null)
-//					{
-//						aDeployment.setStatus( receivedDeployment.getStatus() );
-//						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
-//						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-//						aDeployment = portalRepositoryRef.updateDeploymentDescriptor(aDeployment);
-//						logger.info("NS status change is now "+aDeployment.getStatus());															
-//						BusController.getInstance().completeExperiment( aDeployment.getId() );						
-//					}
-//					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED && aDeployment.getInstanceId() == null)
-//					{
-//						aDeployment.setStatus( receivedDeployment.getStatus() );
-//						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
-//						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-//						aDeployment = portalRepositoryRef.updateDeploymentDescriptor(aDeployment);
-//						logger.info("NS status change is now "+aDeployment.getStatus());															
-//						BusController.getInstance().rejectExperiment( aDeployment.getId() );
-//						logger.info("Deployment Rejected");				
-//					}
-//					else
-//					{
-//						ResponseBuilder builder = Response.status(Status.NOT_ACCEPTABLE);
-//						builder.entity("Inconsistent status change");
-//						throw new WebApplicationException(builder.build());					
-//					}
-//				} else {
-//
-//					logger.info( "Previous status is the same so just update deployment info");					
-//					aDeployment = portalRepositoryRef.updateDeploymentDescriptor(aDeployment);
+//				DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
+//				List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
+//				for (DeploymentDescriptor deploymentDescriptor : deployments) {
+//					logger.info("Deployment id = " + deploymentDescriptor.getId() );
 //				}
-//				return Response.ok().entity( aDeployment ).build();
-//			}
-//
-//		}
-//
-//		ResponseBuilder builder = Response.status(Status.NOT_ACCEPTABLE);
-//		builder.entity("User not found in portal registry or not logged in as admin");
-//		throw new WebApplicationException(builder.build());
-//
-//	}
-//
-////	@POST
-////	@Path("/registerresource/")
-////	@Produces("application/json")
-////	@Consumes("application/json")
-////	public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
-////
-////		logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
-////				+ sm.getOwner().getId());
-////
-////		PortalUser u = sm.getOwner();
-////		u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
-////
-////		if ((u != null) && (sm.getUuid() != null)) {
-////
-////			SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
-////
-////			if (checkSM == null) {
-////				sm.setOwner(u);
-////				sm.setActive(false);
-////				u.getSubscribedResources().add(sm);
-////				u = portalRepositoryRef.updateUserInfo(  u);
-////				return Response.ok().entity(sm).build();
-////			} else {
-////				checkSM.setURL(sm.getURL());// update URL if changed
-////				// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
-////				checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
-////				return Response.ok().entity(checkSM).build();
-////			}
-////
-////		} else {
-////			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-////			builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
-////					+ " cannot be registered under not found user");
-////			throw new WebApplicationException(builder.build());
-////		}
-////	}
-//
-//	/********************************************************************************
-//	 * 
-//	 * admin MANO platforms
-//	 * 
-//	 ********************************************************************************/
-//
-//	@GET
-//	@Path("/manoplatforms/")
-//	@Produces("application/json")
-//	public Response getMANOplatforms() {
-//		return Response.ok().entity(portalRepositoryRef.getMANOplatforms()).build();
-//	}
-//
-//	@GET
-//	@Path("/admin/manoplatforms/")
-//	@Produces("application/json")
-//	public Response getAdminMANOplatforms() {
-//
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		return Response.ok().entity(portalRepositoryRef.getMANOplatforms()).build();
-//	}
-//
+//				if ( ! deployments.contains(deployment) ) {
+//					deploymentOwner.getDeployments().add(deployment);
+//					deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
+//				}
+				
+				aDeployment.setName( receivedDeployment.getName() );
+				aDeployment.setFeedback( receivedDeployment.getFeedback() );
+				aDeployment.setStartDate( receivedDeployment.getStartDate());
+				aDeployment.setEndDate( receivedDeployment.getEndDate() );
+
+				logger.info("Previous Status is :"+aDeployment.getStatus()+",New Status is:"+receivedDeployment.getStatus()+" and Instance Id is "+aDeployment.getInstanceId());
+								
+				//prevDeployment = portalRepositoryRef.updateDeploymentDescriptor(prevDeployment);
+				if( receivedDeployment.getStatus() != aDeployment.getStatus() )
+				{
+					aDeployment.setStatus( receivedDeployment.getStatus() );
+					CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+					logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());			
+					aDeployment.getExperimentFullDetails();
+					aDeployment.getInfrastructureForAll();
+					
+					logger.info("updateDeployment for id: " + aDeployment.getId());
+					
+					
+	//				String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
+	//				if ((adminemail != null) && (!adminemail.equals(""))) {
+	//					String subj = "[5GinFIREPortal] Deployment Request";
+	//					EmailUtil.SendRegistrationActivationEmail(prevDeployment.getOwner().getEmail(),
+	//							"5GinFIREPortal Deployment Request for experiment: " + prevDeployment.getName() + "\n<br/>Status: " + prevDeployment.getStatus().name()+ "\n<br/>Feedback: " + prevDeployment.getFeedback() + "\n\n<br/><br/> The 5GinFIRE team" ,
+	//							subj);
+	//				}
+	
+					DeploymentDescriptor dd = deploymentDescriptorService.getDeploymentByID( receivedDeployment.getId() );  //rereading this, seems to keep the DB connection
+	
+
+					if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED && aDeployment.getInstanceId() == null)
+					{
+						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails().getExperimentOnBoardDescriptors())
+						{
+							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FOUR"))
+							{							
+								aDeployment.setStatus( receivedDeployment.getStatus() );
+								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now "+aDeployment.getStatus());															
+								BusController.getInstance().scheduleExperiment( aDeployment.getId() );								
+							}
+							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
+							{							
+								aDeployment.setStatus( receivedDeployment.getStatus() );
+								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now "+aDeployment.getStatus());															
+								BusController.getInstance().scheduleExperiment( aDeployment.getId() );								
+							}
+						}
+					}
+					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING && aDeployment.getInstanceId() == null)
+					{
+						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails().getExperimentOnBoardDescriptors())
+						{
+							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FOUR"))
+							{
+								//Trigger Automatic Instantiation
+								//Initially we try synchronously
+								//aMANOController.deployNSDToMANOProvider(prevDeployment);
+								//Then try asynchronously
+								aDeployment.setStatus( receivedDeployment.getStatus() );
+								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now "+aDeployment.getStatus());															
+	
+								BusController.getInstance().deployExperiment( aDeployment.getId() );	
+							}
+							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
+							{
+								//Trigger Automatic Instantiation
+								//Initially we try synchronously
+								//aMANOController.deployNSDToMANOProvider(prevDeployment);
+								//Then try asynchronously
+	
+								aDeployment.setStatus( receivedDeployment.getStatus() );
+								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now "+aDeployment.getStatus());															
+								BusController.getInstance().deployExperiment( aDeployment.getId() );	
+							}
+						}
+					}
+					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED && aDeployment.getInstanceId() != null)
+					{
+						aDeployment.setStatus( receivedDeployment.getStatus() );
+						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+						logger.info("NS status change is now "+aDeployment.getStatus());															
+						BusController.getInstance().completeExperiment( aDeployment.getId() );						
+					}
+					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED && aDeployment.getInstanceId() == null)
+					{
+						aDeployment.setStatus( receivedDeployment.getStatus() );
+						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+						logger.info("NS status change is now "+aDeployment.getStatus());															
+						BusController.getInstance().rejectExperiment( aDeployment.getId() );
+						logger.info("Deployment Rejected");				
+					}
+					else
+					{
+						return (ResponseEntity<?>) ResponseEntity.badRequest().body("Inconsistent status change" );					
+					}
+				} else {
+
+					logger.info( "Previous status is the same so just update deployment info");					
+					aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+				}
+				return ResponseEntity.ok( aDeployment  );
+			}
+
+		}
+
+
+		return (ResponseEntity<?>) ResponseEntity.badRequest();
+
+	}
+
 //	@POST
-//	@Path("/admin/manoplatforms/")
+//	@Path("/registerresource/")
 //	@Produces("application/json")
 //	@Consumes("application/json")
-//	public Response addMANOplatform(MANOplatform c) {
+//	public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
 //
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		
-//		MANOplatform u = portalRepositoryRef.addMANOplatform(c);
+//		logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
+//				+ sm.getOwner().getId());
 //
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
+//		PortalUser u = sm.getOwner();
+//		u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
+//
+//		if ((u != null) && (sm.getUuid() != null)) {
+//
+//			SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
+//
+//			if (checkSM == null) {
+//				sm.setOwner(u);
+//				sm.setActive(false);
+//				u.getSubscribedResources().add(sm);
+//				u = portalRepositoryRef.updateUserInfo(  u);
+//				return Response.ok().entity(sm).build();
+//			} else {
+//				checkSM.setURL(sm.getURL());// update URL if changed
+//				// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
+//				checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
+//				return Response.ok().entity(checkSM).build();
+//			}
+//
 //		} else {
 //			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested MANOplatform with name=" + c.getName() + " cannot be installed");
+//			builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
+//					+ " cannot be registered under not found user");
 //			throw new WebApplicationException(builder.build());
 //		}
 //	}
+
+	/********************************************************************************
+	 * 
+	 * admin MANO platforms
+	 * 
+	 ********************************************************************************/
+
+	@GetMapping( value = "/manoplatforms/", produces = "application/json" )
+	public ResponseEntity<?>  getMANOplatforms() {
+		return ResponseEntity.ok( manoPlatformService.getMANOplatforms()  );
+	}
+
+	@GetMapping( value = "/admin/manoplatforms/", produces = "application/json" )
+	public ResponseEntity<?>  getAdminMANOplatforms() {
+
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		return ResponseEntity.ok( manoPlatformService.getMANOplatforms()  );
+	}
+
+
+	@PostMapping( value =  "/admin/manoplatforms/", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addMANOplatform(MANOplatform c) {
+
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		MANOplatform u = manoPlatformService.addMANOplatform(c);
+
+		if (u != null) {
+			return ResponseEntity.ok( u  );
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+	}
+
+	@PutMapping( value =  "/admin/manoplatforms/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateMANOplatform(@PathVariable("mpid") int mpid, MANOplatform c) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		MANOplatform previousMP = manoPlatformService.getMANOplatformByID(mpid);
+		
+		previousMP.setDescription( c.getDescription() );
+		previousMP.setName( c.getName() );
+		previousMP.setVersion( c.getVersion() );
+
+		MANOplatform u = manoPlatformService.updateMANOplatformInfo( previousMP );
+
+		if (u != null) {
+			return ResponseEntity.ok( u  );
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+
+	}
+
+
+	@DeleteMapping( value =  "/admin/manoplatforms/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  deleteMANOplatform(@PathVariable("mpid") int mpid) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		MANOplatform m = manoPlatformService.getMANOplatformByID(mpid);
+
+		manoPlatformService.deleteMANOplatform( m );
+		return ResponseEntity.ok( "{}"  );
+
+	}
+
+	@GetMapping( value = "/manoplatforms/{mpid}", produces = "application/json" )
+	public ResponseEntity<?>  getMANOplatformById(@PathVariable("mpid") int mpid) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		MANOplatform sm = manoPlatformService.getMANOplatformByID(mpid);
+
+		if (sm != null) {
+			return ResponseEntity.ok(sm);
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+	@GetMapping( value = "/admin/manoplatforms/{mpid}", produces = "application/json" )
+	public ResponseEntity<?>  getAdminMANOplatformById(@PathVariable("mpid") int mpid) {
+		return getMANOplatformById(mpid);
+	}
+
+	/********************************************************************************
+	 * 
+	 * admin MANO providers
+	 * 
+	 ********************************************************************************/
+
+	/**
+	 * @return
+	 */
+	@GetMapping( value = "/admin/manoproviders/", produces = "application/json" )
+	public ResponseEntity<?>  getAdminMANOproviders() {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+
+		return ResponseEntity.ok( manoProviderService.getMANOproviders()  );
+	}
+
+	@PostMapping( value =  "/admin/manoproviders/", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addMANOprovider(MANOprovider c) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		MANOprovider u = manoProviderService.addMANOprovider(c);
+
+		if (u != null) {
+			return ResponseEntity.ok( u  );
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+	}
+
+
+	@PutMapping( value =  "/admin/manoproviders/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateMANOprovider(@PathVariable("mpid") int mpid, MANOprovider c) {
+
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		MANOprovider prev = manoProviderService.getMANOproviderByID(c.getId());
+		prev.setApiEndpoint( c.getApiEndpoint());
+		prev.setAuthorizationBasicHeader( c.getAuthorizationBasicHeader());
+		prev.setDescription( c.getDescription());
+		prev.setName(c.getName());
+		prev.setSupportedMANOplatform( c.getSupportedMANOplatform() );
+		
+		MANOprovider u = manoProviderService.updateMANOproviderInfo(c);
+
+		if (u != null) {
+			return ResponseEntity.ok( u  );
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+
+	}
+
+
+	@DeleteMapping( value =  "/admin/manoproviders/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  deleteMANOprovider(@PathVariable("mpid") int mpid) {
+
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+
+		MANOprovider prev = manoProviderService.getMANOproviderByID( mpid );
+		
+		manoProviderService.deleteMANOprovider( prev );
+		return ResponseEntity.ok( "{}" );
+
+	}
+
+	@GetMapping( value = "/admin/manoproviders/{mpid}", produces = "application/json" )
+	public ResponseEntity<?>  getAdminMANOproviderById(@PathVariable("mpid") int mpid) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		MANOprovider sm = manoProviderService.getMANOproviderByID(mpid);
+
+		if (sm != null) {
+			return ResponseEntity.ok( sm );
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+	@GetMapping( value = "/manoprovider/{mpid}/vnfds/{vxfid}", produces = "application/json" )
+	public ResponseEntity<?>  getOSMVNFMetadataByKOSMMANOID(@PathVariable("mpid") int manoprovid, @PathVariable("vxfid") String vxfid) {
+		logger.info("getOSMVNFMetadataByID  vxfid=" + vxfid);
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+
+		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
+		
+		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
+		{
+			OSM5Client osm5Client = new OSM5Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
+			osm5.ns.riftware._1._0.project.vnfd.rev170228.project.vnfd.catalog.Vnfd vnfd = osm5Client.getVNFDbyID(vxfid);
+			if (vnfd != null) {
+				return ResponseEntity.ok( vnfd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
+		return (ResponseEntity<?>) ResponseEntity.notFound();
+	}
+
+	@GetMapping( value = "/admin/manoprovider/{mpid}/vnfds/", produces = "application/json" )
+	public ResponseEntity<?>  getOSMVNFMetadata(@PathVariable("mpid") int manoprovid) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
+
+
+		
+		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
+		{
+			OSM5Client osm5Client = null;			
+			try {
+				osm5Client = new OSM5Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
+			}
+		    catch(HttpStatusCodeException e) 
+			{
+				logger.error("getOSMVNFMetadata, OSM5 fails authentication. Aborting action.");
+				CentralLogger.log( CLevel.ERROR, "getOSMVNFMetadata, OSM5 fails authentication. Aborting action.");
+				
+				return (ResponseEntity<?>) ResponseEntity.status( e.getRawStatusCode() ).body("manoprovid with id=" + manoprovid + " does not belong to the supported types or failed to communication with OSM") ;
+			}						
+			
+			osm5.ns.riftware._1._0.project.vnfd.rev170228.project.vnfd.catalog.Vnfd[] vnfd = osm5Client.getVNFDs();
+			if (vnfd != null) {
+				return ResponseEntity.ok( vnfd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
+		return (ResponseEntity<?>) ResponseEntity.notFound();
+	}
+
+	
+	@GetMapping( value = "/admin/manoprovider/{mpid}/nsds/{nsdid}", produces = "application/json" )
+	public ResponseEntity<?>  getOSM_NSD_MetadataByKOSMMANOID(@PathVariable("mpid") int manoprovid,
+			@PathVariable("vxfid") String nsdid) {
+		logger.info("getOSMVNFMetadataByID  nsdid=" + nsdid);
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
+
+		
+		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
+		{
+			OSM5Client osm5Client = new OSM5Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
+			Nsd nsd = osm5Client.getNSDbyID(nsdid);
+			if (nsd != null) {
+				return ResponseEntity.ok( nsd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
+		return (ResponseEntity<?>) ResponseEntity.notFound();
+	}
+
+
+	@GetMapping( value = "/admin/manoprovider/{mpid}/nsds/", produces = "application/json" )
+	public ResponseEntity<?>  getOSM_NSD_Metadata(@PathVariable("mpid") int manoprovid) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
+
+		
+		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
+		{
+			OSM5Client osm5Client = null;			
+			try {
+				osm5Client = new OSM5Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
+			}
+		    catch(HttpStatusCodeException e) 
+			{
+				logger.error("getOSM_NSD_Metadata, OSM5 fails authentication. Aborting action.");
+				CentralLogger.log( CLevel.ERROR, "getOSM_NSD_Metadata, OSM5 fails authentication. Aborting action.");
+				
+				return (ResponseEntity<?>) ResponseEntity.status( e.getRawStatusCode() ).body("manoprovid with id=" + manoprovid + " does not belong to the supported types or failed to communication with OSM") ;
+			}						
+			
+			osm5.ns.riftware._1._0.project.nsd.rev170228.project.nsd.catalog.Nsd[] nsd = osm5Client.getNSDs();
+			if (nsd != null) {
+				return ResponseEntity.ok( nsd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
+		return (ResponseEntity<?>) ResponseEntity.notFound();
+	}
+
+	/********************************************************************************
+	 * 
+	 * admin VxFOnBoardedDescriptors
+	 * 
+	 ********************************************************************************/
+
+
+	@GetMapping( value = "/admin/vxfobds/", produces = "application/json" )
+	public ResponseEntity<?>  getVxFOnBoardedDescriptors() {
+		return ResponseEntity.ok( vxfOBDService.getVxFOnBoardedDescriptors()  );
+	}
+
+	@PostMapping( value =  "/admin/vxfobds/", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addVxFOnBoardedDescriptor( VxFMetadata aVxF ) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		if ( aVxF != null ) {
+		
+			VxFMetadata refVxF =  ( VxFMetadata )vxfService.getProductByID( aVxF.getId() );
+			VxFOnBoardedDescriptor obd = new VxFOnBoardedDescriptor();
+			obd.setVxf( refVxF );
+			obd.setUuid( UUID.randomUUID().toString() );
+			//?????
+			refVxF.getVxfOnBoardedDescriptors().add( obd ) ;
+			
+			// save product
+			refVxF = (VxFMetadata) vxfService.updateProductInfo( refVxF );
+			
+
+			if (refVxF != null) {
+				return ResponseEntity.ok( refVxF  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.badRequest();
+			}
+			
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+	}
+
+
+	@PutMapping( value =  "/admin/vxfobds/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid, VxFOnBoardedDescriptor c) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		VxFOnBoardedDescriptor u = vxfOBDService.updateVxFOnBoardedDescriptor(c);
+
+		if (u != null) {
+			return ResponseEntity.ok( u  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+
+	}
+
+
+	@DeleteMapping( value =  "/admin/vxfobds/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  deleteVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+
+		VxFOnBoardedDescriptor sm = vxfOBDService.getVxFOnBoardedDescriptorByID(mpid);
+		
+		vxfOBDService.deleteVxFOnBoardedDescriptor( sm );
+		return ResponseEntity.ok( "{}"  );
+
+	}
+
+	@GetMapping( value = "/admin/vxfobds/{mpid}", produces = "application/json" )
+	public ResponseEntity<?>  getVxFOnBoardedDescriptorById(@PathVariable("mpid") int mpid) {
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		VxFOnBoardedDescriptor sm = vxfOBDService.getVxFOnBoardedDescriptorByID(mpid);
+
+		if (sm != null) {
+			return ResponseEntity.ok( sm  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			// throw new WebApplicationException(builder.build());
+		}
+	}
+
+
+	@GetMapping( value = "/admin/vxfobds/{mpid}/status", produces = "application/json" )
+	public ResponseEntity<?>  getVxFOnBoardedDescriptorByIdCheckMANOProvider(@PathVariable("mpid") int mpid) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		VxFOnBoardedDescriptor obds = vxfOBDService.getVxFOnBoardedDescriptorByID(mpid);
+
+		if (obds == null) {
+			return (ResponseEntity<?>) ResponseEntity.notFound(); 
+		}
+		
+		
+//		/**
+//		 * the following polling will be performed automatically by CAMEL with a timer
+//		 */
 //
-//	@PUT
-//	@Path("/admin/manoplatforms/{mpid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateMANOplatform(@PathParam("mpid") int mpid, MANOplatform c) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		MANOplatform previousMP = portalRepositoryRef.getMANOplatformByID(mpid);
-//		
-//		previousMP.setDescription( c.getDescription() );
-//		previousMP.setName( c.getName() );
-//		previousMP.setVersion( c.getVersion() );
+//		if (obds.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
 //
-//		MANOplatform u = portalRepositoryRef.updateMANOplatformInfo( previousMP );
+//			Vnfd vnfd = null;
+//			List<Vnfd> vnfds = OSMClient.getInstance(obds.getObMANOprovider()).getVNFDs();
+//			for (Vnfd v : vnfds) {
+//				if (v.getId().equalsIgnoreCase(obds.getVxfMANOProviderID())
+//						|| v.getName().equalsIgnoreCase(obds.getVxfMANOProviderID())) {
+//					vnfd = v;
+//					break;
+//				}
+//			}
 //
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested MANOplatform with name=" + c.getName() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@DELETE
-//	@Path("/admin/manoplatforms/{mpid}")
-//	public Response deleteMANOplatform(@PathParam("mpid") int mpid) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		MANOplatform category = portalRepositoryRef.getMANOplatformByID(mpid);
-//
-//		portalRepositoryRef.deleteMANOplatform(mpid);
-//		return Response.ok().build();
-//
-//	}
-//
-//	@GET
-//	@Path("/manoplatforms/{mpid}")
-//	@Produces("application/json")
-//	public Response getMANOplatformById(@PathParam("mpid") int mpid) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		MANOplatform sm = portalRepositoryRef.getMANOplatformByID(mpid);
-//
-//		if (sm != null) {
-//			return Response.ok().entity(sm).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("MANOplatform " + mpid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/admin/manoplatforms/{mpid}")
-//	@Produces("application/json")
-//	public Response getAdminMANOplatformById(@PathParam("mpid") int mpid) {
-//		return getMANOplatformById(mpid);
-//	}
-//
-//	/********************************************************************************
-//	 * 
-//	 * admin MANO providers
-//	 * 
-//	 ********************************************************************************/
-//
-//	/**
-//	 * @return
-//	 */
-//	@GET
-//	@Path("/admin/manoproviders/")
-//	@Produces("application/json")
-//	public Response getAdminMANOproviders() {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		return Response.ok().entity(portalRepositoryRef.getMANOproviders()).build();
-//	}
-//
-//	@POST
-//	@Path("/admin/manoproviders/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addMANOprovider(MANOprovider c) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		MANOprovider u = portalRepositoryRef.addMANOprovider(c);
-//
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested MANOprovider with name=" + c.getName() + " cannot be installed");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@PUT
-//	@Path("/admin/manoproviders/{mpid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateMANOprovider(@PathParam("mpid") int mpid, MANOprovider c) {
-//
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		
-//		MANOprovider prev = portalRepositoryRef.getMANOproviderByID(c.getId());
-//		prev.setApiEndpoint( c.getApiEndpoint());
-//		prev.setAuthorizationBasicHeader( c.getAuthorizationBasicHeader());
-//		prev.setDescription( c.getDescription());
-//		prev.setName(c.getName());
-//		prev.setSupportedMANOplatform( c.getSupportedMANOplatform() );
-//		
-//		MANOprovider u = portalRepositoryRef.updateMANOproviderInfo(c);
-//
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested MANOprovider with name=" + c.getName() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@DELETE
-//	@Path("/admin/manoproviders/{mpid}")
-//	public Response deleteMANOprovider(@PathParam("mpid") int mpid) {
-//
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		portalRepositoryRef.deleteMANOprovider(mpid);
-//		return Response.ok().build();
-//
-//	}
-//
-//	@GET
-//	@Path("/admin/manoproviders/{mpid}")
-//	@Produces("application/json")
-//	public Response getAdminMANOproviderById(@PathParam("mpid") int mpid) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		MANOprovider sm = portalRepositoryRef.getMANOproviderByID(mpid);
-//
-//		if (sm != null) {
-//			return Response.ok().entity(sm).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("MANOprovider " + mpid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/manoprovider/{mpid}/vnfds/{vxfid}")
-//	@Produces("application/json")
-//	public Response getOSMVNFMetadataByKOSMMANOID(@PathParam("mpid") int manoprovid, @PathParam("vxfid") String vxfid) {
-//		logger.info("getOSMVNFMetadataByID  vxfid=" + vxfid);
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//
-//		MANOprovider sm = portalRepositoryRef.getMANOproviderByID(manoprovid);
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM TWO"))
-//		{
-//			Vnfd vnfd = OSMClient.getInstance(sm).getVNFDbyID(vxfid);
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
+//			if (vnfd == null) {
+//				obds.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
 //			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("vxf with id=" + vxfid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
+//				obds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
 //			}
+//
+//			obds = portalRepositoryRef.updateVxFOnBoardedDescriptor(obds);
+//
 //		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FOUR"))
-//		{
-//			OSM4Client osm4Client = new OSM4Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
-//			ns.yang.nfvo.vnfd.rev170228.vnfd.catalog.Vnfd vnfd = osm4Client.getVNFDbyID(vxfid);
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
+
+		return ResponseEntity.ok( obds  );
+
+	}
+
+	
+	@PutMapping( value =  "/admin/vxfobds/{mpid}/onboard", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  onBoardDescriptor(@PathVariable("mpid") int mpid, final VxFOnBoardedDescriptor vxfobd) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		try {
+			aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
+		} catch (Exception e) {				
+
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}			
+		
+		return ResponseEntity.ok( vxfobd  );
+
+	}
+	
+
+	@PutMapping( value =  "/admin/vxfobds/{mpid}/offboard", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  offBoardDescriptor(@PathVariable("mpid") int mpid, final VxFOnBoardedDescriptor clobd) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		OnBoardingStatus previous_status = clobd.getOnBoardingStatus();
+		clobd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
+		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+clobd.getVxf().getName()+" to "+clobd.getOnBoardingStatus());																													
+		VxFOnBoardedDescriptor updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor(clobd);
+
+		ResponseEntity<String> response = null;
+		try {
+			response = aMANOController.offBoardVxFFromMANOProvider( updatedObd );			
+		}
+		catch( HttpClientErrorException e)
+		{
+			updatedObd.setOnBoardingStatus(previous_status);
+			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus());																														
+			updatedObd.setFeedbackMessage(e.getResponseBodyAsString());
+			updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor( updatedObd );
+			JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
+		
+
+			return (ResponseEntity<?>) ResponseEntity.status( e.getRawStatusCode() ).contentType(MediaType.TEXT_PLAIN).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"))   ;
+		}        
+		
+		if (response == null) {
+			updatedObd.setOnBoardingStatus(previous_status);
+			updatedObd.setFeedbackMessage("Null Response on OffBoarding request.Requested VxFOnBoardedDescriptor with ID=\" + updatedObd.getId() + \" cannot be offboarded.");
+			updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor( updatedObd );
+			
+			
+			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body("Requested VxFOnBoardedDescriptor with ID=" + updatedObd.getId() + " cannot be offboarded")   ;
+		}
+		// UnCertify Upon OffBoarding
+		updatedObd.getVxf().setCertified(false);
+		updatedObd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
+		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus());																																
+		updatedObd.setFeedbackMessage(response.getBody().toString());
+		updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor( updatedObd );
+		BusController.getInstance().offBoardVxF( updatedObd.getId() );
+		
+		return ResponseEntity.ok( updatedObd  );
+		
+	}
+
+	/********************************************************************************
+	 * 
+	 * admin ExperimentOnBoardDescriptors
+	 * 
+	 ********************************************************************************/
+
+	@GetMapping( value = "/admin/experimentobds/", produces = "application/json" )
+	public ResponseEntity<?>  getExperimentOnBoardDescriptors() {
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		return ResponseEntity.ok(  nsdOBDService.getExperimentOnBoardDescriptors()  );
+	}
+
+
+	@PostMapping( value =  "/admin/experimentobds/", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addExperimentOnBoardDescriptor( ExperimentMetadata exp) {
+		
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		
+		if ( exp != null ) {
+			
+			ExperimentMetadata refExp =  ( ExperimentMetadata ) nsdService.getProductByID( exp.getId() );
+			ExperimentOnBoardDescriptor obd = new ExperimentOnBoardDescriptor();
+			obd.setExperiment( refExp );
+			obd.setUuid( UUID.randomUUID().toString() );
+			refExp.getExperimentOnBoardDescriptors().add( obd ) ;
+			
+			// save product
+			refExp = (ExperimentMetadata) nsdService.updateProductInfo( refExp );
+			
+
+			if (refExp != null) {
+				return ResponseEntity.ok( refExp  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.badRequest();
+			}
+			
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+		
+		
+	}
+
+	
+	@PutMapping( value =  "/admin/experimentobds/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid, ExperimentOnBoardDescriptor c) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		ExperimentOnBoardDescriptor u = nsdOBDService.updateExperimentOnBoardDescriptor(c);
+
+		if (u != null) {
+			return ResponseEntity.ok( u  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+
+	}
+
+	
+	@DeleteMapping( value =  "/admin/experimentobds/{mpid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  deleteExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+
+		ExperimentOnBoardDescriptor u = nsdOBDService.updateExperimentOnBoardDescriptor(c);
+		nsdOBDService.deleteExperimentOnBoardDescriptor( u );
+		return ResponseEntity.ok( "{}"  );
+
+	}
+
+	
+	@GetMapping( value = "/admin/experimentobds/{mpid}", produces = "application/json" )
+	public ResponseEntity<?>  getExperimentOnBoardDescriptorById(@PathVariable("mpid") int mpid) {
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID(mpid);
+
+		if (sm != null) {
+			return ResponseEntity.ok( sm  );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+
+	@GetMapping( value = "/admin/experimentobds/{mpid}/status", produces = "application/json" )
+	public ResponseEntity<?>  getExperimentOnBoardDescriptorByIdCheckMANOProvider(@PathVariable("mpid") int mpid) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID(mpid);
+
+		if (sm == null) {
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+
+//		
+//		if (sm.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
+//
+//			Nsd nsd = null;
+//			List<Nsd> nsds = OSMClient.getInstance(sm.getObMANOprovider()).getNSDs();
+//			if ( nsds != null ) {
+//				for (Nsd v : nsds) {
+//					if (v.getId().equalsIgnoreCase(sm.getVxfMANOProviderID())
+//							|| v.getName().equalsIgnoreCase(sm.getVxfMANOProviderID())) {
+//						nsd = v;
+//						break;
+//					}
+//				}
+//			}
+//
+//			if (nsd == null) {
+//				sm.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
 //			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("vxf with id=" + vxfid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
+//				sm.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
 //			}
-//		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
-//		{
-//			OSM5Client osm5Client = new OSM5Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
-//			osm5.ns.riftware._1._0.project.vnfd.rev170228.project.vnfd.catalog.Vnfd vnfd = osm5Client.getVNFDbyID(vxfid);
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("vxf with id=" + vxfid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//		builder.entity("MANO does not belong to supported types");
-//		throw new WebApplicationException(builder.build());
-//	}
 //
-//	@GET
-//	@Path("/admin/manoprovider/{mpid}/vnfds/")
-//	@Produces("application/json")
-//	public Response getOSMVNFMetadata(@PathParam("mpid") int manoprovid) {
+//			sm = portalRepositoryRef.updateExperimentOnBoardDescriptor(sm);
 //
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
 //		}
-//		MANOprovider sm = portalRepositoryRef.getMANOproviderByID(manoprovid);
+
+		return ResponseEntity.ok( sm  );
+
+	}
+
+	@PutMapping( value =  "/admin/experimentobds/{mpid}/onboard", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  onExperimentBoardDescriptor(@PathVariable("mpid") int mpid, final ExperimentOnBoardDescriptor experimentonboarddescriptor) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+//		c.setOnBoardingStatus(OnBoardingStatus.ONBOARDING);
+//		//This is the Deployment ID for the portal		
+//		c.setDeployId(UUID.randomUUID().toString());
+//		ExperimentMetadata em = c.getExperiment();
+//		if (em == null) {
+//			em = (ExperimentMetadata) portalRepositoryRef.getProductByID(c.getExperimentid());
+//		}
 //
-//
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM TWO"))
-//		{
-//			List<Vnfd> vnfd = OSMClient.getInstance(sm).getVNFDs();
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("manoprovid with id=" + manoprovid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FOUR"))
-//		{
-//			//OSM4Client osm4Client = new OSM4Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
-//			OSM4Client osm4Client = null;			
-//			try {
-//				osm4Client = new OSM4Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
-//			}
-//		    catch(HttpStatusCodeException e) 
-//			{
-//				logger.error("getOSMVNFMetadata, OSM4 fails authentication. Aborting action.");
-//				CentralLogger.log( CLevel.ERROR, "getOSMVNFMetadata, OSM4 fails authentication. Aborting action.");
-//				ResponseBuilder builder = Response.status(e.getRawStatusCode());
-//				builder.entity("manoprovid with id=" + manoprovid + " does not belong to the supported types or failed to communication with OSM");
-//				throw new WebApplicationException(builder.build());		
-//			}						
-//			
-//			ns.yang.nfvo.vnfd.rev170228.vnfd.catalog.Vnfd[] vnfd = osm4Client.getVNFDs();
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("manoprovid with id=" + manoprovid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
-//		{
-//			OSM5Client osm5Client = null;			
-//			try {
-//				osm5Client = new OSM5Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
-//			}
-//		    catch(HttpStatusCodeException e) 
-//			{
-//				logger.error("getOSMVNFMetadata, OSM5 fails authentication. Aborting action.");
-//				CentralLogger.log( CLevel.ERROR, "getOSMVNFMetadata, OSM5 fails authentication. Aborting action.");
-//				ResponseBuilder builder = Response.status(e.getRawStatusCode());
-//				builder.entity("manoprovid with id=" + manoprovid + " does not belong to the supported types or failed to communication with OSM");
-//				throw new WebApplicationException(builder.build());		
-//			}						
-//			
-//			osm5.ns.riftware._1._0.project.vnfd.rev170228.project.vnfd.catalog.Vnfd[] vnfd = osm5Client.getVNFDs();
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("manoprovid with id=" + manoprovid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//		builder.entity("manoprovid with id=" + manoprovid + " not of the supported types");
-//		throw new WebApplicationException(builder.build());		
-//	}
-//
-//	@GET
-//	@Path("/admin/manoprovider/{mpid}/nsds/{nsdid}")
-//	@Produces("application/json")
-//	public Response getOSM_NSD_MetadataByKOSMMANOID(@PathParam("mpid") int manoprovid,
-//			@PathParam("vxfid") String nsdid) {
-//		logger.info("getOSMVNFMetadataByID  nsdid=" + nsdid);
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		MANOprovider sm = portalRepositoryRef.getMANOproviderByID(manoprovid);
-//
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM TWO"))
-//		{
-//			Nsd nsd = OSMClient.getInstance(sm).getNSDbyID(nsdid);
-//	
-//			if (nsd != null) {
-//				return Response.ok().entity(nsd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("nsdid with id=" + nsdid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FOUR"))
-//		{
-//			OSM4Client osm4Client = new OSM4Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
-//			ns.yang.nfvo.vnfd.rev170228.vnfd.catalog.Vnfd vnfd = osm4Client.getVNFDbyID(nsdid);
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("nsdid with id=" + nsdid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
-//		{
-//			OSM5Client osm5Client = new OSM5Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
-//			osm5.ns.riftware._1._0.project.vnfd.rev170228.project.vnfd.catalog.Vnfd vnfd = osm5Client.getVNFDbyID(nsdid);
-//			if (vnfd != null) {
-//				return Response.ok().entity(vnfd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("nsdid with id=" + nsdid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//		builder.entity("MANO does not belong to one of the supported types");
-//		throw new WebApplicationException(builder.build());		
-//	}
-//
-//	@GET
-//	@Path("/admin/manoprovider/{mpid}/nsds/")
-//	@Produces("application/json")
-//	public Response getOSM_NSD_Metadata(@PathParam("mpid") int manoprovid) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		MANOprovider sm = portalRepositoryRef.getMANOproviderByID(manoprovid);
-//
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM TWO"))
-//		{
-//			List<Nsd> nsd = OSMClient.getInstance(sm).getNSDs();
-//	
-//			if (nsd != null) {
-//				return Response.ok().entity(nsd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("manoprovid with id=" + manoprovid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FOUR"))
-//		{
-//			OSM4Client osm4Client = null;			
-//			try {
-//				osm4Client = new OSM4Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
-//			}
-//		    catch(HttpStatusCodeException e) 
-//			{
-//				logger.error("getOSM_NSD_Metadata, OSM4 fails authentication. Aborting action.");
-//				CentralLogger.log( CLevel.ERROR, "getOSM_NSD_Metadata, OSM4 fails authentication. Aborting action.");
-//				ResponseBuilder builder = Response.status(e.getRawStatusCode());
-//				builder.entity("manoprovid with id=" + manoprovid + " does not belong to the supported types or OSM communication failure");
-//				throw new WebApplicationException(builder.build());		
-//			}						
-//			
-//			ns.yang.nfvo.nsd.rev170228.nsd.catalog.Nsd[] nsd = osm4Client.getNSDs();
-//			if (nsd != null) {
-//				return Response.ok().entity(nsd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("manoprovid with id=" + manoprovid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		if(sm.getSupportedMANOplatform().getName().equals("OSM FIVE"))
-//		{
-//			OSM5Client osm5Client = null;			
-//			try {
-//				osm5Client = new OSM5Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
-//			}
-//		    catch(HttpStatusCodeException e) 
-//			{
-//				logger.error("getOSM_NSD_Metadata, OSM5 fails authentication. Aborting action.");
-//				CentralLogger.log( CLevel.ERROR, "getOSM_NSD_Metadata, OSM5 fails authentication. Aborting action.");
-//				ResponseBuilder builder = Response.status(e.getRawStatusCode());
-//				builder.entity("manoprovid with id=" + manoprovid + " does not belong to the supported types or OSM communication failure");
-//				throw new WebApplicationException(builder.build());		
-//			}						
-//			
-//			osm5.ns.riftware._1._0.project.nsd.rev170228.project.nsd.catalog.Nsd[] nsd = osm5Client.getNSDs();
-//			if (nsd != null) {
-//				return Response.ok().entity(nsd).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//				builder.entity("manoprovid with id=" + manoprovid + " not found in portal registry");
-//				throw new WebApplicationException(builder.build());
-//			}
-//		}
-//		ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//		builder.entity("manoprovid with id=" + manoprovid + " does not belong to the supported types");
-//		throw new WebApplicationException(builder.build());		
-//	}
-//
-//	/********************************************************************************
-//	 * 
-//	 * admin VxFOnBoardedDescriptors
-//	 * 
-//	 ********************************************************************************/
-//
-//	@GET
-//	@Path("/admin/vxfobds/")
-//	@Produces("application/json")
-//	public Response getVxFOnBoardedDescriptors() {
-//		return Response.ok().entity(portalRepositoryRef.getVxFOnBoardedDescriptors()).build();
-//	}
-//
-//	@POST
-//	@Path("/admin/vxfobds/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addVxFOnBoardedDescriptor( VxFMetadata aVxF ) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
+//		/**
+//		 * The following is not OK. When we submit to OSMClient the createOnBoardPackage
+//		 * we just get a response something like response = {"output":
+//		 * {"transaction-id": "b2718ef9-4391-4a9e-97ad-826593d5d332"}} which does not
+//		 * provide any information. The OSM RIFTIO API says that we could get
+//		 * information about onboarding (create or update) jobs see
+//		 * https://open.riftio.com/documentation/riftware/4.4/a/api/orchestration/pkt-mgmt/rw-pkg-mgmt-download-jobs.htm
+//		 * with /api/operational/download-jobs, but this does not return pending jobs.
+//		 * So the only solution is to ask again OSM if something is installed or not, so
+//		 * for now the client (the portal ) must check via the
+//		 * getVxFOnBoardedDescriptorByIdCheckMANOProvider giving the VNF ID in OSM. OSM
+//		 * uses the ID of the yaml description Thus we asume that the vxf name can be
+//		 * equal to the VNF ID in the portal, and we use it for now as the OSM ID. Later
+//		 * in future, either OSM API provide more usefull response or we extract info
+//		 * from the VNFD package
+//		 * 
+//		 */
 //		
-//		if ( aVxF != null ) {
+//		c.setVxfMANOProviderID(em.getName()); // Possible Error. This probably needs to be setExperimentMANOProviderID(em.getName())
+//
+//		c.setLastOnboarding(new Date());
+//
+//		ExperimentOnBoardDescriptor uexpobd = portalRepositoryRef.updateExperimentOnBoardDescriptor(c);
+//
+//		logger.info("NSD Package Location: " + em.getPackageLocation());		
 //		
-//			VxFMetadata refVxF =  ( VxFMetadata )portalRepositoryRef.getProductByID( aVxF.getId() );
-//			VxFOnBoardedDescriptor obd = new VxFOnBoardedDescriptor();
-//			obd.setVxf( refVxF );
-//			obd.setUuid( UUID.randomUUID().toString() );
-//			//?????
-//			refVxF.getVxfOnBoardedDescriptors().add( obd ) ;
-//			
-//			// save product
-//			refVxF = (VxFMetadata) portalRepositoryRef.updateProductInfo( refVxF );
-//			
-//
-//			if (refVxF != null) {
-//				return Response.ok().entity( refVxF ).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//				builder.entity("Requested VxFOnBoardedDescriptor with name=" + aVxF.getId() + " cannot be installed");
-//				throw new WebApplicationException(builder.build());
-//			}
-//			
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested VxFOnBoardedDescriptor has NULL value.");
-//			throw new WebApplicationException(builder.build());
+		try {
+			aMANOController.onBoardNSDToMANOProvider( experimentonboarddescriptor.getId() );
+		} catch (Exception e) {				
+			e.printStackTrace();
+	    	logger.error("onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.");
+			CentralLogger.log( CLevel.ERROR, "onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.");																	
+
+			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body("Requested Experiment Descriptor with ID=" + experimentonboarddescriptor.getId() + " cannot be onboarded")   ;
+		}	
+		
+		return ResponseEntity.ok( experimentonboarddescriptor  );
+	}
+
+
+
+	@PutMapping( value =  "/admin/experimentobds/{mpid}/offboard", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  offBoardExperimentDescriptor(@PathVariable("mpid") int mpid, final ExperimentOnBoardDescriptor c) {
+
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		OnBoardingStatus previous_status = c.getOnBoardingStatus();
+		c.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
+		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+c.getExperiment().getName()+" to "+c.getOnBoardingStatus());																																
+		ExperimentOnBoardDescriptor uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor(c);
+
+		ResponseEntity<String> response = null;
+		try {
+			response = aMANOController.offBoardNSDFromMANOProvider(uExper);
+		}
+		catch( HttpClientErrorException e)
+		{
+			uExper.setOnBoardingStatus(previous_status);
+			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																	
+			uExper.setFeedbackMessage(e.getResponseBodyAsString());
+			uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor(uExper);
+			JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
+			ResponseBuilder builder = Response.status(e.getRawStatusCode()).type(MediaType.TEXT_PLAIN).entity("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
+			return builder.build();
+		}        
+		
+		if (response == null) {
+			uExper.setOnBoardingStatus(previous_status);
+			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																	
+			uExper.setFeedbackMessage("Null response on OffBoarding request.Requested NSOnBoardedDescriptor with ID=\" + c.getId() + \" cannot be offboarded.");			
+			uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor( uExper );
+			
+			
+
+			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body( "Requested NSOnBoardedDescriptor with ID=" + c.getId() + " cannot be offboarded" )   ;
+		}
+		// Set Valid to false if it is OffBoarded
+		uExper.getExperiment().setValid(false);
+		uExper.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
+		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																			
+		uExper.setFeedbackMessage(response.getBody().toString());
+		uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor( uExper );
+		BusController.getInstance().offBoardNSD( uExper.getId() );
+		
+		return ResponseEntity.ok( uExper  );
+	}
+	
+	/**
+	 * 
+	 * Infrastructure object API
+	 */
+
+	@GetMapping( value = "/admin/infrastructures/", produces = "application/json" )
+	public ResponseEntity<?>  getAdminInfrastructures() {		
+		
+		return ResponseEntity.ok( portalRepositoryRef.getInfrastructures()  );
+	}
+
+
+	@PostMapping( value =  "/admin/infrastructures/", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addInfrastructure(Infrastructure c) {
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		Infrastructure u = portalRepositoryRef.addInfrastructure(c);
+
+		if (u != null) {
+			return ResponseEntity.ok( u);
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+	}
+
+	
+	@PutMapping( value = "/admin/infrastructures/{infraid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateInfrastructure(@PathVariable("infraid") int infraid, Infrastructure c) {
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		Infrastructure infrastructure = portalRepositoryRef.getInfrastructureByID(infraid);
+		
+		infrastructure.setDatacentername( c.getDatacentername());
+		infrastructure.setEmail( c.getEmail());
+		infrastructure.setVIMid( c.getVIMid());
+		infrastructure.setName( c.getName());
+		infrastructure.setOrganization(c.getOrganization());
+
+		Infrastructure u = portalRepositoryRef.updateInfrastructureInfo( infrastructure );
+
+		if (u != null) {
+			return ResponseEntity.ok( u);
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+
+	}
+
+	
+	@DeleteMapping( value =  "/admin/infrastructures/{infraid}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  deleteInfrastructure(@PathVariable("infraid") int infraid) {
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		portalRepositoryRef.deleteInfrastructure(infraid);
+		return ResponseEntity.ok( "{}" );
+
+	}
+
+
+	
+	@GetMapping( value = "/admin/infrastructures/{infraid}", produces = "application/json" )
+	public ResponseEntity<?>  getInfrastructureById(@PathVariable("infraid") int infraid) {
+		if ( !checkUserIDorIsAdmin( -1 ) ){
+			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		Infrastructure sm = portalRepositoryRef.getInfrastructureByID(infraid);
+
+		if (sm != null) {
+			return ResponseEntity.ok( sm );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+	
+	
+
+	@PostMapping( value =  "\"/admin/infrastructures/{infraid}/images/{vfimageid}\"", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addImageToInfrastructure(@PathVariable("infraid") int infraid, @PathVariable("vfimageid") int vfimageid) {
+		
+		
+		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) && !sc.isUserInRole(UserRoleType.TESTBED_PROVIDER.name() ) ){
+			 return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		
+		Infrastructure infrs = portalRepositoryRef.getInfrastructureByID(infraid);
+		VFImage vfimg = portalRepositoryRef.getVFImageByID(vfimageid);
+
+		if ( (infrs != null) && (vfimg != null)) {
+			
+			if ( vfimg.getDeployedInfrastructureById(infrs.getId() ) ==null ){
+				vfimg.getDeployedInfrastructures().add(infrs);
+			}
+			if ( infrs.getSupportedImageById( vfimg.getId() ) == null ){
+				infrs.getSupportedImages().add(vfimg);
+			}
+			
+			portalRepositoryRef.updateVFImageInfo(vfimg);
+			portalRepositoryRef.updateInfrastructureInfo(infrs);
+			return ResponseEntity.ok( infrs );
+		} else {
+			return (ResponseEntity<?>) ResponseEntity.badRequest();
+		}
+	}
+	
+	/**
+	 * Validation Result
+	 */
+	
+
+	@PutMapping( value = "/admin/validationjobs/{vxf_id}", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  updateUvalidationjob(@PathVariable("vxf_id") int vxfid, ValidationJobResult vresult) {
+		logger.info("Received PUT ValidationJobResult for vxfid: " + vresult.getVxfid() );		
+		
+		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) && !sc.isUserInRole(UserRoleType.TESTBED_PROVIDER.name() ) ){
+			 return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		
+		vxfid = vresult.getVxfid();
+		
+		Product prod = portalRepositoryRef.getProductByID(vxfid) ;
+		
+		if ( prod == null )
+		{
+			logger.info("updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
+			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");																						
+			return Response.status(Status.NOT_FOUND).build();
+		}
+		if ( !(prod instanceof VxFMetadata) )
+		{
+			logger.info("updateUvalidationjob: prod not instance of VxFMetadata for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
+			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");																						
+			return Response.status(Status.NOT_FOUND).build();
+		}
+		
+		VxFMetadata vxf = (VxFMetadata) prod;
+		
+//		We select by desing not to certify upon Successful Validation. Thus we comment this.
+//		if ( vresult.getValidationStatus() ) {
+//			vxf.setCertified( true );
+//			vxf.setCertifiedBy( "5GinFIRE " );			
 //		}
-//	}
-//
-//	@PUT
-//	@Path("/admin/vxfobds/{mpid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateVxFOnBoardedDescriptor(@PathParam("mpid") int mpid, VxFOnBoardedDescriptor c) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		VxFOnBoardedDescriptor u = portalRepositoryRef.updateVxFOnBoardedDescriptor(c);
-//
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested VxFOnBoardedDescriptor with name=" + c.getId() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@DELETE
-//	@Path("/admin/vxfobds/{mpid}")
-//	public Response deleteVxFOnBoardedDescriptor(@PathParam("mpid") int mpid) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		portalRepositoryRef.deleteVxFOnBoardedDescriptor(mpid);
-//		return Response.ok().build();
-//
-//	}
-//
-//	@GET
-//	@Path("/admin/vxfobds/{mpid}")
-//	@Produces("application/json")
-//	public Response getVxFOnBoardedDescriptorById(@PathParam("mpid") int mpid) {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		VxFOnBoardedDescriptor sm = portalRepositoryRef.getVxFOnBoardedDescriptorByID(mpid);
-//
-//		if (sm != null) {
-//			return Response.ok().entity(sm).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("VxFOnBoardedDescriptor " + mpid + " not found in portal registry");
-//			return builder.build();
-//			// throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/admin/vxfobds/{mpid}/status")
-//	@Produces("application/json")
-//	public Response getVxFOnBoardedDescriptorByIdCheckMANOProvider(@PathParam("mpid") int mpid) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		VxFOnBoardedDescriptor obds = portalRepositoryRef.getVxFOnBoardedDescriptorByID(mpid);
-//
-//		if (obds == null) {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("VxFOnBoardedDescriptor " + mpid + " not found in portal registry");
-//			return builder.build();
-//		}
-//		
-//		
-////		/**
-////		 * the following polling will be performed automatically by CAMEL with a timer
-////		 */
-////
-////		if (obds.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
-////
-////			Vnfd vnfd = null;
-////			List<Vnfd> vnfds = OSMClient.getInstance(obds.getObMANOprovider()).getVNFDs();
-////			for (Vnfd v : vnfds) {
-////				if (v.getId().equalsIgnoreCase(obds.getVxfMANOProviderID())
-////						|| v.getName().equalsIgnoreCase(obds.getVxfMANOProviderID())) {
-////					vnfd = v;
-////					break;
-////				}
-////			}
-////
-////			if (vnfd == null) {
-////				obds.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
-////			} else {
-////				obds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
-////			}
-////
-////			obds = portalRepositoryRef.updateVxFOnBoardedDescriptor(obds);
-////
-////		}
-//
-//		return Response.ok().entity(obds).build();
-//
-//	}
-//
-//	@PUT
-//	@Path("/admin/vxfobds/{mpid}/onboard")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response onBoardDescriptor(@PathParam("mpid") int mpid, final VxFOnBoardedDescriptor vxfobd) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		
-//		try {
-//			aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
-//		} catch (Exception e) {				
-//			e.printStackTrace();
-//			return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Requested VxFOnBoardedDescriptor with ID=" + vxfobd.getId() + " cannot be onboarded").build();
-//		}			
-//		
-//		return Response.ok().entity(vxfobd).build();
-//
-//	}
-//	
-//	@PUT
-//	@Path("/admin/vxfobds/{mpid}/offboard")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response offBoardDescriptor(@PathParam("mpid") int mpid, final VxFOnBoardedDescriptor clobd) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		OnBoardingStatus previous_status = clobd.getOnBoardingStatus();
-//		clobd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-//		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+clobd.getVxf().getName()+" to "+clobd.getOnBoardingStatus());																													
-//		VxFOnBoardedDescriptor updatedObd = portalRepositoryRef.updateVxFOnBoardedDescriptor(clobd);
-//
-//		ResponseEntity<String> response = null;
-//		try {
-//			response = aMANOController.offBoardVxFFromMANOProvider( updatedObd );			
-//		}
-//		catch( HttpClientErrorException e)
-//		{
-//			updatedObd.setOnBoardingStatus(previous_status);
-//			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus());																														
-//			updatedObd.setFeedbackMessage(e.getResponseBodyAsString());
-//			updatedObd = portalRepositoryRef.updateVxFOnBoardedDescriptor( updatedObd );
-//			JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
-//			ResponseBuilder builder = Response.status(e.getRawStatusCode()).type(MediaType.TEXT_PLAIN).entity("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
-//			return builder.build();
-//		}        
-//		
-//		if (response == null) {
-//			updatedObd.setOnBoardingStatus(previous_status);
-//			updatedObd.setFeedbackMessage("Null Response on OffBoarding request.Requested VxFOnBoardedDescriptor with ID=\" + updatedObd.getId() + \" cannot be offboarded.");
-//			updatedObd = portalRepositoryRef.updateVxFOnBoardedDescriptor( updatedObd );
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested VxFOnBoardedDescriptor with ID=" + updatedObd.getId() + " cannot be offboarded");
-//			return builder.build();							
-//		}
-//		// UnCertify Upon OffBoarding
-//		updatedObd.getVxf().setCertified(false);
-//		updatedObd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
-//		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus());																																
-//		updatedObd.setFeedbackMessage(response.getBody().toString());
-//		updatedObd = portalRepositoryRef.updateVxFOnBoardedDescriptor( updatedObd );
-//		BusController.getInstance().offBoardVxF( updatedObd.getId() );
-//		return Response.ok().entity(updatedObd).build();
-//		
-//	}
-//
-//	/********************************************************************************
-//	 * 
-//	 * admin ExperimentOnBoardDescriptors
-//	 * 
-//	 ********************************************************************************/
-//
-//	@GET
-//	@Path("/admin/experimentobds/")
-//	@Produces("application/json")
-//	public Response getExperimentOnBoardDescriptors() {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		return Response.ok().entity(portalRepositoryRef.getExperimentOnBoardDescriptors()).build();
-//	}
-//
-//	@POST
-//	@Path("/admin/experimentobds/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addExperimentOnBoardDescriptor( ExperimentMetadata exp) {
-//		
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		
-//		
-//		if ( exp != null ) {
-//			
-//			ExperimentMetadata refExp =  ( ExperimentMetadata ) portalRepositoryRef.getProductByID( exp.getId() );
-//			ExperimentOnBoardDescriptor obd = new ExperimentOnBoardDescriptor();
-//			obd.setExperiment( refExp );
-//			obd.setUuid( UUID.randomUUID().toString() );
-//			refExp.getExperimentOnBoardDescriptors().add( obd ) ;
-//			
-//			// save product
-//			refExp = (ExperimentMetadata) portalRepositoryRef.updateProductInfo( refExp );
-//			
-//
-//			if (refExp != null) {
-//				return Response.ok().entity( refExp ).build();
-//			} else {
-//				ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//				builder.entity("Requested VxFOnBoardedDescriptor with name=" + exp.getId() + " cannot be installed");
-//				throw new WebApplicationException(builder.build());
-//			}
-//			
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested VxFOnBoardedDescriptor with name=" + exp.getId() + " cannot be installed");
-//			throw new WebApplicationException(builder.build());
-//		}
-//		
-//		
-//	}
-//
-//	@PUT
-//	@Path("/admin/experimentobds/{mpid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateExperimentOnBoardDescriptor(@PathParam("mpid") int mpid, ExperimentOnBoardDescriptor c) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		ExperimentOnBoardDescriptor u = portalRepositoryRef.updateExperimentOnBoardDescriptor(c);
-//
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested ExperimentOnBoardDescriptor with name=" + c.getId() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@DELETE
-//	@Path("/admin/experimentobds/{mpid}")
-//	public Response deleteExperimentOnBoardDescriptor(@PathParam("mpid") int mpid) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		portalRepositoryRef.deleteExperimentOnBoardDescriptor(mpid);
-//		return Response.ok().build();
-//
-//	}
-//
-//	@GET
-//	@Path("/admin/experimentobds/{mpid}")
-//	@Produces("application/json")
-//	public Response getExperimentOnBoardDescriptorById(@PathParam("mpid") int mpid) {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		ExperimentOnBoardDescriptor sm = portalRepositoryRef.getExperimentOnBoardDescriptorByID(mpid);
-//
-//		if (sm != null) {
-//			return Response.ok().entity(sm).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("ExperimentOnBoardDescriptor " + mpid + " not found in portal registry");
-//			return builder.build();
-//			// throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@GET
-//	@Path("/admin/experimentobds/{mpid}/status")
-//	@Produces("application/json")
-//	public Response getExperimentOnBoardDescriptorByIdCheckMANOProvider(@PathParam("mpid") int mpid) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		ExperimentOnBoardDescriptor sm = portalRepositoryRef.getExperimentOnBoardDescriptorByID(mpid);
-//
-//		if (sm == null) {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("ExperimentOnBoardDescriptor " + mpid + " not found in portal registry");
-//			return builder.build();
-//		}
-//
-////		
-////		if (sm.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
-////
-////			Nsd nsd = null;
-////			List<Nsd> nsds = OSMClient.getInstance(sm.getObMANOprovider()).getNSDs();
-////			if ( nsds != null ) {
-////				for (Nsd v : nsds) {
-////					if (v.getId().equalsIgnoreCase(sm.getVxfMANOProviderID())
-////							|| v.getName().equalsIgnoreCase(sm.getVxfMANOProviderID())) {
-////						nsd = v;
-////						break;
-////					}
-////				}
-////			}
-////
-////			if (nsd == null) {
-////				sm.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
-////			} else {
-////				sm.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
-////			}
-////
-////			sm = portalRepositoryRef.updateExperimentOnBoardDescriptor(sm);
-////
-////		}
-//
-//		return Response.ok().entity(sm).build();
-//
-//	}
-//
-//	@PUT
-//	@Path("/admin/experimentobds/{mpid}/onboard")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response onExperimentBoardDescriptor(@PathParam("mpid") int mpid, final ExperimentOnBoardDescriptor experimentonboarddescriptor) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-////		c.setOnBoardingStatus(OnBoardingStatus.ONBOARDING);
-////		//This is the Deployment ID for the portal		
-////		c.setDeployId(UUID.randomUUID().toString());
-////		ExperimentMetadata em = c.getExperiment();
-////		if (em == null) {
-////			em = (ExperimentMetadata) portalRepositoryRef.getProductByID(c.getExperimentid());
-////		}
-////
-////		/**
-////		 * The following is not OK. When we submit to OSMClient the createOnBoardPackage
-////		 * we just get a response something like response = {"output":
-////		 * {"transaction-id": "b2718ef9-4391-4a9e-97ad-826593d5d332"}} which does not
-////		 * provide any information. The OSM RIFTIO API says that we could get
-////		 * information about onboarding (create or update) jobs see
-////		 * https://open.riftio.com/documentation/riftware/4.4/a/api/orchestration/pkt-mgmt/rw-pkg-mgmt-download-jobs.htm
-////		 * with /api/operational/download-jobs, but this does not return pending jobs.
-////		 * So the only solution is to ask again OSM if something is installed or not, so
-////		 * for now the client (the portal ) must check via the
-////		 * getVxFOnBoardedDescriptorByIdCheckMANOProvider giving the VNF ID in OSM. OSM
-////		 * uses the ID of the yaml description Thus we asume that the vxf name can be
-////		 * equal to the VNF ID in the portal, and we use it for now as the OSM ID. Later
-////		 * in future, either OSM API provide more usefull response or we extract info
-////		 * from the VNFD package
-////		 * 
-////		 */
-////		
-////		c.setVxfMANOProviderID(em.getName()); // Possible Error. This probably needs to be setExperimentMANOProviderID(em.getName())
-////
-////		c.setLastOnboarding(new Date());
-////
-////		ExperimentOnBoardDescriptor uexpobd = portalRepositoryRef.updateExperimentOnBoardDescriptor(c);
-////
-////		logger.info("NSD Package Location: " + em.getPackageLocation());		
-////		
-//		try {
-//			aMANOController.onBoardNSDToMANOProvider( experimentonboarddescriptor.getId() );
-//		} catch (Exception e) {				
-//			e.printStackTrace();
-//	    	logger.error("onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.");
-//			CentralLogger.log( CLevel.ERROR, "onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.");																	
-//			return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Requested Experiment Descriptor with ID=" + experimentonboarddescriptor.getId() + " cannot be onboarded").build();
-//		}	
-//		
-//		return Response.ok().entity(experimentonboarddescriptor).build();
-//	}
-//
-//	@PUT
-//	@Path("/admin/experimentobds/{mpid}/offboard")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response offBoardExperimentDescriptor(@PathParam("mpid") int mpid, final ExperimentOnBoardDescriptor c) {
-//
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		OnBoardingStatus previous_status = c.getOnBoardingStatus();
-//		c.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-//		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+c.getExperiment().getName()+" to "+c.getOnBoardingStatus());																																
-//		ExperimentOnBoardDescriptor uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor(c);
-//
-//		ResponseEntity<String> response = null;
-//		try {
-//			response = aMANOController.offBoardNSDFromMANOProvider(uExper);
-//		}
-//		catch( HttpClientErrorException e)
-//		{
-//			uExper.setOnBoardingStatus(previous_status);
-//			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																	
-//			uExper.setFeedbackMessage(e.getResponseBodyAsString());
-//			uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor(uExper);
-//			JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
-//			ResponseBuilder builder = Response.status(e.getRawStatusCode()).type(MediaType.TEXT_PLAIN).entity("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
-//			return builder.build();
-//		}        
-//		
-//		if (response == null) {
-//			uExper.setOnBoardingStatus(previous_status);
-//			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																	
-//			uExper.setFeedbackMessage("Null response on OffBoarding request.Requested NSOnBoardedDescriptor with ID=\" + c.getId() + \" cannot be offboarded.");			
-//			uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor( uExper );
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested NSOnBoardedDescriptor with ID=" + c.getId() + " cannot be offboarded");
-//			return builder.build();							
-//		}
-//		// Set Valid to false if it is OffBoarded
-//		uExper.getExperiment().setValid(false);
-//		uExper.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
-//		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																			
-//		uExper.setFeedbackMessage(response.getBody().toString());
-//		uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor( uExper );
-//		BusController.getInstance().offBoardNSD( uExper.getId() );
-//		return Response.ok().entity(uExper).build();
-//	}
-//	
-//	/**
-//	 * 
-//	 * Infrastructure object API
-//	 */
-//
-//	@GET
-//	@Path("/admin/infrastructures/")
-//	@Produces("application/json")
-//	public Response getAdminInfrastructures() {		
-//		return Response.ok().entity(portalRepositoryRef.getInfrastructures()).build();
-//	}
-//
-//	@POST
-//	@Path("/admin/infrastructures/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addInfrastructure(Infrastructure c) {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		Infrastructure u = portalRepositoryRef.addInfrastructure(c);
-//
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested Infrastructure with name=" + c.getName() + " cannot be created");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//
-//	@PUT
-//	@Path("/admin/infrastructures/{infraid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateInfrastructure(@PathParam("infraid") int infraid, Infrastructure c) {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		Infrastructure infrastructure = portalRepositoryRef.getInfrastructureByID(infraid);
-//		
-//		infrastructure.setDatacentername( c.getDatacentername());
-//		infrastructure.setEmail( c.getEmail());
-//		infrastructure.setVIMid( c.getVIMid());
-//		infrastructure.setName( c.getName());
-//		infrastructure.setOrganization(c.getOrganization());
-//
-//		Infrastructure u = portalRepositoryRef.updateInfrastructureInfo( infrastructure );
-//
-//		if (u != null) {
-//			return Response.ok().entity(u).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested Infrastructure with name=" + c.getName() + " cannot be updated");
-//			throw new WebApplicationException(builder.build());
-//		}
-//
-//	}
-//
-//	@DELETE
-//	@Path("/admin/infrastructures/{infraid}")
-//	public Response deleteInfrastructure(@PathParam("infraid") int infraid) {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		portalRepositoryRef.deleteInfrastructure(infraid);
-//		return Response.ok().build();
-//
-//	}
-//
-//	@GET
-//	@Path("/admin/infrastructures/{infraid}")
-//	@Produces("application/json")
-//	public Response getInfrastructureById(@PathParam("infraid") int infraid) {
-//		if ( !checkUserIDorIsAdmin( -1 ) ){
-//			return Response.status(Status.FORBIDDEN ).build() ;
-//		}
-//		Infrastructure sm = portalRepositoryRef.getInfrastructureByID(infraid);
-//
-//		if (sm != null) {
-//			return Response.ok().entity(sm).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.NOT_FOUND);
-//			builder.entity("Infrastructure " + infraid + " not found in portal registry");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//	
-//	
-//	@POST
-//	@Path("/admin/infrastructures/{infraid}/images/{vfimageid}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addImageToInfrastructure(@PathParam("infraid") int infraid, @PathParam("vfimageid") int vfimageid) {
-//		
-//		
-//		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) && !sc.isUserInRole(UserRoleType.TESTBED_PROVIDER.name() ) ){
-//			 return Response.status(Status.FORBIDDEN ).build();
-//		}
-//		
-//		Infrastructure infrs = portalRepositoryRef.getInfrastructureByID(infraid);
-//		VFImage vfimg = portalRepositoryRef.getVFImageByID(vfimageid);
-//
-//		if ( (infrs != null) && (vfimg != null)) {
-//			
-//			if ( vfimg.getDeployedInfrastructureById(infrs.getId() ) ==null ){
-//				vfimg.getDeployedInfrastructures().add(infrs);
-//			}
-//			if ( infrs.getSupportedImageById( vfimg.getId() ) == null ){
-//				infrs.getSupportedImages().add(vfimg);
-//			}
-//			
-//			portalRepositoryRef.updateVFImageInfo(vfimg);
-//			portalRepositoryRef.updateInfrastructureInfo(infrs);
-//			return Response.ok().entity( infrs ).build();
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.BAD_REQUEST );
-//			builder.entity("Requested Image cannot added to Infrastructure");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
-//	
-//	/**
-//	 * Validation Result
-//	 */
-//	@PUT
-//	@Path("/admin/validationjobs/{vxf_id}")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response updateUvalidationjob(@PathParam("vxf_id") int vxfid, ValidationJobResult vresult) {
-//		logger.info("Received PUT ValidationJobResult for vxfid: " + vresult.getVxfid() );		
-//		
-//		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) && !sc.isUserInRole(UserRoleType.TESTBED_PROVIDER.name() ) ){
-//			 return Response.status(Status.FORBIDDEN ).build();
-//		}
-//		
-//		vxfid = vresult.getVxfid();
-//		
-//		Product prod = portalRepositoryRef.getProductByID(vxfid) ;
-//		
-//		if ( prod == null )
-//		{
-//			logger.info("updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
-//			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");																						
-//			return Response.status(Status.NOT_FOUND).build();
-//		}
-//		if ( !(prod instanceof VxFMetadata) )
-//		{
-//			logger.info("updateUvalidationjob: prod not instance of VxFMetadata for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
-//			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");																						
-//			return Response.status(Status.NOT_FOUND).build();
-//		}
-//		
-//		VxFMetadata vxf = (VxFMetadata) prod;
-//		
-////		We select by desing not to certify upon Successful Validation. Thus we comment this.
-////		if ( vresult.getValidationStatus() ) {
-////			vxf.setCertified( true );
-////			vxf.setCertifiedBy( "5GinFIRE " );			
-////		}
-//		vxf.setValidationStatus( ValidationStatus.COMPLETED );
-//		
-//		ValidationJob validationJob = new ValidationJob();
-//		validationJob.setDateCreated( new Date() );
-//		validationJob.setJobid( vresult.getBuildId() + "" );
-//		validationJob.setOutputLog( vresult.getOutputLog() );
-//		validationJob.setValidationStatus(vresult.getValidationStatus() );
-//		validationJob.setVxfid(vxfid); 
-//		vxf.getValidationJobs().add( validationJob );
-//
-//		// save product
-//		vxf = (VxFMetadata) portalRepositoryRef.updateProductInfo( vxf );		
-//		
-//		BusController.getInstance().updatedVxF( vxf.getId() );		
-//		BusController.getInstance().updatedValidationJob( vxf.getId() );		
-//		
-//		VxFMetadata vxfr = (VxFMetadata) portalRepositoryRef.getProductByID( vxfid) ; //rereading this, seems to keep the DB connection
-//		return Response.ok().entity( vxfr ).build();
-//	}
-//	
-//	
-//	
-//	
-//	
+		vxf.setValidationStatus( ValidationStatus.COMPLETED );
+		
+		ValidationJob validationJob = new ValidationJob();
+		validationJob.setDateCreated( new Date() );
+		validationJob.setJobid( vresult.getBuildId() + "" );
+		validationJob.setOutputLog( vresult.getOutputLog() );
+		validationJob.setValidationStatus(vresult.getValidationStatus() );
+		validationJob.setVxfid(vxfid); 
+		vxf.getValidationJobs().add( validationJob );
+
+		// save product
+		vxf = (VxFMetadata) portalRepositoryRef.updateProductInfo( vxf );		
+		
+		BusController.getInstance().updatedVxF( vxf.getId() );		
+		BusController.getInstance().updatedValidationJob( vxf.getId() );		
+		
+		VxFMetadata vxfr = (VxFMetadata) portalRepositoryRef.getProductByID( vxfid) ; //rereading this, seems to keep the DB connection
+		
+		return ResponseEntity.ok( vxfr );
+	}
+	
+	
+	
+	
+	
 //	/**
 //	 * 
 //	 * SFA related

@@ -390,7 +390,7 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:nsd.onboard?multipleConsumers=true) to trigger new NSD onboarding 
 	 * @param deployment a {@link ExperimentOnBoardDescriptor}
 	 */
-	public void onBoardNSD(int uexpobdid) {
+	public void onBoardNSD(long uexpobdid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onboard?multipleConsumers=true");
 		template.withBody( uexpobdid ).asyncSend();		
 	}
@@ -399,7 +399,7 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:nsd.offboard?multipleConsumers=true) to trigger new NSD offboarding 
 	 * @param deployment a {@link ExperimentOnBoardDescriptor}
 	 */
-	public void offBoardNSD(int uexpobdid) {
+	public void offBoardNSD(long uexpobdid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.offboard?multipleConsumers=true");
 		template.withBody( uexpobdid ).asyncSend();		
 	}

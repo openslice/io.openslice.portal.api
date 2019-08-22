@@ -1,5 +1,6 @@
 package portal.api.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,15 @@ public class VxFOBDService {
 	public VxFOnBoardedDescriptor getVxFOnBoardedDescriptorByID(long vxfobdid) {
 		Optional<VxFOnBoardedDescriptor> o = vxfOBDRepository.findById( vxfobdid );
 		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFOnBoardedDescriptor with id: " + vxfobdid));
+	}
+
+	public List<VxFOnBoardedDescriptor> getVxFOnBoardedDescriptors() {
+		return (List<VxFOnBoardedDescriptor>) this.vxfOBDRepository.findAll();
+	}
+
+	public void deleteVxFOnBoardedDescriptor(VxFOnBoardedDescriptor entity) {
+		this.vxfOBDRepository.delete(entity);
+		
 	}
 
 }
