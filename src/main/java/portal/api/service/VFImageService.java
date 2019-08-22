@@ -38,4 +38,10 @@ public class VFImageService {
 		
 	}
 
+
+	public VFImage getVFImageByID( long vfimageid) {
+		Optional<VFImage> o = this.vfRepo.findById( vfimageid );
+		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VFImage with vfimageid: " + vfimageid));
+	}
+
 }

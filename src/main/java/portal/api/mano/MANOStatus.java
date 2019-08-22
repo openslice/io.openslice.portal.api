@@ -82,32 +82,7 @@ public class MANOStatus
         }
 	}
 
-	public static Status getOsm4CommunicationStatus() {
-		lock.readLock().lock();
-        try {		
-        	return osm4CommunicationStatus;
-        } finally {
-            lock.readLock().unlock();
-        }
-	}
 	
-	public static String getOsm4CommunicationStatusUUID() {
-		lock.readLock().lock();
-        try {		
-			return osm4CommunicationStatusUUID;
-	    } finally {
-	        lock.readLock().unlock();
-	    }
-	}
-	
-	public static void setOsm4CommunicationStatusUUID(String osm4CommunicationStatusUUID) {
-		lock.writeLock().lock();
-		try {		
-			MANOStatus.osm4CommunicationStatusUUID = osm4CommunicationStatusUUID;
-	    } finally {
-	        lock.writeLock().unlock();
-	    }		
-	}
 	
 
 	

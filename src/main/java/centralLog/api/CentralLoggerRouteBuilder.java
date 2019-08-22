@@ -19,7 +19,10 @@ import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import portal.api.service.PortalPropertiesService;
 
 
 
@@ -28,7 +31,10 @@ public class CentralLoggerRouteBuilder  extends RouteBuilder{
 	
 
 	private static String CENTRALLOGGERURL = "";
-	
+
+
+	@Autowired
+	private PortalPropertiesService propsService;
 
 	/** 
 	 * every 1 hour post Components Status
@@ -42,8 +48,8 @@ public class CentralLoggerRouteBuilder  extends RouteBuilder{
 	
 	public void configure() {
 
-		if (PortalRepository.getPropertyByName("centrallogerurl").getValue() != null) {
-			CENTRALLOGGERURL = PortalRepository.getPropertyByName("centrallogerurl").getValue();
+		if (propsService.getPropertyByName("centrallogerurl").getValue() != null) {
+			CENTRALLOGGERURL = propsService.getPropertyByName("centrallogerurl").getValue();
 		}
 		
 		if ( ( CENTRALLOGGERURL == null ) || CENTRALLOGGERURL.equals( "" ) ){

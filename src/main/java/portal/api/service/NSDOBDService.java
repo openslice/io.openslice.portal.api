@@ -1,5 +1,6 @@
 package portal.api.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +21,19 @@ public class NSDOBDService {
 		return nsdOBDRepository.save( obd );
 	}
 
-	public ExperimentOnBoardDescriptor getVxFOnBoardedDescriptorByID(long vxfobdid) {
+	public ExperimentOnBoardDescriptor getExperimentOnBoardDescriptorByID(long vxfobdid) {
 		Optional<ExperimentOnBoardDescriptor> o = nsdOBDRepository.findById( vxfobdid );
 		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentOnBoardDescriptor with id: " + vxfobdid));
 	}
 
+	public List<ExperimentOnBoardDescriptor> getExperimentOnBoardDescriptors() {
+		
+		return (List<ExperimentOnBoardDescriptor>) this.nsdOBDRepository.findAll();
+	}
+
+	public void deleteExperimentOnBoardDescriptor(ExperimentOnBoardDescriptor u) {
+		this.nsdOBDRepository.delete(u);
+		
+	}
 
 }

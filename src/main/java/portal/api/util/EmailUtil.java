@@ -39,7 +39,7 @@ import portal.api.service.PortalPropertiesService;
 
 public class EmailUtil {
 
-
+	
 	static PortalPropertiesService propsService;
 	
 	private static final transient Log logger = LogFactory.getLog(EmailUtil.class.getName());

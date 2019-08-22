@@ -129,8 +129,27 @@ public interface DeploymentDescriptorRepository extends PagingAndSortingReposito
 			+ "ORDER BY m.id")
 	List<DeploymentDescriptor> getAllByMentorStatusUnknown(long id);
 
-	@Query( value = "SELECT m FROM DeploymentDescriptor m  WHERE m.status=portal.api.model.DeploymentDescriptorStatus.SCHEDULED ORDER BY m.id" )
+	@Query( value = "SELECT m FROM DeploymentDescriptor m  WHERE m.status=io.openslice.model.DeploymentDescriptorStatus.SCHEDULED ORDER BY m.id" )
 	List<DeploymentDescriptor> getAllScheduled();
+	
+	
+	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.status = io.openslice.model.DeploymentDescriptorStatus.TERMINATED "
+			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.FAILED "
+			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.TERMINATION_FAILED")
+	List<DeploymentDescriptor> readDeploymentsToBeDeleted();
+
+	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.status = io.openslice.model.DeploymentDescriptorStatus.SCHEDULED")
+	List<DeploymentDescriptor> readScheduledDeployments();
+
+	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.status = io.openslice.model.DeploymentDescriptorStatus.RUNNING "
+			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.INSTANTIATING "
+			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.TERMINATING")
+	List<DeploymentDescriptor> readRunningInstantiatingDeployments();
+
+	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.status = io.openslice.model.DeploymentDescriptorStatus.RUNNING "
+			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.INSTANTIATING "
+			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.TERMINATING")
+	List<DeploymentDescriptor> readRunningInstantiatingAndTerminatingDeployments();
 
 	
 

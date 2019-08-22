@@ -1,13 +1,20 @@
 package portal.api.service;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.VxFMetadata;
+import portal.api.mano.MANOController;
 import portal.api.repo.DeploymentDescriptorRepository;
 
 @Service
@@ -17,6 +24,7 @@ public class DeploymentDescriptorService {
 	DeploymentDescriptorRepository ddRepo;
 
 
+	private static final transient Log logger = LogFactory.getLog( DeploymentDescriptorService.class.getName());
 
 
 	public List<DeploymentDescriptor> getAllCompletedDeploymentDescriptors() {
@@ -112,6 +120,77 @@ public class DeploymentDescriptorService {
 
 	public void deleteDeployment(DeploymentDescriptor entity) {
 		this.ddRepo.delete(entity);		
+	}
+
+
+
+
+	public List<DeploymentDescriptor> getDeploymentsToBeDeleted() {
+		List<DeploymentDescriptor> deploymentDescriptorsToDelete = new ArrayList<>();
+		List<DeploymentDescriptor> deploymentDescriptor_list = this.ddRepo.readDeploymentsToBeDeleted();
+		for(DeploymentDescriptor d : deploymentDescriptor_list)
+		{
+			d.getExperimentFullDetails();
+			d.getInfrastructureForAll();			
+			OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC);
+			if(d.getEndDate().before(Date.from(utc.toInstant())))
+			{
+				logger.info("Deployment id:" + d.getId() + ", name:"+ d.getName() + ", status:"+ d.getStatus()  +" is scheduled to be DELETED now.");
+				deploymentDescriptorsToDelete.add(d);
+			}
+			
+		}
+		return deploymentDescriptorsToDelete;
+	}
+
+
+
+
+	public List<DeploymentDescriptor> getDeploymentsToInstantiate() {
+		List<DeploymentDescriptor> DeploymentDescriptorsToRun = new ArrayList<>();
+		List<DeploymentDescriptor> DeploymentDescriptor_list = this.ddRepo.readScheduledDeployments();
+		for(DeploymentDescriptor d : DeploymentDescriptor_list)
+		{
+			d.getExperimentFullDetails();
+			d.getInfrastructureForAll();			
+			//if(d.getStartDate().before(new Date(System.currentTimeMillis())))
+			OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC);
+			if(d.getStartDate().before(Date.from(utc.toInstant())))
+			{
+				logger.info("Deployment "+d.getName()+" is scheduled to run at "+d.getStartDate()+". It will be Deployed now.");
+				DeploymentDescriptorsToRun.add(d);
+			}
+		}
+		return DeploymentDescriptorsToRun;
+	}
+
+
+
+
+	public List<DeploymentDescriptor> getDeploymentsToBeCompleted() {
+		List<DeploymentDescriptor> DeploymentDescriptorsToComplete = new ArrayList<>();
+		//List<DeploymentDescriptor> DeploymentDescriptor_list = portalJpaController.readRunningInstantiatingAndTerminatingDeployments();
+		List<DeploymentDescriptor> DeploymentDescriptor_list = this.ddRepo.readRunningInstantiatingDeployments();		
+		for(DeploymentDescriptor d : DeploymentDescriptor_list)
+		{
+			d.getExperimentFullDetails();
+			d.getInfrastructureForAll();			
+			OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC);
+			if(d.getEndDate().before(Date.from(utc.toInstant())))
+			{
+				logger.info("Deployment "+d.getName()+" is scheduled to be COMPLETED now.");
+				DeploymentDescriptorsToComplete.add(d);
+			}
+		}
+		return DeploymentDescriptorsToComplete;
+	}
+
+
+
+
+	public List<DeploymentDescriptor> getRunningInstantiatingAndTerminatingDeployments() {
+		List<DeploymentDescriptor> RunningDeploymentDescriptor_list = this.ddRepo.readRunningInstantiatingAndTerminatingDeployments();
+		return RunningDeploymentDescriptor_list;
 	}
 
 

@@ -19,21 +19,16 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import javax.annotation.Resource;
-import javax.annotation.security.RolesAllowed;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import javax.validation.Valid;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
@@ -44,20 +39,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.multipart.MultipartFile;
 
 import OSM5NBIClient.OSM5Client;
@@ -82,18 +78,17 @@ import io.openslice.model.PortalProperty;
 import io.openslice.model.PortalUser;
 import io.openslice.model.Product;
 import io.openslice.model.UserRoleType;
-import io.openslice.model.UserSession;
 import io.openslice.model.VFImage;
+import io.openslice.model.ValidationJob;
 import io.openslice.model.ValidationStatus;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
-import net.bytebuddy.implementation.bytecode.Throw;
 import osm5.ns.riftware._1._0.project.nsd.rev170228.project.nsd.catalog.Nsd;
 import portal.api.bus.BusController;
 import portal.api.mano.MANOController;
-import portal.api.repo.ManoProvidersRepository;
 import portal.api.service.CategoryService;
 import portal.api.service.DeploymentDescriptorService;
+import portal.api.service.InfrastructureService;
 import portal.api.service.ManoPlatformService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDOBDService;
@@ -105,106 +100,8 @@ import portal.api.service.VFImageService;
 import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
 import portal.api.util.AttachmentUtil;
-import portal.api.util.EmailUtil;
+import portal.api.validation.ci.ValidationJobResult;
 
-import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-
-//import javax.ws.rs.Consumes;
-//import javax.ws.rs.DELETE;
-//import javax.ws.rs.GET;
-//import javax.ws.rs.POST;
-//import javax.ws.rs.PUT;
-//import javax.ws.rs.Path;
-//import javax.ws.rs.PathParam;
-//import javax.ws.rs.Produces;
-//import javax.ws.rs.QueryParam;
-//import javax.ws.rs.WebApplicationException;
-//import javax.ws.rs.core.Context;
-//import javax.ws.rs.core.HttpHeaders;
-//import javax.ws.rs.core.MediaType;
-//import javax.ws.rs.core.Response;
-//import javax.ws.rs.core.Response.ResponseBuilder;
-//import javax.ws.rs.core.Response.Status;
-//import javax.ws.rs.core.SecurityContext;
-//import javax.ws.rs.core.UriInfo;
-//
-//import org.apache.commons.logging.Log;
-//import org.apache.commons.logging.LogFactory;
-//import org.apache.cxf.jaxrs.ext.MessageContext;
-//import org.apache.cxf.jaxrs.ext.multipart.Attachment;
-//import org.apache.shiro.SecurityUtils;
-//import org.apache.shiro.authc.AuthenticationException;
-//import org.apache.shiro.authc.AuthenticationToken;
-//import org.apache.shiro.authc.UsernamePasswordToken;
-//import org.apache.shiro.subject.Subject;
-//import org.json.JSONObject;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.web.client.HttpClientErrorException;
-//import org.springframework.web.client.HttpStatusCodeException;
-//
-//import com.fasterxml.jackson.core.JsonParser;
-//import com.fasterxml.jackson.core.JsonProcessingException;
-//import com.fasterxml.jackson.databind.MappingJsonFactory;
-//
-//import OSM4NBIClient.OSM4Client;
-//import OSM4Util.OSM4ArchiveExtractor.OSM4NSExtractor;
-//import OSM4Util.OSM4ArchiveExtractor.OSM4VNFDExtractor;
-//import OSM4Util.OSM4NSReq.OSM4NSRequirements;
-//import OSM4Util.OSM4VNFReq.OSM4VNFRequirements;
-//import OSM5NBIClient.OSM5Client;
-//import OSM5Util.OSM5ArchiveExtractor.OSM5NSExtractor;
-//import OSM5Util.OSM5ArchiveExtractor.OSM5VNFDExtractor;
-//import OSM5Util.OSM5NSReq.OSM5NSRequirements;
-//import OSM5Util.OSM5VNFReq.OSM5VNFRequirements;
-//import centralLog.api.CLevel;
-//import centralLog.api.CentralLogger;
-//import portal.api.bugzilla.model.ErrorMsg;
-//import portal.api.bus.BusController;
-//import portal.api.mano.MANOController;
-//import portal.api.model.Category;
-//import portal.api.model.ConstituentVxF;
-//import portal.api.model.DeploymentDescriptor;
-//import portal.api.model.DeploymentDescriptorStatus;
-//import portal.api.model.ExperimentMetadata;
-//import portal.api.model.ExperimentOnBoardDescriptor;
-//import portal.api.model.IPortalRepositoryAPI;
-//import portal.api.model.Infrastructure;
-//import portal.api.model.MANOplatform;
-//import portal.api.model.MANOprovider;
-//import portal.api.model.OnBoardingStatus;
-//import portal.api.model.PackagingFormat;
-//import portal.api.model.PortalProperty;
-//import portal.api.model.PortalUser;
-//import portal.api.model.Product;
-//import portal.api.model.UserRoleType;
-//import portal.api.model.UserSession;
-//import portal.api.model.VFImage;
-//import portal.api.model.ValidationJob;
-//import portal.api.model.ValidationStatus;
-//import portal.api.model.VxFMetadata;
-//import portal.api.model.VxFOnBoardedDescriptor;
-//import portal.api.osm.client.OSMClient;
-//import portal.api.util.AjaxUserFilter;
-//import portal.api.util.AttachmentUtil;
-//import portal.api.util.EmailUtil;
-//import portal.api.validation.ci.ValidationJobResult;
-//import pt.it.av.atnog.extractors.NSExtractor;
-//import pt.it.av.atnog.extractors.VNFExtractor;
-//import pt.it.av.atnog.requirements.NSRequirements;
-//import pt.it.av.atnog.requirements.VNFRequirements;
-//import urn.ietf.params.xml.ns.yang.nfvo.nsd.rev141027.nsd.catalog.Nsd;
-//import urn.ietf.params.xml.ns.yang.nfvo.nsd.rev141027.nsd.descriptor.ConstituentVnfd;
-//import urn.ietf.params.xml.ns.yang.nfvo.vnfd.rev150910.vnfd.catalog.Vnfd;
-//import urn.ietf.params.xml.ns.yang.nfvo.vnfd.rev150910.vnfd.descriptor.Vdu;
 
 
 @RestController
@@ -254,9 +151,13 @@ public class ArtifactsAPIController {
 	
 	@Autowired
 	MANOController aMANOController;
-	
+
 	@Autowired
 	CategoryService categoryService;
+	
+
+	@Autowired
+	InfrastructureService infrastructureService;
 
 	@Autowired
 	DeploymentDescriptorService deploymentDescriptorService;
@@ -2757,7 +2658,7 @@ public class ArtifactsAPIController {
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 
-		ExperimentOnBoardDescriptor u = nsdOBDService.updateExperimentOnBoardDescriptor(c);
+		ExperimentOnBoardDescriptor u = nsdOBDService.getExperimentOnBoardDescriptorByID(mpid);
 		nsdOBDService.deleteExperimentOnBoardDescriptor( u );
 		return ResponseEntity.ok( "{}"  );
 
@@ -2826,40 +2727,6 @@ public class ArtifactsAPIController {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
-//		c.setOnBoardingStatus(OnBoardingStatus.ONBOARDING);
-//		//This is the Deployment ID for the portal		
-//		c.setDeployId(UUID.randomUUID().toString());
-//		ExperimentMetadata em = c.getExperiment();
-//		if (em == null) {
-//			em = (ExperimentMetadata) portalRepositoryRef.getProductByID(c.getExperimentid());
-//		}
-//
-//		/**
-//		 * The following is not OK. When we submit to OSMClient the createOnBoardPackage
-//		 * we just get a response something like response = {"output":
-//		 * {"transaction-id": "b2718ef9-4391-4a9e-97ad-826593d5d332"}} which does not
-//		 * provide any information. The OSM RIFTIO API says that we could get
-//		 * information about onboarding (create or update) jobs see
-//		 * https://open.riftio.com/documentation/riftware/4.4/a/api/orchestration/pkt-mgmt/rw-pkg-mgmt-download-jobs.htm
-//		 * with /api/operational/download-jobs, but this does not return pending jobs.
-//		 * So the only solution is to ask again OSM if something is installed or not, so
-//		 * for now the client (the portal ) must check via the
-//		 * getVxFOnBoardedDescriptorByIdCheckMANOProvider giving the VNF ID in OSM. OSM
-//		 * uses the ID of the yaml description Thus we asume that the vxf name can be
-//		 * equal to the VNF ID in the portal, and we use it for now as the OSM ID. Later
-//		 * in future, either OSM API provide more usefull response or we extract info
-//		 * from the VNFD package
-//		 * 
-//		 */
-//		
-//		c.setVxfMANOProviderID(em.getName()); // Possible Error. This probably needs to be setExperimentMANOProviderID(em.getName())
-//
-//		c.setLastOnboarding(new Date());
-//
-//		ExperimentOnBoardDescriptor uexpobd = portalRepositoryRef.updateExperimentOnBoardDescriptor(c);
-//
-//		logger.info("NSD Package Location: " + em.getPackageLocation());		
-//		
 		try {
 			aMANOController.onBoardNSDToMANOProvider( experimentonboarddescriptor.getId() );
 		} catch (Exception e) {				
@@ -2884,7 +2751,7 @@ public class ArtifactsAPIController {
 		OnBoardingStatus previous_status = c.getOnBoardingStatus();
 		c.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
 		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+c.getExperiment().getName()+" to "+c.getOnBoardingStatus());																																
-		ExperimentOnBoardDescriptor uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor(c);
+		ExperimentOnBoardDescriptor uExper = nsdOBDService.updateExperimentOnBoardDescriptor(c);
 
 		ResponseEntity<String> response = null;
 		try {
@@ -2895,20 +2762,18 @@ public class ArtifactsAPIController {
 			uExper.setOnBoardingStatus(previous_status);
 			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																	
 			uExper.setFeedbackMessage(e.getResponseBodyAsString());
-			uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor(uExper);
+			uExper = nsdOBDService.updateExperimentOnBoardDescriptor(uExper);
 			JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
-			ResponseBuilder builder = Response.status(e.getRawStatusCode()).type(MediaType.TEXT_PLAIN).entity("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
-			return builder.build();
+			
+			return (ResponseEntity<?>) ResponseEntity.status( e.getRawStatusCode() ).contentType(MediaType.TEXT_PLAIN).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"))   ;
 		}        
 		
 		if (response == null) {
 			uExper.setOnBoardingStatus(previous_status);
 			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																	
 			uExper.setFeedbackMessage("Null response on OffBoarding request.Requested NSOnBoardedDescriptor with ID=\" + c.getId() + \" cannot be offboarded.");			
-			uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor( uExper );
+			uExper = nsdOBDService.updateExperimentOnBoardDescriptor( uExper );
 			
-			
-
 			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body( "Requested NSOnBoardedDescriptor with ID=" + c.getId() + " cannot be offboarded" )   ;
 		}
 		// Set Valid to false if it is OffBoarded
@@ -2916,7 +2781,7 @@ public class ArtifactsAPIController {
 		uExper.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																			
 		uExper.setFeedbackMessage(response.getBody().toString());
-		uExper = portalRepositoryRef.updateExperimentOnBoardDescriptor( uExper );
+		uExper = nsdOBDService.updateExperimentOnBoardDescriptor( uExper );
 		BusController.getInstance().offBoardNSD( uExper.getId() );
 		
 		return ResponseEntity.ok( uExper  );
@@ -2928,9 +2793,8 @@ public class ArtifactsAPIController {
 	 */
 
 	@GetMapping( value = "/admin/infrastructures/", produces = "application/json" )
-	public ResponseEntity<?>  getAdminInfrastructures() {		
-		
-		return ResponseEntity.ok( portalRepositoryRef.getInfrastructures()  );
+	public ResponseEntity<?>  getAdminInfrastructures() {	
+		return ResponseEntity.ok( infrastructureService.getInfrastructures()  );
 	}
 
 
@@ -2939,7 +2803,7 @@ public class ArtifactsAPIController {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
-		Infrastructure u = portalRepositoryRef.addInfrastructure(c);
+		Infrastructure u = infrastructureService.addInfrastructure(c);
 
 		if (u != null) {
 			return ResponseEntity.ok( u);
@@ -2954,7 +2818,7 @@ public class ArtifactsAPIController {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
-		Infrastructure infrastructure = portalRepositoryRef.getInfrastructureByID(infraid);
+		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
 		
 		infrastructure.setDatacentername( c.getDatacentername());
 		infrastructure.setEmail( c.getEmail());
@@ -2962,7 +2826,7 @@ public class ArtifactsAPIController {
 		infrastructure.setName( c.getName());
 		infrastructure.setOrganization(c.getOrganization());
 
-		Infrastructure u = portalRepositoryRef.updateInfrastructureInfo( infrastructure );
+		Infrastructure u = infrastructureService.updateInfrastructureInfo( infrastructure );
 
 		if (u != null) {
 			return ResponseEntity.ok( u);
@@ -2978,7 +2842,8 @@ public class ArtifactsAPIController {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
-		portalRepositoryRef.deleteInfrastructure(infraid);
+		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
+		infrastructureService.deleteInfrastructure( infrastructure );
 		return ResponseEntity.ok( "{}" );
 
 	}
@@ -2990,7 +2855,7 @@ public class ArtifactsAPIController {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
-		Infrastructure sm = portalRepositoryRef.getInfrastructureByID(infraid);
+		Infrastructure sm = infrastructureService.getInfrastructureByID(infraid);
 
 		if (sm != null) {
 			return ResponseEntity.ok( sm );
@@ -3001,16 +2866,20 @@ public class ArtifactsAPIController {
 	
 	
 
-	@PostMapping( value =  "\"/admin/infrastructures/{infraid}/images/{vfimageid}\"", produces = "application/json", consumes = "application/json" )
+	@PostMapping( value =  "/admin/infrastructures/{infraid}/images/{vfimageid}", produces = "application/json", consumes = "application/json" )
 	public ResponseEntity<?>  addImageToInfrastructure(@PathVariable("infraid") int infraid, @PathVariable("vfimageid") int vfimageid) {
 		
-		
-		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) && !sc.isUserInRole(UserRoleType.TESTBED_PROVIDER.name() ) ){
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if ( (!u.getRoles().contains(UserRoleType.ROLE_ADMIN)) &&  (!u.getRoles().contains(UserRoleType.ROLE_TESTBED_PROVIDER )) ) {
 			 return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			
 		}
 		
-		Infrastructure infrs = portalRepositoryRef.getInfrastructureByID(infraid);
-		VFImage vfimg = portalRepositoryRef.getVFImageByID(vfimageid);
+		
+		Infrastructure infrs = infrastructureService.getInfrastructureByID(infraid);
+		VFImage vfimg = vfImageService.getVFImageByID(vfimageid);
 
 		if ( (infrs != null) && (vfimg != null)) {
 			
@@ -3021,8 +2890,8 @@ public class ArtifactsAPIController {
 				infrs.getSupportedImages().add(vfimg);
 			}
 			
-			portalRepositoryRef.updateVFImageInfo(vfimg);
-			portalRepositoryRef.updateInfrastructureInfo(infrs);
+			vfImageService.updateVFImageInfo(vfimg);
+			infrastructureService.updateInfrastructureInfo(infrs);
 			return ResponseEntity.ok( infrs );
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest();
@@ -3038,25 +2907,31 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?>  updateUvalidationjob(@PathVariable("vxf_id") int vxfid, ValidationJobResult vresult) {
 		logger.info("Received PUT ValidationJobResult for vxfid: " + vresult.getVxfid() );		
 		
-		if ( !sc.isUserInRole( UserRoleType.PORTALADMIN.name() ) && !sc.isUserInRole(UserRoleType.TESTBED_PROVIDER.name() ) ){
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if ( (!u.getRoles().contains(UserRoleType.ROLE_ADMIN)) &&  (!u.getRoles().contains(UserRoleType.ROLE_TESTBED_PROVIDER )) ) {
 			 return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			
 		}
 		
 		vxfid = vresult.getVxfid();
 		
-		Product prod = portalRepositoryRef.getProductByID(vxfid) ;
+		Product prod = productService.getProductByID(vxfid) ;
 		
 		if ( prod == null )
 		{
 			logger.info("updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
 			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");																						
-			return Response.status(Status.NOT_FOUND).build();
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
 		}
 		if ( !(prod instanceof VxFMetadata) )
 		{
 			logger.info("updateUvalidationjob: prod not instance of VxFMetadata for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
 			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");																						
-			return Response.status(Status.NOT_FOUND).build();
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
 		}
 		
 		VxFMetadata vxf = (VxFMetadata) prod;
@@ -3077,12 +2952,12 @@ public class ArtifactsAPIController {
 		vxf.getValidationJobs().add( validationJob );
 
 		// save product
-		vxf = (VxFMetadata) portalRepositoryRef.updateProductInfo( vxf );		
+		vxf = (VxFMetadata) productService.updateProductInfo( vxf );		
 		
 		BusController.getInstance().updatedVxF( vxf.getId() );		
 		BusController.getInstance().updatedValidationJob( vxf.getId() );		
 		
-		VxFMetadata vxfr = (VxFMetadata) portalRepositoryRef.getProductByID( vxfid) ; //rereading this, seems to keep the DB connection
+		VxFMetadata vxfr = (VxFMetadata) productService.getProductByID( vxfid) ; //rereading this, seems to keep the DB connection
 		
 		return ResponseEntity.ok( vxfr );
 	}
