@@ -22,7 +22,7 @@ public class VxFOBDService {
 
 	public VxFOnBoardedDescriptor getVxFOnBoardedDescriptorByID(long vxfobdid) {
 		Optional<VxFOnBoardedDescriptor> o = vxfOBDRepository.findById( vxfobdid );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFOnBoardedDescriptor with id: " + vxfobdid));
+		return o.orElse(null);
 	}
 
 	public List<VxFOnBoardedDescriptor> getVxFOnBoardedDescriptors() {

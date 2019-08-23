@@ -24,7 +24,7 @@ public class ManoProviderService {
 
 	public MANOprovider getMANOproviderByID(long id) {
 		Optional<MANOprovider> o = this.manoProvidersRepo.findById(id);
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find MANOprovider with id: " + id));
+		return o.orElse(null);
 	}
 
 	public MANOprovider updateMANOproviderInfo(MANOprovider c) {

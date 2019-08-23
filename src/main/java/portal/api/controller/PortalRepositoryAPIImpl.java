@@ -137,7 +137,7 @@ public class PortalRepositoryAPIImpl {
 	}
 
 
-	@PostMapping( value =  "/admin/users/", produces = "application/json", consumes = "application/json" )
+	@PostMapping( value =  "/admin/users", produces = "application/json", consumes = "application/json" )
 	public ResponseEntity<?> addUser( @Valid @RequestBody PortalUser user) {
 
 		logger.info("Received POST for usergetUsername: " + user.getUsername());
@@ -184,7 +184,7 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	
-	@PostMapping( value =  "/register/", produces = "application/json", consumes = "multipart/form-data" )
+	@PostMapping( value =  "/register", produces = "application/json", consumes = "multipart/form-data" )
 	public ResponseEntity<?> addNewRegisterUser(  
 			@RequestPart("portaluser") PortalUser user,
 			@RequestPart("emailmessage") String emailmessage) {
@@ -537,7 +537,7 @@ public class PortalRepositoryAPIImpl {
 
 	
 	@Secured({ "ROLE_ADMIN" })
-	@PostMapping( value =  "/admin/categories/", produces = "application/json", consumes = "application/json" )
+	@PostMapping( value =  "/admin/categories", produces = "application/json", consumes = "application/json" )
 	public ResponseEntity<?> addCategory(Category c) {
 		
 		

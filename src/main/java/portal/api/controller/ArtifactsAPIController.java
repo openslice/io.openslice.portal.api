@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
@@ -45,9 +46,11 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -55,6 +58,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import OSM5NBIClient.OSM5Client;
 import OSM5Util.OSM5ArchiveExtractor.OSM5NSExtractor;
@@ -161,6 +168,9 @@ public class ArtifactsAPIController {
 
 	@Autowired
 	DeploymentDescriptorService deploymentDescriptorService;
+
+	@Autowired
+	ObjectMapper objectMapper;
 	
 	// VxFS API
 
@@ -642,13 +652,28 @@ public class ArtifactsAPIController {
 	}
 
 
-	@PostMapping( value =  "/admin/vxfs/", produces = "application/json", consumes = "multipart/form-data" )
+	@PostMapping( value =  "/admin/vxfs" )
 	public ResponseEntity<?> addVxFMetadata(
-			final @RequestPart("vxf") VxFMetadata vxf,
-			@RequestPart("prodIcon") MultipartFile  prodIcon,
-			@RequestPart("prodFile") MultipartFile  prodFile,
-			@RequestPart("screenshots") MultipartFile[] screenshots,
-			HttpServletRequest request) {
+			@ModelAttribute("vxf") String avxf,
+			@RequestParam( name = "prodIcon", required = false) MultipartFile  prodIcon,
+			@RequestParam("prodFile")  MultipartFile  prodFile,
+			@RequestParam(name = "screenshots", required = false) MultipartFile[] screenshots,
+			HttpServletRequest request
+			) {
+		
+		VxFMetadata vxf = null;
+		try {
+			vxf = objectMapper.readValue( avxf, VxFMetadata.class);	
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 		
@@ -725,8 +750,10 @@ public class ArtifactsAPIController {
 			BusController.getInstance().validateVxF(vxfr.getId());	
 			return ResponseEntity.ok( vxfr  );	
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested entity cannot be installed. " + emsg );
+			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body("{ \"message\" : \"Requested entity cannot be installed. " + emsg +"\"}");
+			//return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested entity cannot be installed. " + emsg );
 		}
+			
 
 	}
 	
@@ -1629,7 +1656,7 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/properties/{propid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateProperty(@PathVariable("catid") long propid, PortalProperty p) {
+	public ResponseEntity<?>  updateProperty(@PathVariable("propid") long propid, @Valid @RequestBody PortalProperty p) {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -1669,7 +1696,7 @@ public class ArtifactsAPIController {
 
 	
 	@GetMapping( value = "/admin/deployments", produces = "application/json" )
-	public ResponseEntity<?>  getAllDeployments( @RequestParam("status") String status ) {
+	public ResponseEntity<?>  getAllDeployments( @RequestParam( name = "status", required = false) String status ) {
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 		if (u != null) {
@@ -1745,7 +1772,7 @@ public class ArtifactsAPIController {
 //	}
 	
 	@GetMapping( value = "/admin/deployments/user", produces = "application/json" )
-	public ResponseEntity<?>  getAllDeploymentsofUser( @RequestParam("status") String status ) {
+	public ResponseEntity<?>  getAllDeploymentsofUser( @RequestParam( name = "status", required = false) String status ) {
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
@@ -1799,7 +1826,7 @@ public class ArtifactsAPIController {
 	}
 
 	@PostMapping( value =  "/admin/deployments", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addDeployment(DeploymentDescriptor deployment) {
+	public ResponseEntity<?>  addDeployment( @Valid @RequestBody DeploymentDescriptor deployment) {
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
@@ -1885,7 +1912,7 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/deployments/{id}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateDeployment(@PathVariable("id") int id, DeploymentDescriptor receivedDeployment) {
+	public ResponseEntity<?>  updateDeployment(@PathVariable("id") int id, @Valid @RequestBody DeploymentDescriptor receivedDeployment) {
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
@@ -2097,8 +2124,8 @@ public class ArtifactsAPIController {
 	}
 
 
-	@PostMapping( value =  "/admin/manoplatforms/", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addMANOplatform(MANOplatform c) {
+	@PostMapping( value =  "/admin/manoplatforms", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addMANOplatform( @Valid @RequestBody MANOplatform c) {
 
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2116,7 +2143,7 @@ public class ArtifactsAPIController {
 	}
 
 	@PutMapping( value =  "/admin/manoplatforms/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateMANOplatform(@PathVariable("mpid") int mpid, MANOplatform c) {
+	public ResponseEntity<?>  updateMANOplatform(@PathVariable("mpid") int mpid, @Valid @RequestBody MANOplatform c) {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2139,7 +2166,7 @@ public class ArtifactsAPIController {
 	}
 
 
-	@DeleteMapping( value =  "/admin/manoplatforms/{mpid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/manoplatforms/{mpid}", produces = "application/json")
 	public ResponseEntity<?>  deleteMANOplatform(@PathVariable("mpid") int mpid) {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2192,12 +2219,15 @@ public class ArtifactsAPIController {
 		return ResponseEntity.ok( manoProviderService.getMANOproviders()  );
 	}
 
-	@PostMapping( value =  "/admin/manoproviders/", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addMANOprovider(MANOprovider c) {
+	@PostMapping( value =  "/admin/manoproviders", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addMANOprovider( @Valid @RequestBody MANOprovider c) {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
+		
+		
+		c.setSupportedMANOplatform( manoPlatformService.getMANOplatformByID( c.getSupportedMANOplatform().getId() ) ); //to properly attach from the model
 		MANOprovider u = manoProviderService.addMANOprovider(c);
 
 		if (u != null) {
@@ -2210,7 +2240,7 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/manoproviders/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateMANOprovider(@PathVariable("mpid") int mpid, MANOprovider c) {
+	public ResponseEntity<?>  updateMANOprovider(@PathVariable("mpid") int mpid, @Valid @RequestBody MANOprovider c) {
 
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2236,7 +2266,7 @@ public class ArtifactsAPIController {
 	}
 
 
-	@DeleteMapping( value =  "/admin/manoproviders/{mpid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/manoproviders/{mpid}", produces = "application/json" )
 	public ResponseEntity<?>  deleteMANOprovider(@PathVariable("mpid") int mpid) {
 
 		
@@ -2396,7 +2426,7 @@ public class ArtifactsAPIController {
 	}
 
 	@PostMapping( value =  "/admin/vxfobds/", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addVxFOnBoardedDescriptor( VxFMetadata aVxF ) {
+	public ResponseEntity<?>  addVxFOnBoardedDescriptor(  @Valid @RequestBody VxFMetadata aVxF ) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2428,7 +2458,7 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/vxfobds/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid, VxFOnBoardedDescriptor c) {
+	public ResponseEntity<?>  updateVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody  VxFOnBoardedDescriptor c) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
@@ -2519,7 +2549,7 @@ public class ArtifactsAPIController {
 
 	
 	@PutMapping( value =  "/admin/vxfobds/{mpid}/onboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  onBoardDescriptor(@PathVariable("mpid") int mpid, final VxFOnBoardedDescriptor vxfobd) {
+	public ResponseEntity<?>  onBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final VxFOnBoardedDescriptor vxfobd) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2538,7 +2568,7 @@ public class ArtifactsAPIController {
 	
 
 	@PutMapping( value =  "/admin/vxfobds/{mpid}/offboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  offBoardDescriptor(@PathVariable("mpid") int mpid, final VxFOnBoardedDescriptor clobd) {
+	public ResponseEntity<?>  offBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final VxFOnBoardedDescriptor clobd) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2601,7 +2631,7 @@ public class ArtifactsAPIController {
 
 
 	@PostMapping( value =  "/admin/experimentobds/", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addExperimentOnBoardDescriptor( ExperimentMetadata exp) {
+	public ResponseEntity<?>  addExperimentOnBoardDescriptor(  @Valid @RequestBody ExperimentMetadata exp) {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2635,7 +2665,7 @@ public class ArtifactsAPIController {
 
 	
 	@PutMapping( value =  "/admin/experimentobds/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid, ExperimentOnBoardDescriptor c) {
+	public ResponseEntity<?>  updateExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody ExperimentOnBoardDescriptor c) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2722,7 +2752,7 @@ public class ArtifactsAPIController {
 	}
 
 	@PutMapping( value =  "/admin/experimentobds/{mpid}/onboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  onExperimentBoardDescriptor(@PathVariable("mpid") int mpid, final ExperimentOnBoardDescriptor experimentonboarddescriptor) {
+	public ResponseEntity<?>  onExperimentBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor experimentonboarddescriptor) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2743,7 +2773,7 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/experimentobds/{mpid}/offboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  offBoardExperimentDescriptor(@PathVariable("mpid") int mpid, final ExperimentOnBoardDescriptor c) {
+	public ResponseEntity<?>  offBoardExperimentDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor c) {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
@@ -2798,8 +2828,8 @@ public class ArtifactsAPIController {
 	}
 
 
-	@PostMapping( value =  "/admin/infrastructures/", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addInfrastructure(Infrastructure c) {
+	@PostMapping( value =  "/admin/infrastructures", produces = "application/json", consumes = "application/json" )
+	public ResponseEntity<?>  addInfrastructure( @Valid @RequestBody Infrastructure c) {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
@@ -2814,7 +2844,7 @@ public class ArtifactsAPIController {
 
 	
 	@PutMapping( value = "/admin/infrastructures/{infraid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateInfrastructure(@PathVariable("infraid") int infraid, Infrastructure c) {
+	public ResponseEntity<?>  updateInfrastructure(@PathVariable("infraid") int infraid, @Valid @RequestBody Infrastructure c) {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
@@ -2904,7 +2934,7 @@ public class ArtifactsAPIController {
 	
 
 	@PutMapping( value = "/admin/validationjobs/{vxf_id}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateUvalidationjob(@PathVariable("vxf_id") int vxfid, ValidationJobResult vresult) {
+	public ResponseEntity<?>  updateUvalidationjob(@PathVariable("vxf_id") int vxfid, @Valid @RequestBody ValidationJobResult vresult) {
 		logger.info("Received PUT ValidationJobResult for vxfid: " + vresult.getVxfid() );		
 		
 

@@ -24,7 +24,7 @@ public class ProductService {
 
 		Optional<Product> o = this.productsRepo.findById(id);
 
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find Product with id: " + id));
+		return o.orElse(null);
 	}
 
 	public Product updateProductInfo(Product prevProduct) {

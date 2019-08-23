@@ -38,7 +38,7 @@ public class InfrastructureService {
 	public Infrastructure getInfrastructureByID( long infraid) {
 		Optional<Infrastructure> o = this.infraRepo.findById(infraid);
 
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find Infrastructure with id: " + infraid));
+		return o.orElse(null);
 	}
 
 	public void deleteInfrastructure( Infrastructure infrastructure ) {

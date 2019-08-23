@@ -22,7 +22,7 @@ public class VxFService {
 
 		Optional<VxFMetadata> o = this.vxfsRepo.findById(id);
 
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFMetadata with id: " + id));
+		return o.orElse(null);
 	}
 
 	public VxFMetadata updateProductInfo(VxFMetadata refVxF) {
@@ -51,7 +51,7 @@ public class VxFService {
 
 	public VxFMetadata getVxFtByUUID(String uuid) {
 		Optional<VxFMetadata> o = this.vxfsRepo.findByUUID( uuid );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFMetadata with id: " + uuid));
+		return o.orElse(null);
 	}
 
 	public void deleteProduct(VxFMetadata vxf) {
@@ -61,7 +61,7 @@ public class VxFService {
 
 	public VxFMetadata getVxFByName(String name) {
 		Optional<VxFMetadata> o = this.vxfsRepo.findByName( name );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VxFMetadata with name: " + name));
+		return o.orElse(null);
 	}
 
 }

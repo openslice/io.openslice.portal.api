@@ -83,7 +83,7 @@ public class UsersService {
 
 		Optional<PortalUser> optionalUser = this.usersRepo.findById( id );
 		return optionalUser
-				.orElseThrow(() -> new ItemNotFoundException("Couldn't find a Portal User with id: " + id));
+				.orElse(null);
 	}
 
 	public PortalUser findByUsername(String username) {

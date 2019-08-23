@@ -21,7 +21,7 @@ public class NSDService {
 
 		Optional<ExperimentMetadata> o = this.nsdRepo.findById(id);
 
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentMetadata with id: " + id));
+		return o.orElse(null);
 	}
 
 	public ExperimentMetadata updateProductInfo( ExperimentMetadata  refNSD) {
@@ -50,7 +50,7 @@ public class NSDService {
 
 	public ExperimentMetadata getdNSDByUUID(String uuid) {
 		Optional<ExperimentMetadata> o = this.nsdRepo.findByUUID( uuid );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentMetadata with id: " + uuid));
+		return o.orElse(null);
 	}
 
 	public void deleteProduct(ExperimentMetadata nsd) {
@@ -60,7 +60,7 @@ public class NSDService {
 
 	public ExperimentMetadata getNSDByName(String name) {
 		Optional<ExperimentMetadata> o = this.nsdRepo.findByName( name );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentMetadata with name: " + name));
+		return o.orElse(null);
 	}
 
 }

@@ -58,7 +58,7 @@ public class PortalPropertiesService {
 		if ( pn  == null) {
 			PortalProperty p = new PortalProperty("adminEmail", "info@example.org");
 			propsRepo.save(p);
-			p = new PortalProperty("activationEmailSubject", "Activation Email Subject");
+			p = new PortalProperty("activationEmailSubject", "OpenSlice Activation Email ");
 			propsRepo.save(p);
 			p = new PortalProperty("mailhost", "example.org");
 			propsRepo.save(p);
@@ -66,13 +66,13 @@ public class PortalPropertiesService {
 			propsRepo.save(p);
 			p = new PortalProperty("mailpassword", "pass");
 			propsRepo.save(p);
-			p = new PortalProperty("maindomain", "https://portal.5ginfire.eu");
+			p = new PortalProperty("maindomain", "https://portal.example.org");
 			propsRepo.save(p);
-			p = new PortalProperty("bugzillaurl", "portal.5ginfire.eu:443/bugstaging");
+			p = new PortalProperty("bugzillaurl", "portal.example.org:443/bugzilla");
 			propsRepo.save(p);
 			p = new PortalProperty("bugzillakey", "");
 			propsRepo.save(p);
-			p = new PortalProperty("jenkinsciurl", "ci.5ginfire.eu");
+			p = new PortalProperty("jenkinsciurl", "ci.example.org");
 			propsRepo.save(p);
 			p = new PortalProperty("jenkinscikey", "");
 			propsRepo.save(p);
@@ -80,7 +80,7 @@ public class PortalPropertiesService {
 			propsRepo.save(p);
 			p = new PortalProperty("centrallogerurl", "");
 			propsRepo.save(p);
-			p = new PortalProperty("portaltitle", "5GinFIRE");
+			p = new PortalProperty("portaltitle", "OpenSlice Dev");
 			propsRepo.save(p);
 			
 		}

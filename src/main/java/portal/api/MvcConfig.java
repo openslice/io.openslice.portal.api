@@ -1,5 +1,7 @@
 package portal.api;
 
+import java.io.File;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -30,8 +32,10 @@ public class MvcConfig implements WebMvcConfigurer {
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
 		// registry.addResourceHandler("/testweb/**").addResourceLocations("file:///C:/Users/ctranoris/git/io.openslice.portal.web/src/").setCachePeriod(0);
+		String a = ( new File("../io.openslice.portal.web/src/")).getAbsoluteFile().toURI().toString()  ;
+		System.out.println("======================> " + a);
 		registry.addResourceHandler("/testweb/**")
-				.addResourceLocations("file:///C:/Users/ctranoris/git/io.openslice.portal.web/src/")
+				.addResourceLocations( a ) //"file:///./../io.openslice.portal.web/src/")
 				.setCachePeriod(0)
 				.resourceChain(true)
 				.addResolver(new EncodedResourceResolver())

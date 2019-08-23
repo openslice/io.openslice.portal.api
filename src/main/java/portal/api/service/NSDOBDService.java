@@ -23,7 +23,7 @@ public class NSDOBDService {
 
 	public ExperimentOnBoardDescriptor getExperimentOnBoardDescriptorByID(long vxfobdid) {
 		Optional<ExperimentOnBoardDescriptor> o = nsdOBDRepository.findById( vxfobdid );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find ExperimentOnBoardDescriptor with id: " + vxfobdid));
+		return o.orElse(null);
 	}
 
 	public List<ExperimentOnBoardDescriptor> getExperimentOnBoardDescriptors() {

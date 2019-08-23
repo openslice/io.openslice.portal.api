@@ -74,7 +74,7 @@ public class CategoryService {
 	public Category findById(long catid) {
 		Optional<Category> optionalCat = this.categsRepo.findById( catid );
 		return optionalCat
-				.orElseThrow(() -> new ItemNotFoundException("Couldn't find Category with id: " + catid));
+				.orElse(null);
 	}
 
 	public Category updateCategoryInfo(Category c) {

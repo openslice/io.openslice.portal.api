@@ -20,7 +20,7 @@ public class ManoPlatformService {
 
 	public MANOplatform getMANOplatformByID(long id) {
 		Optional<MANOplatform> o = this.manoPlatformRepo.findById(id);
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find MANOplatform with id: " + id));
+		return o.orElse(null);
 	}
 
 

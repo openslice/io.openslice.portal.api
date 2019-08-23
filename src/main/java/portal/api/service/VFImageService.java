@@ -23,7 +23,7 @@ public class VFImageService {
 
 	public VFImage getVFImageByName(String imageName) {
 		Optional<VFImage> o = this.vfRepo.findByName( imageName );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VFImage with name: " + imageName));
+		return o.orElse(null);
 	}
 
 
@@ -41,7 +41,7 @@ public class VFImageService {
 
 	public VFImage getVFImageByID( long vfimageid) {
 		Optional<VFImage> o = this.vfRepo.findById( vfimageid );
-		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find VFImage with vfimageid: " + vfimageid));
+		return o.orElse(null);
 	}
 
 }
