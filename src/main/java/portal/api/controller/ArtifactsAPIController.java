@@ -786,11 +786,25 @@ public class ArtifactsAPIController {
 
 	@PutMapping( value =  "/admin/vxfs/{bid}", produces = "application/json", consumes = "multipart/form-data" )
 	public ResponseEntity<?> updateVxFMetadata(@PathVariable("bid") int bid, 
-			final @RequestPart("vxf") VxFMetadata vxf,
-			@RequestPart("prodIcon") MultipartFile  prodIcon,
-			@RequestPart("prodFile") MultipartFile  prodFile,
-			@RequestPart("screenshots") MultipartFile[] screenshots,
+			@ModelAttribute("vxf") String avxf,
+			@RequestParam( name = "prodIcon", required = false) MultipartFile  prodIcon,
+			@RequestParam("prodFile")  MultipartFile  prodFile,
+			@RequestParam(name = "screenshots", required = false) MultipartFile[] screenshots,
 			HttpServletRequest request) {
+		
+		VxFMetadata vxf = null;
+		try {
+			vxf = objectMapper.readValue( avxf, VxFMetadata.class);	
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
 		
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 		
@@ -1416,12 +1430,29 @@ public class ArtifactsAPIController {
 	
 	@PostMapping( value =  "/admin/experiments/", produces = "application/json", consumes = "multipart/form-data" )
 	public ResponseEntity<?>  addExperimentMetadata(
-			final @RequestPart("exprm") ExperimentMetadata experiment,
-			@RequestPart("prodIcon") MultipartFile  prodIcon,
-			@RequestPart("prodFile") MultipartFile  prodFile,
-			@RequestPart("screenshots") MultipartFile[] screenshots,
+			final @ModelAttribute("exprm") String exp,
+			@RequestParam(name = "prodIcon", required = false) MultipartFile  prodIcon,
+			@RequestParam(name = "prodFile", required = false) MultipartFile  prodFile,
+			@RequestParam(name = "screenshots", required = false) MultipartFile[] screenshots,
 			HttpServletRequest request) {
 
+		
+		ExperimentMetadata experiment = null;
+		
+		try {
+			experiment = objectMapper.readValue( exp, ExperimentMetadata.class);	
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+		
+		
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
 		if (u == null) {
@@ -1519,12 +1550,26 @@ public class ArtifactsAPIController {
 	
 	@PutMapping( value =  "/admin/experiments/{aid}", produces = "application/json", consumes = "multipart/form-data" )
 	public ResponseEntity<?>  updateExperimentMetadata(@PathVariable("aid") int aid, 
-			final @RequestPart("exprm") ExperimentMetadata expmeta,
-			@RequestPart("prodIcon") MultipartFile  prodIcon,
-			@RequestPart("prodFile") MultipartFile  prodFile,
-			@RequestPart("screenshots") MultipartFile[] screenshots,
+			final @ModelAttribute("exprm") String ex,
+			@RequestParam(name = "prodIcon", required = false) MultipartFile  prodIcon,
+			@RequestParam(name = "prodFile", required = false) MultipartFile  prodFile,
+			@RequestParam(name = "screenshots", required = false) MultipartFile[] screenshots,
 			HttpServletRequest request) {
 
+		
+		ExperimentMetadata expmeta = null;
+		try {
+			expmeta = objectMapper.readValue( ex, ExperimentMetadata.class);	
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
 		
 		String emsg= "";
 		ExperimentMetadata expmetasaved = null;

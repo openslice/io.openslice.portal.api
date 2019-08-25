@@ -44,4 +44,20 @@ public class VFImageService {
 		return o.orElse(null);
 	}
 
+
+	public List<VFImage> getVFImages() {		
+		return (List<VFImage>) this.vfRepo.findAll();
+	}
+
+
+	public List<VFImage> getVFImagesByUserID(long id) {
+		return (List<VFImage>) this.vfRepo.findAllByUserid( id );
+	}
+
+
+	public void deleteVFImage( VFImage sm ) {
+		 this.vfRepo.delete( sm );
+		
+	}
+
 }

@@ -1,6 +1,7 @@
 package portal.api.repo;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Query;
@@ -21,5 +22,9 @@ public interface VFImageRepository extends PagingAndSortingRepository<VFImage, L
 
 	@Query( value ="SELECT a FROM VFImage a WHERE a.name LIKE ?1" )
 	Optional<VFImage> findByName(String name);
+
+	
+	@Query( value ="SELECT a FROM VFImage a JOIN a.owner aon WHERE aon.id LIKE ?1" )
+	Collection<VFImage> findAllByUserid(long id);
 
 }

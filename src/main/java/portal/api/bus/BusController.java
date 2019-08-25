@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import io.openslice.model.PortalUser;
+import io.openslice.model.VFImage;
 import portal.api.mano.MANOStatus;
 
 
@@ -404,6 +405,18 @@ public class BusController  {
 		template.withBody( uexpobdid ).asyncSend();		
 	}
 
+	/**
+	 * @param vfimg
+	 */
+	public void newVFImageAdded(VFImage vfimg) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void aVFImageUpdated(VFImage vfimg) {
+		// TODO Auto-generated method stub
+		
+	}
 
 
 }
