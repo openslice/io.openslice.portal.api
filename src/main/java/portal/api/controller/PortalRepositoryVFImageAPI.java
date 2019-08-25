@@ -103,7 +103,7 @@ public class PortalRepositoryVFImageAPI {
 	 * Image object API
 	 */
 
-	@GetMapping( value = "/admin/vfimages/", produces = "application/json" )
+	@GetMapping( value = "/admin/vfimages", produces = "application/json" )
 	public ResponseEntity<?> getAdminVFImages() {
 
 		//

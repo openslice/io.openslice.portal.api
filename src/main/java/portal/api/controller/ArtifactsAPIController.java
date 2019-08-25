@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
@@ -37,6 +38,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -204,9 +207,8 @@ public class ArtifactsAPIController {
 		// prod.addExtensionItem(i[0], i[1]);
 		// }
 
-		//URI endpointUrl = uri.getBaseUri();
 
-		String endpointUrl = request.getRequestURI();
+		String endpointUrl = request.getContextPath();//request.getRequestURI();
 
 		String tempDir = METADATADIR + uuid + File.separator;
 		
@@ -223,7 +225,7 @@ public class ArtifactsAPIController {
 				String imgfile = AttachmentUtil.saveFile(image, tempDir + imageFileNamePosted);
 				logger.info("imgfile saved to = " + imgfile);
 				// Save the icon file destination
-				prod.setIconsrc(endpointUrl.toString().replace("http:", "") + "repo/images/" + uuid + "/"+ imageFileNamePosted);
+				prod.setIconsrc(endpointUrl.toString().replace("http:", "") + "/images/" + uuid + "/"+ imageFileNamePosted);
 			}
 		}
 
@@ -233,10 +235,10 @@ public class ArtifactsAPIController {
 			logger.info("vxfFile = " + aFileNamePosted);
 			// Is the filename is not an empty string
 			if (!aFileNamePosted.equals("")) {
-				String descriptorFilePath = AttachmentUtil.saveFile(submittedFile, tempDir + aFileNamePosted);
+				String descriptorFilePath = AttachmentUtil.saveFile(submittedFile, tempDir );
 				// Set the package location in Product instance
 				logger.info("vxffilepath saved to = " + descriptorFilePath);
-				prod.setPackageLocation(endpointUrl.toString().replace("http:", "") + "repo/packages/" + uuid + "/"
+				prod.setPackageLocation(endpointUrl.toString().replace("http:", "") + "/packages/" + uuid + "/"
 						+ aFileNamePosted);
 				// Read the descriptor file 
 				File descriptorFile = new File(descriptorFilePath);
@@ -266,7 +268,7 @@ public class ArtifactsAPIController {
 							
 						if(((ExperimentMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
-							logger.info("VxF OSMvFIVE route");	
+							logger.info("NSD OSMvFIVE route");	
 							this.loadNSMetadataFromOSMvFIVENSDescriptorFile( (ExperimentMetadata) prod, descriptorFile, request);															
 						}
 					}
@@ -290,7 +292,7 @@ public class ArtifactsAPIController {
 				shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
 				String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
 				logger.info("shotfilepath saved to = " + shotfilepath);
-				shotfilepath = endpointUrl.toString().replace("http:", "") + "repo/images/" + uuid + "/"
+				shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + uuid + "/"
 						+ shotFileNamePosted;
 				screenshotsFilenames += shotfilepath + ",";
 				i++;
@@ -330,7 +332,7 @@ public class ArtifactsAPIController {
 		if ( prod instanceof VxFMetadata ){
 			registeredProd = vxfService.getVxFtByUUID(uuid);
 		} else {
-			throw new NotImplementedException("NOT IMPLEMENTED YET FOR NSD PRODUCT" );
+			registeredProd = nsdService.getdNSDByUUID(uuid);
 		}
 
 		// now fix category references
@@ -391,7 +393,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(nsExtract.getIconfilePath(),
 							METADATADIR + prod.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prod.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prod.getUuid()
+					prod.setIconsrc( request.getContextPath() + "/images/" + prod.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -901,7 +903,7 @@ public class ArtifactsAPIController {
 			prevProduct.getCategories().add(catToUpdate);
 		}
 
-		String endpointUrl = request.getRequestURI();
+		String endpointUrl = request.getContextPath() ;//request.getRequestURI();
 
 		String tempDir = METADATADIR + prevProduct.getUuid() + File.separator;
 
@@ -918,7 +920,7 @@ public class ArtifactsAPIController {
 				String imgfile = AttachmentUtil.saveFile(image, tempDir + imageFileNamePosted);
 				logger.info("imgfile saved to = " + imgfile);
 				// Save the icon file destination				
-				prevProduct.setIconsrc(endpointUrl.toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid() + "/"
+				prevProduct.setIconsrc(endpointUrl.toString().replace("http:", "") + "/images/" + prevProduct.getUuid() + "/"
 						+ imageFileNamePosted);
 			}
 		}
@@ -961,7 +963,7 @@ public class ArtifactsAPIController {
 				String vxffilepath = AttachmentUtil.saveFile(prodFile, tempDir + vxfFileNamePosted);
 				// Set the package location in Product instance				
 				logger.info("vxffilepath saved to = " + vxffilepath);
-				prevProduct.setPackageLocation(endpointUrl.toString().replace("http:", "") + "repo/packages/"
+				prevProduct.setPackageLocation(endpointUrl.toString().replace("http:", "") + "/packages/"
 						+ prevProduct.getUuid() + "/" + vxfFileNamePosted);
 				// Read the descriptor file 
 				File descriptorFile = new File(vxffilepath);
@@ -1013,7 +1015,7 @@ public class ArtifactsAPIController {
 					shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
 					String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
 					logger.info("shotfilepath saved to = " + shotfilepath);
-					shotfilepath = endpointUrl.toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid() + "/"
+					shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + prevProduct.getUuid() + "/"
 							+ shotFileNamePosted;
 					screenshotsFilenames += shotfilepath + ",";
 					i++;
@@ -1047,7 +1049,7 @@ public class ArtifactsAPIController {
 
 	
 
-	@GetMapping( value = "/images/{uuid}/{imgfile}", produces = { "image/jpeg",  "image/png" } )
+	@GetMapping( value = "/images/{uuid}/{imgfile:.+}", produces = { "image/jpeg",  "image/png" } )
 	public @ResponseBody byte[] getEntityImage( @PathVariable("uuid") String uuid, @PathVariable("imgfile") String imgfile) throws IOException {
 		logger.info("getEntityImage of uuid: " + uuid);
 		String imgAbsfile = METADATADIR + uuid + File.separator + imgfile;
@@ -1067,8 +1069,8 @@ public class ArtifactsAPIController {
 		//return Response.ok(file).build();
 	}
 
-	@GetMapping( value = "/packages/{uuid}/{vxffile}", produces = "application/gzip" )
-	public @ResponseBody byte[] downloadVxFPackage( @PathVariable("uuid") String uuid, @PathVariable("vxffile") String vxffile) throws IOException {
+	@GetMapping( value = "/packages/{uuid}/{vxffile:.+}"  )
+	public ResponseEntity<ByteArrayResource> downloadVxFPackage( @PathVariable("uuid") String uuid, @PathVariable("vxffile") String vxffile) throws IOException {
 
 		logger.info("vxffile: " + vxffile);
 		logger.info("uuid: " + uuid);
@@ -1083,15 +1085,30 @@ public class ArtifactsAPIController {
 			logger.info("TEST LOCAL RESOURCE FILE: " + res);
 			file = new File(res.getFile());
 		}		
-		InputStream in = new FileInputStream( file );	
-		return IOUtils.toByteArray(in);
+
+		Product avxf = productService.getProducttByUUID(uuid);
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );		
+
+		if ((u == null) && (!avxf.isPublished() )) {
+			return (ResponseEntity<ByteArrayResource>) ResponseEntity.badRequest();
+		}
+		
+		Path path = Paths.get(file.getAbsolutePath());
+		ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+		 
+		return ResponseEntity.ok()
+				.header("Content-Disposition", "attachment; filename=" + file.getName())
+	            .contentLength(file.length())
+	            .contentType(MediaType.parseMediaType("application/gzip"))
+	            .body(resource);
+		
 		
 //		ResponseBuilder response = (ResponseEntity<?>).ok((Object) file);
 //		response.header("Content-Disposition", "attachment; filename=" + file.getName());
 //		return response.build();
 	}
 
-	@DeleteMapping( value =  "/admin/vxfs/{vxfid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/vxfs/{vxfid}", produces = "application/json" )
 	public ResponseEntity<?> deleteVxF( @PathVariable("vxfid") int vxfid) {
 				
 		VxFMetadata vxf = (VxFMetadata) vxfService.getProductByID( vxfid );
@@ -1112,6 +1129,11 @@ public class ArtifactsAPIController {
 			{
 				if(vxfobd_tmp.getOnBoardingStatus()!=OnBoardingStatus.ONBOARDED)
 				{
+					vxf.getVxfOnBoardedDescriptors().remove(vxfobd_tmp);
+					vxfService.updateProductInfo(vxf);
+					vxfobd_tmp.setObMANOprovider(null);
+					vxfobd_tmp.setVxf(null);
+					vxfOBDService.deleteVxFOnBoardedDescriptor(vxfobd_tmp);
 					continue;
 				}
 				OnBoardingStatus previous_status = vxfobd_tmp.getOnBoardingStatus();
@@ -1167,7 +1189,25 @@ public class ArtifactsAPIController {
 				BusController.getInstance().offBoardVxF( u.getId() );
 			}
 		}
-		BusController.getInstance().deletedVxF( vxf.getId() );			
+		BusController.getInstance().deletedVxF( vxf.getId() );	
+		
+		
+		for (Category c : vxf.getCategories()) {
+			if (c.getProducts().contains(vxf)){
+				c.getProducts().remove(vxfid);
+				categoryService.updateCategoryInfo(c);
+				vxf.getCategories().remove(c);
+				vxfService.updateProductInfo(vxf);
+			}				
+		}
+		
+		PortalUser owner =  usersService.findById( vxf.getOwner().getId() );		
+		owner.getProducts().remove(vxf);
+		usersService.updateUserInfo(owner);
+		vxf.setOwner(null);
+		
+		//check also if deleted from consistuent VNFs
+		
 		vxfService.deleteProduct( vxf );
 		return ResponseEntity.ok().body("{}");		
 	}
@@ -1542,7 +1582,7 @@ public class ArtifactsAPIController {
 		} else {
 	
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body("{ \"message\" : \"" + emsg +"\"}");
 		}
 
 	}
@@ -1615,7 +1655,7 @@ public class ArtifactsAPIController {
 		
 	}
 
-	@DeleteMapping( value =  "/admin/experiments/{appid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/experiments/{appid}", produces = "application/json" )
 	public  ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid) {
 		
 		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID( appid );
@@ -1921,7 +1961,7 @@ public class ArtifactsAPIController {
 		}
 	}
 
-	@DeleteMapping( value =  "/admin/deployments/{id}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/deployments/{id}", produces = "application/json" )
 	public ResponseEntity<?>  deleteDeployment(@PathVariable("id") int id) {
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 

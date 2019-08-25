@@ -75,6 +75,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		.antMatchers("/vxfs/**").permitAll()
 	    //.antMatchers("/repo/admin/**").hasRole("ADMIN")
 		.antMatchers("/login").permitAll()
+		.antMatchers("/images/**").permitAll()
+		.antMatchers("/packages/**").permitAll()
 		.antMatchers("/testweb/**").permitAll()		
 		.antMatchers("/oauth/token/revokeById/**").permitAll()
 		.antMatchers("/tokens/**").permitAll()

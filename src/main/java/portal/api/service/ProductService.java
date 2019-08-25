@@ -31,5 +31,12 @@ public class ProductService {
 		return this.productsRepo.save( prevProduct ) ;
 	}
 
+	public Product getProducttByUUID(String uuid) {
+
+		Optional<Product> o = this.productsRepo.findByUUID(uuid);
+
+		return o.orElse(null);
+	}
+
 
 }

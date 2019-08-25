@@ -20,5 +20,9 @@ import io.openslice.model.VxFMetadata;
 public interface ProductRepository extends PagingAndSortingRepository<Product, Long> {
 
 
+	@Query( value ="SELECT a FROM Product a WHERE a.uuid=?1" )
+	Optional<Product> findByUUID(String uuid);
+
+
 
 }
