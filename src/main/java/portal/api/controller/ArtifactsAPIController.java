@@ -464,7 +464,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(vnfExtract.getIconfilePath(),
 							METADATADIR + prod.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prod.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "/images/" + prod.getUuid()
+					prod.setIconsrc( request.getContextPath().toString().replace("http:", "") + "/images/" + prod.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -1112,9 +1112,10 @@ public class ArtifactsAPIController {
 
 	@DeleteMapping( value =  "/admin/vxfs/{vxfid}", produces = "application/json" )
 	public ResponseEntity<?> deleteVxF( @PathVariable("vxfid") int vxfid) {
-				
-		VxFMetadata vxf = (VxFMetadata) vxfService.getProductByID( vxfid );
+
 		
+		VxFMetadata vxf = (VxFMetadata) vxfService.getProductByID( vxfid );
+				
 		if ( !checkUserIDorIsAdmin( vxf.getOwner().getId() ) ){
 			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
@@ -1198,15 +1199,16 @@ public class ArtifactsAPIController {
 			if (c.getProducts().contains(vxf)){
 				c.getProducts().remove(vxf);
 				categoryService.updateCategoryInfo(c);
-				vxf.getCategories().remove(c);
-				vxfService.updateProductInfo(vxf);
 			}				
 		}
+		
+		vxf.getCategories().clear();
 		
 		PortalUser owner =  usersService.findById( vxf.getOwner().getId() );		
 		owner.getProducts().remove(vxf);
 		usersService.updateUserInfo(owner);
 		vxf.setOwner(null);
+		
 		
 		//check also if deleted from consistuent VNFs
 		
@@ -1470,7 +1472,7 @@ public class ArtifactsAPIController {
 	}
 
 	
-	@PostMapping( value =  "/admin/experiments/", produces = "application/json", consumes = "multipart/form-data" )
+	@PostMapping( value =  "/admin/experiments", produces = "application/json", consumes = "multipart/form-data" )
 	public ResponseEntity<?>  addExperimentMetadata(
 			final @ModelAttribute("exprm") String exp,
 			@RequestParam(name = "prodIcon", required = false) MultipartFile  prodIcon,
@@ -1720,6 +1722,21 @@ public class ArtifactsAPIController {
 			}
 		}
 		BusController.getInstance().deletedExperiment(nsd.getId());		
+		
+		
+		for (Category c : nsd.getCategories()) {
+			if (c.getProducts().contains(nsd)){
+				c.getProducts().remove(nsd);
+				categoryService.updateCategoryInfo(c);
+			}				
+		}
+		nsd.getCategories().clear();
+		
+		PortalUser owner =  usersService.findById( nsd.getOwner().getId() );		
+		owner.getProducts().remove( nsd );
+		usersService.updateUserInfo(owner);
+		nsd.setOwner(null);
+		
 		nsdService.deleteProduct(nsd);		
 		return ResponseEntity.ok().body("{}");									
 	}

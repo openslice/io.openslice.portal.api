@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -192,8 +193,117 @@ public class InMemoryDBIntegrationTest {
 	    }
 	 
 	 
-	 @Test
-		public void addVxF() throws Exception {
+	@Test
+	public void addVxF() throws Exception {
+		
+		UserSession pu = new UserSession();
+		pu.setUsername("admin");
+		pu.setPassword("changeme");
+		
+		/**
+		 * auth
+		 */
+		 HttpSession session = mvc.perform(post("/sessions")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content( toJson( pu ) ))
+			    .andExpect(status().isOk())
+			    .andExpect(content()
+			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    .andExpect(jsonPath("username", is("admin")))
+			    .andReturn().getRequest().getSession();
+		 			 
+		 
+
+
+		File vxfFile = new File( "src/test/resources/testvxf.txt" );
+		InputStream in = new FileInputStream( vxfFile );
+		String resvxf = IOUtils.toString(in, "UTF-8");
+		logger.info( "resvxf ========> " + resvxf );
+
+		File gz = new File( "src/test/resources/cirros_vnf.tar.gz" );
+		InputStream ing = new FileInputStream( gz );
+		MockMultipartFile prodFile = new MockMultipartFile("prodFile", "cirros_vnf.tar.gz", "application/x-gzip", IOUtils.toByteArray(ing));
+		     
+		 
+		 mvc.perform(MockMvcRequestBuilders.multipart("/admin/vxfs")
+				 .file(prodFile)
+				 .param("vxf", resvxf)
+				 .session( (MockHttpSession) session ))
+	    	.andExpect(status().isOk());
+		 
+		 assertThat( vxfService.getVxFsByCategory((long) -1) .size() )
+			.isEqualTo( 1 );
+		 
+		 mvc.perform(get("/categories")
+					.contentType(MediaType.APPLICATION_JSON))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+		    	.andExpect( jsonPath("$[0].name", is("None")) )
+		    	.andExpect( jsonPath("$[1].name", is("Networking")))
+		    	.andExpect( jsonPath("$[1].vxFscount", is( 1 )));
+
+	}
+	
+	@Test
+	public void deleteVxF() throws Exception {
+		
+		addVxF(); 
+		
+		UserSession pu = new UserSession();
+		pu.setUsername("admin");
+		pu.setPassword("changeme");
+		
+		/**
+		 * auth
+		 */
+		 HttpSession session = mvc.perform(post("/sessions")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content( toJson( pu ) ))
+			    .andExpect(status().isOk())
+			    .andExpect(content()
+			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    .andExpect(jsonPath("username", is("admin")))
+			    .andReturn().getRequest().getSession();
+		 
+		 assertThat( vxfService.getVxFsByCategory((long) -1) .size() )
+			.isEqualTo( 1 );
+
+		 mvc.perform(get("/categories")
+					.contentType(MediaType.APPLICATION_JSON))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+		    	.andExpect( jsonPath("$[0].name", is("None")) )
+		    	.andExpect( jsonPath("$[1].name", is("Networking")))
+		    	.andExpect( jsonPath("$[1].vxFscount", is( 1 )))
+		    	.andExpect( jsonPath("$[2].name", is("Service")))
+		    	.andExpect( jsonPath("$[2].vxFscount", is( 1 )));
+		 
+		 String content =  mvc.perform(get("/admin/vxfs")
+					.contentType(MediaType.APPLICATION_JSON).session( (MockHttpSession) session ))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    .andExpect(jsonPath("$[0].id", is(3)))
+			    .andReturn().getResponse().getContentAsString();
+		 
+		 
+		 mvc.perform(delete("/admin/vxfs/3")
+					 .session( (MockHttpSession) session ))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+		 
+		 assertThat( vxfService.getVxFsByCategory((long) -1) .size() )
+			.isEqualTo( 0 );
+
+	}
+	
+	
+	 
+		@Test
+		public void addNSD() throws Exception {
 			
 			UserSession pu = new UserSession();
 			pu.setUsername("admin");
@@ -214,19 +324,19 @@ public class InMemoryDBIntegrationTest {
 			 
 
 
-			File vxfFile = new File( "src/test/resources/testvxf.txt" );
-			InputStream in = new FileInputStream( vxfFile );
-			String resvxf = IOUtils.toString(in, "UTF-8");
-			logger.info( "resvxf ========> " + resvxf );
+			File nsdFile = new File( "src/test/resources/testnsd.txt" );
+			InputStream in = new FileInputStream( nsdFile );
+			String resnsd = IOUtils.toString(in, "UTF-8");
+			logger.info( "resnsd ========> " + resnsd );
 
-			File gz = new File( "src/test/resources/cirros_vnf.tar.gz" );
+			File gz = new File( "src/test/resources/cirros_2vnf_ns.tar.gz" );
 			InputStream ing = new FileInputStream( gz );
-			MockMultipartFile prodFile = new MockMultipartFile("prodFile", "cirros_vnf.tar.gz", "application/x-gzip", IOUtils.toByteArray(ing));
+			MockMultipartFile prodFile = new MockMultipartFile("prodFile", "cirros_2vnf_ns.tar.gz", "application/x-gzip", IOUtils.toByteArray(ing));
 			     
 			 
-			 mvc.perform(MockMvcRequestBuilders.multipart("/admin/vxfs")
+			 mvc.perform(MockMvcRequestBuilders.multipart("/admin/experiments")
 					 .file(prodFile)
-					 .param("vxf", resvxf)
+					 .param("exprm", resnsd)
 					 .session( (MockHttpSession) session ))
 		    	.andExpect(status().isOk());
 			 
@@ -244,4 +354,58 @@ public class InMemoryDBIntegrationTest {
 
 		}
 
+		@Test
+		public void deleteNSD() throws Exception {
+			
+			addNSD(); 
+			
+			UserSession pu = new UserSession();
+			pu.setUsername("admin");
+			pu.setPassword("changeme");
+			
+			/**
+			 * auth
+			 */
+			 HttpSession session = mvc.perform(post("/sessions")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content( toJson( pu ) ))
+				    .andExpect(status().isOk())
+				    .andExpect(content()
+				    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+				    .andExpect(jsonPath("username", is("admin")))
+				    .andReturn().getRequest().getSession();
+			 
+			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
+				.isEqualTo( 1 );
+
+			 mvc.perform(get("/categories")
+						.contentType(MediaType.APPLICATION_JSON))
+			    	.andExpect(status().isOk())
+			    	.andExpect(content()
+			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    	.andExpect( jsonPath("$[0].name", is("None")) )
+			    	.andExpect( jsonPath("$[1].name", is("Networking")))
+			    	.andExpect( jsonPath("$[1].vxFscount", is( 1 )))
+			    	.andExpect( jsonPath("$[2].name", is("Service")))
+			    	.andExpect( jsonPath("$[2].vxFscount", is( 1 )));
+			 
+			 String content =  mvc.perform(get("/admin/experiments")
+						.contentType(MediaType.APPLICATION_JSON).session( (MockHttpSession) session ))
+			    	.andExpect(status().isOk())
+			    	.andExpect(content()
+			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+				    .andExpect(jsonPath("$[0].id", is(3)))
+				    .andReturn().getResponse().getContentAsString();
+			 
+			 
+			 mvc.perform(delete("/admin/experiments/3")
+						 .session( (MockHttpSession) session ))
+			    	.andExpect(status().isOk())
+			    	.andExpect(content()
+			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+			 
+			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
+				.isEqualTo( 0 );
+
+		}
 }
