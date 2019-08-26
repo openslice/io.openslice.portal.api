@@ -1,0 +1,1 @@
+{"owner":{"id":1,"organization":"","name":"Portal Administrator","email":"","username":"admin","active":true, "roles":["ROLE_ADMIN","ROLE_MENTOR"]},"extensions":[],"categories":[{"id":2,"name":"Networking","productsCount":0,"appscount":0,"vxFscount":0},{"id":3,"name":"Service","productsCount":0,"appscount":0,"vxFscount":0}],"packagingFormat":"OSMvFIVE"}

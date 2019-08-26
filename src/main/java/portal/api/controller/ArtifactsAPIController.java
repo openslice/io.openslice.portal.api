@@ -303,14 +303,15 @@ public class ArtifactsAPIController {
 
 		prod.setScreenshots(screenshotsFilenames);
 
-		// we must replace given product categories with the ones from our DB
-		for (Category c : prod.getCategories()) {
-			Category catToUpdate = categoryService.findById( c.getId() );
-			// logger.info("BEFORE PROD SAVE, category "+catToUpdate.getName()+"
-			// contains Products: "+ catToUpdate.getProducts().size() );
-			prod.getCategories().set(prod.getCategories().indexOf(c), catToUpdate);
-
-		}
+//		// we must replace given product categories with the ones from our DB
+//		for (Category c : prod.getCategories()) {
+//			Category catToUpdate = categoryService.findById( c.getId() );
+//			// logger.info("BEFORE PROD SAVE, category "+catToUpdate.getName()+"
+//			// contains Products: "+ catToUpdate.getProducts().size() );
+//			//prod.getCategories().set(prod.getCategories().indexOf(c), catToUpdate);
+//			prod.getCategories().add(catToUpdate);
+//
+//		}
 
 		//if it's a VxF we need also to update the images that this VxF will use
 		if (prod instanceof VxFMetadata) {
@@ -335,12 +336,13 @@ public class ArtifactsAPIController {
 			registeredProd = nsdService.getdNSDByUUID(uuid);
 		}
 
-		// now fix category references
-		for (Category c : registeredProd.getCategories()) {
+//		// now fix category references
+		for (Category c : prod.getCategories()) {
 			Category catToUpdate = categoryService.findById(c.getId());
 			catToUpdate.addProduct(registeredProd);
 			categoryService.updateCategoryInfo(catToUpdate);
 		}		
+		
 		return registeredProd;
 	}
 
@@ -462,7 +464,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(vnfExtract.getIconfilePath(),
 							METADATADIR + prod.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prod.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prod.getUuid()
+					prod.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "/images/" + prod.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -546,7 +548,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(vnfExtract.getIconfilePath(),
 							METADATADIR + prevProduct.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid()
+					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "/images/" + prevProduct.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -606,7 +608,7 @@ public class ArtifactsAPIController {
 					String imgfile = AttachmentUtil.saveFile(nsExtract.getIconfilePath(),
 							METADATADIR + prevProduct.getUuid() + File.separator + imageFileNamePosted);
 					logger.info("imgfile saved to = " + imgfile);
-					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "repo/images/" + prevProduct.getUuid()
+					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "/images/" + prevProduct.getUuid()
 							+ "/" + imageFileNamePosted);
 				}
 			}
@@ -1194,7 +1196,7 @@ public class ArtifactsAPIController {
 		
 		for (Category c : vxf.getCategories()) {
 			if (c.getProducts().contains(vxf)){
-				c.getProducts().remove(vxfid);
+				c.getProducts().remove(vxf);
 				categoryService.updateCategoryInfo(c);
 				vxf.getCategories().remove(c);
 				vxfService.updateProductInfo(vxf);
@@ -1270,7 +1272,7 @@ public class ArtifactsAPIController {
 			vxf.setLongDescription("");
 
 			vxf.setPackageLocation(endpointUrl.toString().replace("http:", "")
-					+ "repo/packages/77777777-668b-4c75-99a9-39b24ed3d8be/examplevxf.tar.gz");
+					+ "/packages/77777777-668b-4c75-99a9-39b24ed3d8be/examplevxf.tar.gz");
 			// }else if (uuid.equals("12cab8b8-668b-4c75-99a9-39b24ed3d8be")) {
 			// vxf = new VxFMetadata(uuid, "AN example service");
 			// vxf.setShortDescription("An example local service");
@@ -1292,7 +1294,7 @@ public class ArtifactsAPIController {
 			// URI endpointUrl = uri.getBaseUri();
 
 			vxf.setPackageLocation(endpointUrl.toString().replace("http:", "")
-					+ "repo/packages/22cab8b8-668b-4c75-99a9-39b24ed3d8be/examplevxfErrInstall.tar.gz");
+					+ "/packages/22cab8b8-668b-4c75-99a9-39b24ed3d8be/examplevxfErrInstall.tar.gz");
 		} else {
 			vxf = (VxFMetadata) vxfService.getVxFtByUUID(uuid);
 		}
