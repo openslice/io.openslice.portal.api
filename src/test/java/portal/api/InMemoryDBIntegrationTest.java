@@ -39,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.UserSession;
 import io.openslice.model.VxFMetadata;
 import portal.api.mano.MANOController;
@@ -192,6 +193,12 @@ public class InMemoryDBIntegrationTest {
 	        return mapper.writeValueAsBytes(object);
 	    }
 	 
+	 static <T> T toJsonObj(String content, Class<T> valueType)  throws IOException {
+	        ObjectMapper mapper = new ObjectMapper();
+	        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+	        return mapper.readValue( content, valueType);
+	    }
+	 
 	 
 	@Test
 	public void addVxF() throws Exception {
@@ -285,11 +292,12 @@ public class InMemoryDBIntegrationTest {
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
 		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    .andExpect(jsonPath("$[0].id", is(3)))
+			    .andExpect(jsonPath("$[0].name", is( "cirros_vnfd" )))
 			    .andReturn().getResponse().getContentAsString();
 		 
+		 VxFMetadata[] v =  toJsonObj( content, VxFMetadata[].class);
 		 
-		 mvc.perform(delete("/admin/vxfs/3")
+		 mvc.perform(delete("/admin/vxfs/" + v[0].getId())
 					 .session( (MockHttpSession) session ))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
@@ -340,7 +348,7 @@ public class InMemoryDBIntegrationTest {
 					 .session( (MockHttpSession) session ))
 		    	.andExpect(status().isOk());
 			 
-			 assertThat( vxfService.getVxFsByCategory((long) -1) .size() )
+			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
 				.isEqualTo( 1 );
 			 
 			 mvc.perform(get("/categories")
@@ -350,7 +358,7 @@ public class InMemoryDBIntegrationTest {
 			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 			    	.andExpect( jsonPath("$[0].name", is("None")) )
 			    	.andExpect( jsonPath("$[1].name", is("Networking")))
-			    	.andExpect( jsonPath("$[1].vxFscount", is( 1 )));
+			    	.andExpect( jsonPath("$[1].appscount", is( 1 )));
 
 		}
 
@@ -385,24 +393,27 @@ public class InMemoryDBIntegrationTest {
 			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 			    	.andExpect( jsonPath("$[0].name", is("None")) )
 			    	.andExpect( jsonPath("$[1].name", is("Networking")))
-			    	.andExpect( jsonPath("$[1].vxFscount", is( 1 )))
+			    	.andExpect( jsonPath("$[1].appscount", is( 1 )))
 			    	.andExpect( jsonPath("$[2].name", is("Service")))
-			    	.andExpect( jsonPath("$[2].vxFscount", is( 1 )));
+			    	.andExpect( jsonPath("$[2].appscount", is( 1 )));
 			 
 			 String content =  mvc.perform(get("/admin/experiments")
 						.contentType(MediaType.APPLICATION_JSON).session( (MockHttpSession) session ))
 			    	.andExpect(status().isOk())
 			    	.andExpect(content()
 			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-				    .andExpect(jsonPath("$[0].id", is(3)))
+			    	 .andExpect(jsonPath("$[0].name", is( "cirros_2vnf_nsd" )))
 				    .andReturn().getResponse().getContentAsString();
 			 
+
+			 ExperimentMetadata[] n =  toJsonObj( content, ExperimentMetadata[].class );
 			 
-			 mvc.perform(delete("/admin/experiments/3")
+			 mvc.perform(delete("/admin/experiments/" + n[0].getId() )
 						 .session( (MockHttpSession) session ))
 			    	.andExpect(status().isOk())
 			    	.andExpect(content()
-			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
+			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+				   ;
 			 
 			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
 				.isEqualTo( 0 );

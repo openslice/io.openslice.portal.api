@@ -340,7 +340,7 @@ public class PortalRepositoryVFImageAPI {
 
 	}
 
-	@DeleteMapping( value =  "/admin/vfimages/{id}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/vfimages/{id}")
 	public ResponseEntity<?> deleteVFImage(@PathVariable("id") int id) {
 		
 		VFImage sm = vfImageService.getVFImageByID(id);
@@ -357,7 +357,7 @@ public class PortalRepositoryVFImageAPI {
 
 
 	@GetMapping( value = "/admin/vfimages/{id}", produces = "application/json" )
-	public ResponseEntity<?> getVFImageById(@PathVariable("id") int id) {
+	public ResponseEntity<?> getVFImageById(@PathVariable("id") long id) {
 		VFImage sm = vfImageService.getVFImageByID(id);
 
 		if (sm != null) {

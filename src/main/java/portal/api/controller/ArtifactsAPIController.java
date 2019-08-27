@@ -1415,14 +1415,14 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/experiments/{appid}", produces = "application/json" )
-	public ResponseEntity<?>  getExperimentMetadataByID(@PathVariable("appid") int appid) {
+	public ResponseEntity<?>  getExperimentMetadataByID(@PathVariable("appid") int appid) throws ForbiddenException {
 		logger.info("getAppMetadataByID  appid=" + appid);
 		ExperimentMetadata app = nsdService.getProductByID(appid);
 		
 
 		if (app != null) {
 			if ( !app.isPublished() ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			      throw new ForbiddenException("The requested page is forbidden");
 			}
 			
 			return ResponseEntity.ok( app );		

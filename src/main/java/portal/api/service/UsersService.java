@@ -104,4 +104,9 @@ public class UsersService {
 		return usersRepo.save( user );
 	}
 
+	public void delete(PortalUser u) {
+		usersRepo.delete(u);
+		
+	}
+
 }

@@ -41,6 +41,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -49,6 +50,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.openslice.model.Category;
 import io.openslice.model.ExperimentMetadata;
@@ -88,6 +93,11 @@ public class PortalRepositoryAPIImpl {
 //
 //
 	// PortalUser related API
+	
+
+	@Autowired
+	ObjectMapper objectMapper;
+	
 	
     @Resource(name="authenticationManager")
     private AuthenticationManager authManager;
@@ -186,9 +196,23 @@ public class PortalRepositoryAPIImpl {
 	
 	@PostMapping( value =  "/register", produces = "application/json", consumes = "multipart/form-data" )
 	public ResponseEntity<?> addNewRegisterUser(  
-			@RequestPart("portaluser") PortalUser user,
-			@RequestPart("emailmessage") String emailmessage) {
+			@ModelAttribute("portaluser") String u,
+			@ModelAttribute("emailmessage") String emailmessage) {
 
+		PortalUser user = null;
+		try {
+			user = objectMapper.readValue( u, PortalUser.class);	
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  
+		
 		user.setActive(false);// in any case the user should be not active
 		user.getRoles().clear();
 		user.addRole(UserRoleType.ROLE_EXPERIMENTER); // otherwise in post he can choose
@@ -199,11 +223,15 @@ public class PortalRepositoryAPIImpl {
 		logger.info("Received register for usergetUsername: " + user.getUsername());
 
 		ResponseEntity<?> r = addUser(user);
+		
+
 
 		if (r.getStatusCode()  == HttpStatus.OK ) {
-			logger.info("Email message: " + msg);
+			PortalUser us = usersService.findByUsername( user.getUsername() );
+			String amsg = msg.replace("APIKEY_REPLACE", us.getApikey());
+			logger.info("Email message: " + amsg);
 			String subj = "[" + propsService.getPropertyByName("portaltitle").getValue() + "] " + propsService.getPropertyByName("activationEmailSubject").getValue();
-			EmailUtil.SendRegistrationActivationEmail(user.getEmail(), msg, subj);
+			EmailUtil.SendRegistrationActivationEmail(user.getEmail(), amsg, subj);
 		}
 
 		return r;
@@ -211,21 +239,24 @@ public class PortalRepositoryAPIImpl {
 
 	@PostMapping( value =  "/register/verify", produces = "application/json", consumes = "multipart/form-data" )
 	public ResponseEntity<?> addNewRegisterUserVerify(
-			@RequestPart("username") String username,
-			@RequestPart("rid") String rid) {
+			@ModelAttribute("username") String username,
+			@ModelAttribute("rid") String rid) {
 
 
 		PortalUser u = usersService.findByUsername(username);
-		if (u.getOrganization().contains("^^")) {
-			u.setOrganization(u.getOrganization().substring(0, u.getOrganization().indexOf("^^")));
-			u.setActive(true);
-		}
-		u = usersService.updateUserInfo(  u);
+//		if (u.getOrganization().contains("^^")) {
+//			u.setOrganization(u.getOrganization().substring(0, u.getOrganization().indexOf("^^")));
+//		}
 
-		if (u != null) {
+		if ( (u != null) && ( rid.equals( u.getApikey())) ) {			
+
+			u.setActive(true);
+			u = usersService.updateUserInfo(  u);
+			
 			return ResponseEntity.ok( u  );
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested user with username=" + u.getUsername() + " cannot be updated");
+			
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "{ \"message\" : \"Requested user with username=" + u.getUsername() + " cannot be updated\"}");
 		}
 	}
 
@@ -277,12 +308,16 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	@Secured({ "ROLE_ADMIN" })
-	@DeleteMapping( value =  "/admin/users/{userid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/users/{userid}"  )
 	public ResponseEntity<?> deleteUser(@PathVariable("userid") int userid) {
 		logger.info("Received DELETE for userid: " + userid);
-		
 
-		return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested user cannot be deleted");
+		PortalUser u = usersService.findById(userid);
+		
+		usersService.delete( u );
+
+		return ResponseEntity.ok().body("{}");
+		//return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested user cannot be deleted");
 		
 		/**
 		 * do not allow for now to delete users!
