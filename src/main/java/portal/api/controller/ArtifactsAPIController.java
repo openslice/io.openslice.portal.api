@@ -792,7 +792,7 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> updateVxFMetadata(@PathVariable("bid") int bid, 
 			@ModelAttribute("vxf") String avxf,
 			@RequestParam( name = "prodIcon", required = false) MultipartFile  prodIcon,
-			@RequestParam("prodFile")  MultipartFile  prodFile,
+			@RequestParam( name = "prodFile", required = false)  MultipartFile  prodFile,
 			@RequestParam(name = "screenshots", required = false) MultipartFile[] screenshots,
 			HttpServletRequest request) {
 		
