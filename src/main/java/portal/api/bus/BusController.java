@@ -417,6 +417,15 @@ public class BusController  {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	/**
+	 * Asynchronously sends to the routing bus (seda:nsd.offboard?multipleConsumers=true) to trigger new NSD offboarding 
+	 * @param deployment a {@link ExperimentOnBoardDescriptor}
+	 */
+	public void propertiesUpdate(String props) {
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:properties.update?multipleConsumers=true");
+		template.withBody( props ).asyncSend();		
+	}
 
 
 }

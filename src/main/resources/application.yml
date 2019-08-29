@@ -23,6 +23,17 @@ spring:
   servlet:
     multipart.max-file-size: 10MB
     multipart.max-request-size: 10MB
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      config:
+        enabled: true
+        prefix: config
+        defaultContext: openslice
+        data-key: osapipropsdata
+        profileSeparator: '::'
+        format: yaml
 logging:
   level:
     root: INFO

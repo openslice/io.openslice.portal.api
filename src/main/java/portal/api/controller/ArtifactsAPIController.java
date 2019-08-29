@@ -63,8 +63,11 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 
 import OSM5NBIClient.OSM5Client;
 import OSM5Util.OSM5ArchiveExtractor.OSM5NSExtractor;
@@ -1770,6 +1773,15 @@ public class ArtifactsAPIController {
 
 		PortalProperty u = propsService.updateProperty(p);
 		if (u != null) {
+			
+			String props;
+			try {
+				ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(Feature.WRITE_DOC_START_MARKER));
+				props = mapper.writeValueAsString( propsService.getProperties() );
+				BusController.getInstance().propertiesUpdate( props );
+			} catch (JsonProcessingException e) {
+				e.printStackTrace();
+			}
 			return ResponseEntity.ok( u  );	
 		} else {
 
