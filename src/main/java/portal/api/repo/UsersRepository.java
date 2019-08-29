@@ -26,7 +26,7 @@ public interface UsersRepository  extends PagingAndSortingRepository<PortalUser,
 	
 	PortalUser findDistinctFirstByUsername( String username );
 
-	@Query( value = "SELECT m.username, m.email FROM PortalUser m INNER JOIN m.roles r WHERE r=4" ) //
+	@Query( value = "SELECT m.username, m.email FROM PortalUser m INNER JOIN m.roles r WHERE r = io.openslice.model.UserRoleType.ROLE_MENTOR" ) //
 	Collection<PortalUser> findAllMentors();
 
 	Optional<PortalUser> findByUsername(String username);

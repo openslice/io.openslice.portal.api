@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -177,6 +178,23 @@ public class ArtifactsAPIController {
 
 	@Autowired
 	ObjectMapper objectMapper;
+	
+	/**
+	 * update the properties to Bus
+	 */
+	@PostConstruct
+	private void sendPropertiesToBus() {
+		try {
+			ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(Feature.WRITE_DOC_START_MARKER));
+
+			String props;
+			props = mapper.writeValueAsString(propsService.getPropertiesAsMap());
+			BusController.getInstance().propertiesUpdate(props);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+		}
+
+	}
 	
 	// VxFS API
 
@@ -1774,14 +1792,9 @@ public class ArtifactsAPIController {
 		PortalProperty u = propsService.updateProperty(p);
 		if (u != null) {
 			
-			String props;
-			try {
-				ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(Feature.WRITE_DOC_START_MARKER));
-				props = mapper.writeValueAsString( propsService.getProperties() );
-				BusController.getInstance().propertiesUpdate( props );
-			} catch (JsonProcessingException e) {
-				e.printStackTrace();
-			}
+			
+				sendPropertiesToBus();
+			
 			return ResponseEntity.ok( u  );	
 		} else {
 
@@ -1789,6 +1802,10 @@ public class ArtifactsAPIController {
 		}
 
 	}
+	
+
+	
+
 
 	@GetMapping( value = "/admin/properties/{propid}", produces = "application/json" )
 	public ResponseEntity<?>  getPropertyById(@PathVariable("propid") long propid) {

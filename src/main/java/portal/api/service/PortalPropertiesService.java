@@ -1,6 +1,8 @@
 package portal.api.service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.PostConstruct;
@@ -85,5 +87,13 @@ public class PortalPropertiesService {
 			
 		}
 				
+	}
+
+	public Map<String, String> getPropertiesAsMap() {
+		Map<String, String> m = new HashMap<>();
+		for (PortalProperty p : propsRepo.findAll()) {
+			m.put(p.getName(), p.getValue());
+		}
+		return m;
 	}
 }
