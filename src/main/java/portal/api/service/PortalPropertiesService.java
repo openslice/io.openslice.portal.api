@@ -84,6 +84,8 @@ public class PortalPropertiesService {
 			propsRepo.save(p);
 			p = new PortalProperty("portaltitle", "OpenSlice Dev");
 			propsRepo.save(p);
+			p = new PortalProperty("main_operations_product", "OpenSlice Operations");
+			propsRepo.save(p);
 			
 		}
 				

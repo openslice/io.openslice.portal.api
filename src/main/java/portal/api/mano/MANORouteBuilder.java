@@ -18,11 +18,19 @@ package portal.api.mano;
 import org.apache.camel.CamelContext;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 
 @Component
+@Configuration
 public class MANORouteBuilder  extends RouteBuilder{
+	
+
+	@Autowired
+	MANOController aMANOController;
+
 	
 	public static void main(String[] args) throws Exception {
 		//new Main().run(args);
@@ -63,14 +71,14 @@ public class MANORouteBuilder  extends RouteBuilder{
 		//If it is unsuccessful we need to send another Bugzilla message
 		from("seda:vxf.onboard?multipleConsumers=true")
 		.doTry()
-		.bean(new MANOController(),"onBoardVxFToMANOProvider") //returns exception or nothing
+		.bean( aMANOController,"onBoardVxFToMANOProvider") //returns exception or nothing
 		.log("VNFD Onboarded Successfully")
 		.doCatch(Exception.class)
 		.log("VNFD Onboarding failed!");
 
 		from("seda:nsd.onboard?multipleConsumers=true")
 		.doTry()
-		.bean(new MANOController(),"onBoardNSDToMANOProvider") //returns exception or nothing
+		.bean( aMANOController,"onBoardNSDToMANOProvider") //returns exception or nothing
 		.log("NSD Onboarded Successfully")
 		.doCatch(Exception.class)
 		.log("NSD Onboarding failed!");		
@@ -78,29 +86,29 @@ public class MANORouteBuilder  extends RouteBuilder{
 		
 		from("seda:nsd.deploy?multipleConsumers=true")
 		.doTry()
-		.bean(new MANOController(),"deployNSDToMANOProvider") //returns exception or nothing
+		.bean( aMANOController,"deployNSDToMANOProvider") //returns exception or nothing
 		.log("NS deployed Successfully").stop()
 		.doCatch(Exception.class)
 		.log("NS deployment failed!").stop();		
 
 		from("seda:nsd.deployment.complete?multipleConsumers=true")
 		.doTry()
-		.bean(new MANOController(),"terminateNSFromMANOProvider") //returns exception or nothing
+		.bean( aMANOController,"terminateNSFromMANOProvider") //returns exception or nothing
 		.log("NS completed Successfully")
 		.doCatch(Exception.class)
 		.log("NS completion failed!").stop();
 
 		from("seda:nsd.deployment.delete?multipleConsumers=true")
 		.doTry()
-		.bean(new MANOController(),"deleteNSFromMANOProvider") //returns exception or nothing
+		.bean( aMANOController,"deleteNSFromMANOProvider") //returns exception or nothing
 		.log("NS deleted Successfully")
 		.doCatch(Exception.class)
 		.log("NS deletion failed!").stop();
 		
-		//from("timer://checkAndDeployTimer?delay=2m&period=120000").bean(new MANOController(),"checkAndDeployExperimentToMANOProvider").stop();
-		//from("timer://checkAndTerminateTimer?delay=2m&period=120000").bean(new MANOController(),"checkAndTerminateExperimentToMANOProvider").stop();
+		//from("timer://checkAndDeployTimer?delay=2m&period=120000").bean( aMANOController,"checkAndDeployExperimentToMANOProvider").stop();
+		//from("timer://checkAndTerminateTimer?delay=2m&period=120000").bean( aMANOController,"checkAndTerminateExperimentToMANOProvider").stop();
 		
-		from("timer://checkAndUpdateRunningDeploymentDescriptors?delay=1m&period=120000").bean(MANOController.class,"checkAndUpdateRunningDeploymentDescriptors").stop();
+		from("timer://checkAndUpdateRunningDeploymentDescriptors?delay=1m&period=120000").bean(  aMANOController,"checkAndUpdateRunningDeploymentDescriptors").stop();
 		
 	}
 

@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 
 import io.openslice.model.PortalUser;
 import io.openslice.model.VFImage;
+import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.mano.MANOStatus;
 
 
@@ -132,7 +133,7 @@ public class BusController  {
 	 * @param deployment a {@link VxFMetadata}
 	 */
 	// NOT USED
-	public void newVxFAdded(long vxfmetadataid) {
+	public void newVxFUploadedToPortalRepo(long vxfmetadataid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.create?multipleConsumers=true");
 		template.withBody( vxfmetadataid ).asyncSend();				
 	}
@@ -141,19 +142,19 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:vxf.onboard?multipleConsumers=true) to upload a new vxf
 	 * @param deployment a {@link VxFMetadata}
 	 */
-	public void onBoardVxFAdded(long vxfobdid) {
+	public void onBoardVxFAdded(VxFOnBoardedDescriptor obd) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard?multipleConsumers=true");
-		template.withBody( vxfobdid ).asyncSend();				
+		template.withBody( obd ).asyncSend();				
 	}
 
-	public void onBoardVxFFailed(long l) {
+	public void onBoardVxFFailed(VxFOnBoardedDescriptor vxfobds_final) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard.fail?multipleConsumers=true");
-		template.withBody( l ).asyncSend();			
+		template.withBody( vxfobds_final ).asyncSend();			
 	}
 
-	public void onBoardVxFSucceded(long vxfobdid) {
+	public void onBoardVxFSucceded(VxFOnBoardedDescriptor vxfobds_final) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard.success?multipleConsumers=true");
-		template.withBody( vxfobdid ).asyncSend();				
+		template.withBody( vxfobds_final ).asyncSend();				
 	}
 	
 	/**

@@ -291,7 +291,7 @@ public class PortalRepositoryVFImageAPI {
 	public ResponseEntity<?> updateVFImage(@PathVariable("uuid") int infraid, 
 			final @ModelAttribute("vfimage") String v,
 			@RequestParam(name = "prodFile", required = false) MultipartFile  prodFile,
-			HttpServletRequest request) {
+			HttpServletRequest request) throws ForbiddenException {
 		
 		VFImage vfimg = null;
 		
@@ -309,7 +309,7 @@ public class PortalRepositoryVFImageAPI {
 			}  
 			
 			if ( !checkUserIDorIsAdmin( -1 ) ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 			}
 
 			logger.info("Received @PUT for VFImage : " + vfimg.getName());
@@ -341,12 +341,12 @@ public class PortalRepositoryVFImageAPI {
 	}
 
 	@DeleteMapping( value =  "/admin/vfimages/{id}")
-	public ResponseEntity<?> deleteVFImage(@PathVariable("id") int id) {
+	public ResponseEntity<?> deleteVFImage(@PathVariable("id") int id) throws ForbiddenException {
 		
 		VFImage sm = vfImageService.getVFImageByID(id);
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 
 		vfImageService.deleteVFImage( sm );
@@ -357,13 +357,13 @@ public class PortalRepositoryVFImageAPI {
 
 
 	@GetMapping( value = "/admin/vfimages/{id}", produces = "application/json" )
-	public ResponseEntity<?> getVFImageById(@PathVariable("id") long id) {
+	public ResponseEntity<?> getVFImageById(@PathVariable("id") long id) throws ForbiddenException {
 		VFImage sm = vfImageService.getVFImageByID(id);
 
 		if (sm != null) {
 			
 			if ( !checkUserIDorIsAdmin( -1 ) ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 			}
 			
 			return ResponseEntity.ok( sm );
@@ -374,12 +374,12 @@ public class PortalRepositoryVFImageAPI {
 	
 
 	@GetMapping( value = "/admin/vfimages/name/{imagename}", produces = "application/json" )
-	public ResponseEntity<?> getVFImageByName(@PathVariable("imagename") String imagename) {
+	public ResponseEntity<?> getVFImageByName(@PathVariable("imagename") String imagename) throws ForbiddenException {
 		VFImage sm = vfImageService.getVFImageByName( imagename );
 
 		if (sm != null) {
 			if ( !checkUserIDorIsAdmin( -1 ) ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 			}
 	
 			return ResponseEntity.ok( sm  );

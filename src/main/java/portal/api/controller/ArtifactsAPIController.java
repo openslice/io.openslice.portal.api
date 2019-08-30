@@ -75,8 +75,6 @@ import OSM5Util.OSM5ArchiveExtractor.OSM5NSExtractor;
 import OSM5Util.OSM5ArchiveExtractor.OSM5VNFDExtractor;
 import OSM5Util.OSM5NSReq.OSM5NSRequirements;
 import OSM5Util.OSM5VNFReq.OSM5VNFRequirements;
-import centralLog.api.CLevel;
-import centralLog.api.CentralLogger;
 import io.openslice.model.Category;
 import io.openslice.model.ConstituentVxF;
 import io.openslice.model.DeploymentDescriptor;
@@ -99,6 +97,8 @@ import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import osm5.ns.riftware._1._0.project.nsd.rev170228.project.nsd.catalog.Nsd;
 import portal.api.bus.BusController;
+import portal.api.centrallog.CLevel;
+import portal.api.centrallog.CentralLogger;
 import portal.api.mano.MANOController;
 import portal.api.service.CategoryService;
 import portal.api.service.DeploymentDescriptorService;
@@ -730,7 +730,7 @@ public class ArtifactsAPIController {
 			
 			// Get the MANO providers which are set for automatic onboarding
 			
-			BusController.getInstance().newVxFAdded( vxf.getId() );
+			BusController.getInstance().newVxFUploadedToPortalRepo( vxf.getId() );
 			
 			List<MANOprovider> MANOprovidersEnabledForOnboarding =  manoProviderService.getMANOprovidersEnabledForOnboarding();
 			
@@ -766,7 +766,7 @@ public class ArtifactsAPIController {
 					}
 					
 					// Send the message for automatic onboarding
-					BusController.getInstance().onBoardVxFAdded( obd.getId() );
+					BusController.getInstance().onBoardVxFAdded( obd );
 				}
 			}
 			// AUTOMATIC ONBOARDING PROCESS -END
@@ -815,7 +815,7 @@ public class ArtifactsAPIController {
 			@RequestParam( name = "prodIcon", required = false) MultipartFile  prodIcon,
 			@RequestParam( name = "prodFile", required = false)  MultipartFile  prodFile,
 			@RequestParam(name = "screenshots", required = false) MultipartFile[] screenshots,
-			HttpServletRequest request) {
+			HttpServletRequest request) throws ForbiddenException {
 		
 		VxFMetadata vxf = null;
 		try {
@@ -844,7 +844,8 @@ public class ArtifactsAPIController {
 		try {			
 			
 			if ( !checkUserIDorIsAdmin( vxf.getOwner().getId() ) ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("The requested page is forbidden"); // return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			      
 			}
 			
 
@@ -1132,13 +1133,13 @@ public class ArtifactsAPIController {
 	}
 
 	@DeleteMapping( value =  "/admin/vxfs/{vxfid}", produces = "application/json" )
-	public ResponseEntity<?> deleteVxF( @PathVariable("vxfid") int vxfid) {
+	public ResponseEntity<?> deleteVxF( @PathVariable("vxfid") int vxfid) throws ForbiddenException {
 
 		
 		VxFMetadata vxf = (VxFMetadata) vxfService.getProductByID( vxfid );
 				
 		if ( !checkUserIDorIsAdmin( vxf.getOwner().getId() ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		// Get the OnBoarded Descriptors to OffBoard them
 		List<VxFOnBoardedDescriptor>  vxfobds = vxf.getVxfOnBoardedDescriptors();
@@ -1238,14 +1239,14 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/vxfs/{vxfid}", produces = "application/json" )
-	public ResponseEntity<?> getVxFMetadataByID( @PathVariable("vxfid") int vxfid) {
+	public ResponseEntity<?> getVxFMetadataByID( @PathVariable("vxfid") int vxfid) throws ForbiddenException {
 		logger.info("getVxFMetadataByID  vxfid=" + vxfid);
 		VxFMetadata vxf = (VxFMetadata) vxfService.getProductByID( vxfid );
 
 		if (vxf != null) {
 			
 			if ( !vxf.isPublished() ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 			}
 
 			return ResponseEntity.ok( vxf );
@@ -1255,7 +1256,7 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/vxfs/{vxfid}", produces = "application/json" )
-	public  ResponseEntity<?> getAdminVxFMetadataByID(@PathVariable("vxfid") int vxfid) {
+	public  ResponseEntity<?> getAdminVxFMetadataByID(@PathVariable("vxfid") int vxfid) throws ForbiddenException {
 
 		logger.info("getAdminVxFMetadataByID  vxfid=" + vxfid);
 		VxFMetadata vxf = (VxFMetadata) vxfService.getProductByID( vxfid );
@@ -1266,7 +1267,7 @@ public class ArtifactsAPIController {
 			
 			
 			if ( !checkUserIDorIsAdmin( vxf.getOwner().getId() )  &&! u.getRoles().contains(UserRoleType.ROLE_TESTBED_PROVIDER) ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 			}
 			
 
@@ -1279,7 +1280,7 @@ public class ArtifactsAPIController {
 
 	@GetMapping( value = "/vxfs/uuid/{uuid}", produces = "application/json" )
 	public ResponseEntity<?> getVxFMetadataByUUID(@PathVariable("uuid") String uuid,
-			HttpServletRequest request) {
+			HttpServletRequest request) throws ForbiddenException {
 
 		logger.info("Received GET for vxf uuid: " + uuid);
 		VxFMetadata vxf = null;
@@ -1325,7 +1326,7 @@ public class ArtifactsAPIController {
 		if (vxf != null) {
 			
 			if ( ! vxf.isPublished() ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 			}
 
 			return ResponseEntity.ok( vxf );	
@@ -1454,7 +1455,7 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/experiments/{appid}", produces = "application/json" )
-	public ResponseEntity<?>  getAdminExperimentMetadataByID(@PathVariable("appid") int appid) {
+	public ResponseEntity<?>  getAdminExperimentMetadataByID(@PathVariable("appid") int appid) throws ForbiddenException {
 		
 		logger.info("getAppMetadataByID  appid=" + appid);
 		ExperimentMetadata app = nsdService.getProductByID(appid);
@@ -1463,7 +1464,7 @@ public class ArtifactsAPIController {
 		if (app != null) {
 
 			if ( !checkUserIDorIsAdmin( app.getOwner().getId() ) ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 			}
 			
 			return ResponseEntity.ok( app );	
@@ -1475,14 +1476,14 @@ public class ArtifactsAPIController {
 
 
 	@GetMapping( value = "/experiments/uuid/{uuid}", produces = "application/json" )
-	public ResponseEntity<?>  getAppMetadataByUUID(@PathVariable("uuid") String uuid) {
+	public ResponseEntity<?>  getAppMetadataByUUID(@PathVariable("uuid") String uuid) throws ForbiddenException {
 		logger.info("Received GET for app uuid: " + uuid);
 		
 		ExperimentMetadata app = nsdService.getdNSDByUUID(uuid);
 
 		if (app != null) {
 			if ( !app.isPublished() ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 			}
 			return ResponseEntity.ok( app );
 		} else {
@@ -1619,7 +1620,7 @@ public class ArtifactsAPIController {
 			@RequestParam(name = "prodIcon", required = false) MultipartFile  prodIcon,
 			@RequestParam(name = "prodFile", required = false) MultipartFile  prodFile,
 			@RequestParam(name = "screenshots", required = false) MultipartFile[] screenshots,
-			HttpServletRequest request) {
+			HttpServletRequest request) throws ForbiddenException {
 
 		
 		ExperimentMetadata expmeta = null;
@@ -1641,7 +1642,7 @@ public class ArtifactsAPIController {
 		try {
 		
 			if ( !checkUserIDorIsAdmin( expmeta.getOwner().getId() ) ){
-				return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+				throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 			}
 			
 			logger.info("Received @POST for experiment : " + expmeta.getName());
@@ -1681,12 +1682,12 @@ public class ArtifactsAPIController {
 	}
 
 	@DeleteMapping( value =  "/admin/experiments/{appid}", produces = "application/json" )
-	public  ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid) {
+	public  ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid) throws ForbiddenException {
 		
 		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID( appid );
 
 		if ( !checkUserIDorIsAdmin( nsd.getOwner().getId() ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		// Get the OnBoarded Descriptors to OffBoard them
 		List<ExperimentOnBoardDescriptor> expobds = nsd.getExperimentOnBoardDescriptors();
@@ -1764,10 +1765,10 @@ public class ArtifactsAPIController {
 	
 
 	@GetMapping( value = "/admin/properties", produces = "application/json" )
-	public ResponseEntity<?>  getProperties() {
+	public ResponseEntity<?>  getProperties() throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		List<PortalProperty> props = propsService.getProperties();
@@ -1781,10 +1782,10 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/properties/{propid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateProperty(@PathVariable("propid") long propid, @Valid @RequestBody PortalProperty p) {
+	public ResponseEntity<?>  updateProperty(@PathVariable("propid") long propid, @Valid @RequestBody PortalProperty p) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		PortalProperty previousProperty = propsService.getPropertyByID(propid);
@@ -1808,10 +1809,10 @@ public class ArtifactsAPIController {
 
 
 	@GetMapping( value = "/admin/properties/{propid}", produces = "application/json" )
-	public ResponseEntity<?>  getPropertyById(@PathVariable("propid") long propid) {
+	public ResponseEntity<?>  getPropertyById(@PathVariable("propid") long propid) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		PortalProperty sm = propsService.getPropertyByID(propid);
 
@@ -2247,22 +2248,22 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/manoplatforms", produces = "application/json" )
-	public ResponseEntity<?>  getAdminMANOplatforms() {
+	public ResponseEntity<?>  getAdminMANOplatforms() throws ForbiddenException {
 
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		return ResponseEntity.ok( manoPlatformService.getMANOplatforms()  );
 	}
 
 
 	@PostMapping( value =  "/admin/manoplatforms", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addMANOplatform( @Valid @RequestBody MANOplatform c) {
+	public ResponseEntity<?>  addMANOplatform( @Valid @RequestBody MANOplatform c) throws ForbiddenException {
 
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		MANOplatform u = manoPlatformService.addMANOplatform(c);
@@ -2276,10 +2277,10 @@ public class ArtifactsAPIController {
 	}
 
 	@PutMapping( value =  "/admin/manoplatforms/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateMANOplatform(@PathVariable("mpid") int mpid, @Valid @RequestBody MANOplatform c) {
+	public ResponseEntity<?>  updateMANOplatform(@PathVariable("mpid") int mpid, @Valid @RequestBody MANOplatform c) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		MANOplatform previousMP = manoPlatformService.getMANOplatformByID(mpid);
 		
@@ -2300,10 +2301,10 @@ public class ArtifactsAPIController {
 
 
 	@DeleteMapping( value =  "/admin/manoplatforms/{mpid}", produces = "application/json")
-	public ResponseEntity<?>  deleteMANOplatform(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  deleteMANOplatform(@PathVariable("mpid") int mpid) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		MANOplatform m = manoPlatformService.getMANOplatformByID(mpid);
 
@@ -2313,10 +2314,10 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/manoplatforms/{mpid}", produces = "application/json" )
-	public ResponseEntity<?>  getMANOplatformById(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  getMANOplatformById(@PathVariable("mpid") int mpid) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		MANOplatform sm = manoPlatformService.getMANOplatformByID(mpid);
 
@@ -2329,7 +2330,7 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/manoplatforms/{mpid}", produces = "application/json" )
-	public ResponseEntity<?>  getAdminMANOplatformById(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  getAdminMANOplatformById(@PathVariable("mpid") int mpid) throws ForbiddenException {
 		return getMANOplatformById(mpid);
 	}
 
@@ -2341,22 +2342,23 @@ public class ArtifactsAPIController {
 
 	/**
 	 * @return
+	 * @throws ForbiddenException 
 	 */
 	@GetMapping( value = "/admin/manoproviders", produces = "application/json" )
-	public ResponseEntity<?>  getAdminMANOproviders() {
+	public ResponseEntity<?>  getAdminMANOproviders() throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 
 		return ResponseEntity.ok( manoProviderService.getMANOproviders()  );
 	}
 
 	@PostMapping( value =  "/admin/manoproviders", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addMANOprovider( @Valid @RequestBody MANOprovider c) {
+	public ResponseEntity<?>  addMANOprovider( @Valid @RequestBody MANOprovider c) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		
@@ -2373,11 +2375,11 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/manoproviders/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateMANOprovider(@PathVariable("mpid") int mpid, @Valid @RequestBody MANOprovider c) {
+	public ResponseEntity<?>  updateMANOprovider(@PathVariable("mpid") int mpid, @Valid @RequestBody MANOprovider c) throws ForbiddenException {
 
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		MANOprovider prev = manoProviderService.getMANOproviderByID(c.getId());
@@ -2400,11 +2402,11 @@ public class ArtifactsAPIController {
 
 
 	@DeleteMapping( value =  "/admin/manoproviders/{mpid}", produces = "application/json" )
-	public ResponseEntity<?>  deleteMANOprovider(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  deleteMANOprovider(@PathVariable("mpid") int mpid) throws ForbiddenException {
 
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 
 		MANOprovider prev = manoProviderService.getMANOproviderByID( mpid );
@@ -2415,10 +2417,10 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/manoproviders/{mpid}", produces = "application/json" )
-	public ResponseEntity<?>  getAdminMANOproviderById(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  getAdminMANOproviderById(@PathVariable("mpid") int mpid) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		MANOprovider sm = manoProviderService.getMANOproviderByID(mpid);
 
@@ -2431,11 +2433,11 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/manoprovider/{mpid}/vnfds/{vxfid}", produces = "application/json" )
-	public ResponseEntity<?>  getOSMVNFMetadataByKOSMMANOID(@PathVariable("mpid") int manoprovid, @PathVariable("vxfid") String vxfid) {
+	public ResponseEntity<?>  getOSMVNFMetadataByKOSMMANOID(@PathVariable("mpid") int manoprovid, @PathVariable("vxfid") String vxfid) throws ForbiddenException {
 		logger.info("getOSMVNFMetadataByID  vxfid=" + vxfid);
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 
 		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
@@ -2454,10 +2456,10 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/manoprovider/{mpid}/vnfds", produces = "application/json" )
-	public ResponseEntity<?>  getOSMVNFMetadata(@PathVariable("mpid") int manoprovid) {
+	public ResponseEntity<?>  getOSMVNFMetadata(@PathVariable("mpid") int manoprovid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
 
@@ -2490,11 +2492,11 @@ public class ArtifactsAPIController {
 	
 	@GetMapping( value = "/admin/manoprovider/{mpid}/nsds/{nsdid}", produces = "application/json" )
 	public ResponseEntity<?>  getOSM_NSD_MetadataByKOSMMANOID(@PathVariable("mpid") int manoprovid,
-			@PathVariable("vxfid") String nsdid) {
+			@PathVariable("vxfid") String nsdid) throws ForbiddenException {
 		logger.info("getOSMVNFMetadataByID  nsdid=" + nsdid);
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
 
@@ -2514,10 +2516,10 @@ public class ArtifactsAPIController {
 
 
 	@GetMapping( value = "/admin/manoprovider/{mpid}/nsds", produces = "application/json" )
-	public ResponseEntity<?>  getOSM_NSD_Metadata(@PathVariable("mpid") int manoprovid) {
+	public ResponseEntity<?>  getOSM_NSD_Metadata(@PathVariable("mpid") int manoprovid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		MANOprovider sm = manoProviderService.getMANOproviderByID(manoprovid);
 
@@ -2559,10 +2561,10 @@ public class ArtifactsAPIController {
 	}
 
 	@PostMapping( value =  "/admin/vxfobds/", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addVxFOnBoardedDescriptor(  @Valid @RequestBody VxFMetadata aVxF ) {
+	public ResponseEntity<?>  addVxFOnBoardedDescriptor(  @Valid @RequestBody VxFMetadata aVxF ) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		if ( aVxF != null ) {
@@ -2591,10 +2593,10 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/vxfobds/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody  VxFOnBoardedDescriptor c) {
+	public ResponseEntity<?>  updateVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody  VxFOnBoardedDescriptor c) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		VxFOnBoardedDescriptor u = vxfOBDService.updateVxFOnBoardedDescriptor(c);
 
@@ -2608,10 +2610,10 @@ public class ArtifactsAPIController {
 
 
 	@DeleteMapping( value =  "/admin/vxfobds/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  deleteVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  deleteVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 
 		VxFOnBoardedDescriptor sm = vxfOBDService.getVxFOnBoardedDescriptorByID(mpid);
@@ -2622,9 +2624,9 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/vxfobds/{mpid}", produces = "application/json" )
-	public ResponseEntity<?>  getVxFOnBoardedDescriptorById(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  getVxFOnBoardedDescriptorById(@PathVariable("mpid") int mpid) throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		VxFOnBoardedDescriptor sm = vxfOBDService.getVxFOnBoardedDescriptorByID(mpid);
 
@@ -2638,10 +2640,10 @@ public class ArtifactsAPIController {
 
 
 	@GetMapping( value = "/admin/vxfobds/{mpid}/status", produces = "application/json" )
-	public ResponseEntity<?>  getVxFOnBoardedDescriptorByIdCheckMANOProvider(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  getVxFOnBoardedDescriptorByIdCheckMANOProvider(@PathVariable("mpid") int mpid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		VxFOnBoardedDescriptor obds = vxfOBDService.getVxFOnBoardedDescriptorByID(mpid);
 
@@ -2682,17 +2684,19 @@ public class ArtifactsAPIController {
 
 	
 	@PutMapping( value =  "/admin/vxfobds/{mpid}/onboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  onBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final VxFOnBoardedDescriptor vxfobd) {
+	public ResponseEntity<?>  onBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final VxFOnBoardedDescriptor vxfobd) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		try {
-			aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
+
+			BusController.getInstance().onBoardVxFAdded( vxfobd );
+			//aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
 		} catch (Exception e) {				
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().body("{ \"message\" : \"" + e.getStackTrace() +"\"}");
 		}			
 		
 		return ResponseEntity.ok( vxfobd  );
@@ -2701,15 +2705,17 @@ public class ArtifactsAPIController {
 	
 
 	@PutMapping( value =  "/admin/vxfobds/{mpid}/offboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  offBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final VxFOnBoardedDescriptor clobd) {
+	public ResponseEntity<?>  offBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final VxFOnBoardedDescriptor clobd) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		OnBoardingStatus previous_status = clobd.getOnBoardingStatus();
-		clobd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+clobd.getVxf().getName()+" to "+clobd.getOnBoardingStatus());																													
-		VxFOnBoardedDescriptor updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor(clobd);
+		
+		VxFOnBoardedDescriptor obd = vxfOBDService.getVxFOnBoardedDescriptorByID(clobd.getId());
+		obd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
+		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+obd.getVxf().getName()+" to "+obd.getOnBoardingStatus());																													
+		VxFOnBoardedDescriptor updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor(obd);
 
 		ResponseEntity<String> response = null;
 		try {
@@ -2735,8 +2741,8 @@ public class ArtifactsAPIController {
 			
 			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body("Requested VxFOnBoardedDescriptor with ID=" + updatedObd.getId() + " cannot be offboarded")   ;
 		}
-		// UnCertify Upon OffBoarding
-		updatedObd.getVxf().setCertified(false);
+		
+		
 		updatedObd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus());																																
 		updatedObd.setFeedbackMessage(response.getBody().toString());
@@ -2750,13 +2756,14 @@ public class ArtifactsAPIController {
 	/********************************************************************************
 	 * 
 	 * admin ExperimentOnBoardDescriptors
+	 * @throws ForbiddenException 
 	 * 
 	 ********************************************************************************/
 
 	@GetMapping( value = "/admin/experimentobds", produces = "application/json" )
-	public ResponseEntity<?>  getExperimentOnBoardDescriptors() {
+	public ResponseEntity<?>  getExperimentOnBoardDescriptors() throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		return ResponseEntity.ok(  nsdOBDService.getExperimentOnBoardDescriptors()  );
@@ -2764,10 +2771,10 @@ public class ArtifactsAPIController {
 
 
 	@PostMapping( value =  "/admin/experimentobds/", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addExperimentOnBoardDescriptor(  @Valid @RequestBody ExperimentMetadata exp) {
+	public ResponseEntity<?>  addExperimentOnBoardDescriptor(  @Valid @RequestBody ExperimentMetadata exp) throws ForbiddenException {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		
 		
@@ -2798,10 +2805,10 @@ public class ArtifactsAPIController {
 
 	
 	@PutMapping( value =  "/admin/experimentobds/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody ExperimentOnBoardDescriptor c) {
+	public ResponseEntity<?>  updateExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody ExperimentOnBoardDescriptor c) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		ExperimentOnBoardDescriptor u = nsdOBDService.updateExperimentOnBoardDescriptor(c);
 
@@ -2815,10 +2822,10 @@ public class ArtifactsAPIController {
 
 	
 	@DeleteMapping( value =  "/admin/experimentobds/{mpid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  deleteExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  deleteExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 
 		ExperimentOnBoardDescriptor u = nsdOBDService.getExperimentOnBoardDescriptorByID(mpid);
@@ -2829,9 +2836,9 @@ public class ArtifactsAPIController {
 
 	
 	@GetMapping( value = "/admin/experimentobds/{mpid}", produces = "application/json" )
-	public ResponseEntity<?>  getExperimentOnBoardDescriptorById(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  getExperimentOnBoardDescriptorById(@PathVariable("mpid") int mpid) throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID(mpid);
 
@@ -2844,10 +2851,10 @@ public class ArtifactsAPIController {
 
 
 	@GetMapping( value = "/admin/experimentobds/{mpid}/status", produces = "application/json" )
-	public ResponseEntity<?>  getExperimentOnBoardDescriptorByIdCheckMANOProvider(@PathVariable("mpid") int mpid) {
+	public ResponseEntity<?>  getExperimentOnBoardDescriptorByIdCheckMANOProvider(@PathVariable("mpid") int mpid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID(mpid);
 
@@ -2885,10 +2892,10 @@ public class ArtifactsAPIController {
 	}
 
 	@PutMapping( value =  "/admin/experimentobds/{mpid}/onboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  onExperimentBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor experimentonboarddescriptor) {
+	public ResponseEntity<?>  onExperimentBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor experimentonboarddescriptor) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		try {
 			aMANOController.onBoardNSDToMANOProvider( experimentonboarddescriptor.getId() );
@@ -2906,10 +2913,10 @@ public class ArtifactsAPIController {
 
 
 	@PutMapping( value =  "/admin/experimentobds/{mpid}/offboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  offBoardExperimentDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor c) {
+	public ResponseEntity<?>  offBoardExperimentDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor c) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		OnBoardingStatus previous_status = c.getOnBoardingStatus();
 		c.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
@@ -2962,9 +2969,9 @@ public class ArtifactsAPIController {
 
 
 	@PostMapping( value =  "/admin/infrastructures", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addInfrastructure( @Valid @RequestBody Infrastructure c) {
+	public ResponseEntity<?>  addInfrastructure( @Valid @RequestBody Infrastructure c) throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		Infrastructure u = infrastructureService.addInfrastructure(c);
 
@@ -2977,9 +2984,9 @@ public class ArtifactsAPIController {
 
 	
 	@PutMapping( value = "/admin/infrastructures/{infraid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateInfrastructure(@PathVariable("infraid") int infraid, @Valid @RequestBody Infrastructure c) {
+	public ResponseEntity<?>  updateInfrastructure(@PathVariable("infraid") int infraid, @Valid @RequestBody Infrastructure c) throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
 		
@@ -3001,9 +3008,9 @@ public class ArtifactsAPIController {
 
 	
 	@DeleteMapping( value =  "/admin/infrastructures/{infraid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  deleteInfrastructure(@PathVariable("infraid") int infraid) {
+	public ResponseEntity<?>  deleteInfrastructure(@PathVariable("infraid") int infraid) throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
 		infrastructureService.deleteInfrastructure( infrastructure );
@@ -3014,9 +3021,9 @@ public class ArtifactsAPIController {
 
 	
 	@GetMapping( value = "/admin/infrastructures/{infraid}", produces = "application/json" )
-	public ResponseEntity<?>  getInfrastructureById(@PathVariable("infraid") int infraid) {
+	public ResponseEntity<?>  getInfrastructureById(@PathVariable("infraid") int infraid) throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		Infrastructure sm = infrastructureService.getInfrastructureByID(infraid);
 
@@ -3030,13 +3037,13 @@ public class ArtifactsAPIController {
 	
 
 	@PostMapping( value =  "/admin/infrastructures/{infraid}/images/{vfimageid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addImageToInfrastructure(@PathVariable("infraid") int infraid, @PathVariable("vfimageid") int vfimageid) {
+	public ResponseEntity<?>  addImageToInfrastructure(@PathVariable("infraid") int infraid, @PathVariable("vfimageid") int vfimageid) throws ForbiddenException {
 		
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
 		if ( (!u.getRoles().contains(UserRoleType.ROLE_ADMIN)) &&  (!u.getRoles().contains(UserRoleType.ROLE_TESTBED_PROVIDER )) ) {
-			 return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 			
 		}
 		
@@ -3063,18 +3070,19 @@ public class ArtifactsAPIController {
 	
 	/**
 	 * Validation Result
+	 * @throws ForbiddenException 
 	 */
 	
 
 	@PutMapping( value = "/admin/validationjobs/{vxf_id}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  updateUvalidationjob(@PathVariable("vxf_id") int vxfid, @Valid @RequestBody ValidationJobResult vresult) {
+	public ResponseEntity<?>  updateUvalidationjob(@PathVariable("vxf_id") int vxfid, @Valid @RequestBody ValidationJobResult vresult) throws ForbiddenException {
 		logger.info("Received PUT ValidationJobResult for vxfid: " + vresult.getVxfid() );		
 		
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
 		if ( (!u.getRoles().contains(UserRoleType.ROLE_ADMIN)) &&  (!u.getRoles().contains(UserRoleType.ROLE_TESTBED_PROVIDER )) ) {
-			 return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 			
 		}
 		

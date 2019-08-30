@@ -356,11 +356,11 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	@GetMapping( value =  "/admin/users/{userid}/vxfs", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getAllVxFsofUser(@PathVariable("userid") int userid) {
+	public ResponseEntity<?> getAllVxFsofUser(@PathVariable("userid") int userid) throws ForbiddenException {
 		logger.info("getAllVxFsofUser for userid: " + userid);
 		
 		if ( !checkUserIDorIsAdmin( userid ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		PortalUser u = usersService.findById(userid);
 
@@ -381,11 +381,11 @@ public class PortalRepositoryAPIImpl {
 
 
 	@GetMapping( value =  "/admin/users/{userid}/experiments", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getAllAppsofUser(@PathVariable("userid") int userid) {
+	public ResponseEntity<?> getAllAppsofUser(@PathVariable("userid") int userid) throws ForbiddenException {
 		logger.info("getAllAppsofUser for userid: " + userid);
 		
 		if ( !checkUserIDorIsAdmin( userid ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 
 		
@@ -406,11 +406,11 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	@GetMapping( value =  "/admin/users/{userid}/vxfs/{vxfid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getVxFofUser(@PathVariable("userid") int userid, @PathVariable("vxfid") int vxfid) {
+	public ResponseEntity<?> getVxFofUser(@PathVariable("userid") int userid, @PathVariable("vxfid") int vxfid) throws ForbiddenException {
 		logger.info("getVxFofUser for userid: " + userid + ", vxfid=" + vxfid);
 
 		if ( !checkUserIDorIsAdmin( userid ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 
 		
@@ -425,10 +425,10 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	@GetMapping( value =  "/admin/users/{userid}/experiments/{appid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> getAppofUser( @PathVariable("userid") int userid, @PathVariable("appid") int appid ) {
+	public ResponseEntity<?> getAppofUser( @PathVariable("userid") int userid, @PathVariable("appid") int appid ) throws ForbiddenException {
 		logger.info("getAppofUser for userid: " + userid + ", appid=" + appid);
 		if ( !checkUserIDorIsAdmin( userid ) ){
-			return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
+			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		
 		PortalUser u = usersService.findById(userid);

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and limitations under the License.
  */
 
-package centralLog.api;
+package portal.api.centrallog;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -21,9 +21,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.FluentProducerTemplate;
-import org.apache.camel.model.ModelCamelContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,10 +34,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @author ctranoris
  *
  */
+@Configuration
 public class CentralLogger {
 	
 	/** the Camel Context configure via Spring. See bean.xml*/	
-	private static ModelCamelContext actx;
+	private static CamelContext actx;
+	
+	@Autowired
+	public void setActx(CamelContext actx) {
+		CentralLogger.actx = actx;
+	}
 	
 	/**
 	 * @param cl
@@ -130,20 +138,4 @@ public class CentralLogger {
 		
 	
 }
-	
-
-	/**
-	 * @return
-	 */
-	public static ModelCamelContext getActx() {
-		return actx;
-	}
-
-	/**
-	 * @param actx
-	 */
-	public static void setActx(ModelCamelContext actx) {
-		CentralLogger.actx = actx;
-	}
-
 }

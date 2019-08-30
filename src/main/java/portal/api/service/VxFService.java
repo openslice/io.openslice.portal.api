@@ -3,8 +3,13 @@ package portal.api.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.MANOprovider;
@@ -24,6 +29,21 @@ public class VxFService {
 
 		return o.orElse(null);
 	}
+	
+	public String getProductByIDEagerData(long id) throws JsonProcessingException {
+
+		
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+        mapper.registerModule(new Hibernate5Module());
+		
+        VxFMetadata o = this.getProductByID(id);
+        
+		String res = mapper.writeValueAsString( o );
+
+		return res;
+	}
+
 
 	public VxFMetadata updateProductInfo(VxFMetadata refVxF) {
 		return this.vxfsRepo.save(refVxF);

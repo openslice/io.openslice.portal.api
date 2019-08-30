@@ -33,13 +33,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 
 import OSM5NBIClient.OSM5Client;
-import centralLog.api.CLevel;
-import centralLog.api.CentralLogger;
 import portal.api.bus.BusController;
+import portal.api.centrallog.CLevel;
+import portal.api.centrallog.CentralLogger;
 import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDOBDService;
@@ -115,6 +116,10 @@ public class MANOController {
 	 */
 	public void onBoardVxFToMANOProvider( long vxfobdid ) throws Exception {
 
+		if (vxfOBDService == null) {
+			throw new Exception("vxfOBDService is NULL. Cannot load VxFOnBoardedDescriptor");
+		}
+		
 		VxFOnBoardedDescriptor vxfobd = vxfOBDService.getVxFOnBoardedDescriptorByID(vxfobdid);
 		// PortalRepository portalRepositoryRef = new PortalRepository();
 
@@ -172,7 +177,7 @@ public class MANOController {
 				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
 				
 				// Uncertify if it failed OnBoarding.
-				BusController.getInstance().onBoardVxFFailed(vxfobds.getId());				
+				BusController.getInstance().onBoardVxFFailed( vxfobds_final );				
 		        return ;
 			}						
 			
@@ -188,7 +193,7 @@ public class MANOController {
 				// Uncertify if it failed OnBoarding.
 				vxfobds.getVxf().setCertified(false);
 				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-				BusController.getInstance().onBoardVxFFailed(vxfobds.getId());
+				BusController.getInstance().onBoardVxFFailed( vxfobds_final );
 				return;				
 			}
 			else
@@ -211,7 +216,7 @@ public class MANOController {
 					// Uncertify if it failed OnBoarding.
 					vxfobds.getVxf().setCertified(false);
 					VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-					BusController.getInstance().onBoardVxFFailed(vxfobds.getId());
+					BusController.getInstance().onBoardVxFFailed( vxfobds_final );
 					return;
 				}
 
@@ -230,7 +235,7 @@ public class MANOController {
 				vxfobds.setLastOnboarding(new Date());
 				// Save the changes to vxfobds
 				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-				BusController.getInstance().onBoardVxFSucceded(vxfobds.getId());
+				BusController.getInstance().onBoardVxFSucceded( vxfobds_final );
 				
 			}			
 		}		
