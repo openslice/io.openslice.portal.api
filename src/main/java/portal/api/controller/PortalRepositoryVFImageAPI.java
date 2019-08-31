@@ -61,10 +61,12 @@ import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.PortalUser;
 import io.openslice.model.UserRoleType;
 import io.openslice.model.VFImage;
+import io.openslice.model.VxFMetadata;
 import portal.api.bus.BusController;
 import portal.api.service.PortalPropertiesService;
 import portal.api.service.UsersService;
 import portal.api.service.VFImageService;
+import portal.api.service.VxFService;
 import portal.api.util.AttachmentUtil;
 
 
@@ -89,6 +91,9 @@ public class PortalRepositoryVFImageAPI {
 	@Autowired
     UsersService usersService;
 	
+
+	@Autowired
+	VxFService vxfService;
 
 	@Autowired
 	VFImageService vfImageService;
@@ -347,6 +352,12 @@ public class PortalRepositoryVFImageAPI {
 		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
+		}
+		
+		
+		for (VxFMetadata vxf : sm.getUsedByVxFs()) {
+			vxf.getVfimagesVDU().remove(sm);
+			vxfService.updateProductInfo(vxf);
 		}
 
 		vfImageService.deleteVFImage( sm );

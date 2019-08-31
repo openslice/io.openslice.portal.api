@@ -72,14 +72,14 @@ public class MANORouteBuilder  extends RouteBuilder{
 		from("seda:vxf.onboard?multipleConsumers=true")
 		.doTry()
 		.bean( aMANOController,"onBoardVxFToMANOProvider") //returns exception or nothing
-		.log("VNFD Onboarded Successfully")
+		.log("VNFD Onboarded handled")
 		.doCatch(Exception.class)
 		.log("VNFD Onboarding failed!");
 
 		from("seda:nsd.onboard?multipleConsumers=true")
 		.doTry()
 		.bean( aMANOController,"onBoardNSDToMANOProvider") //returns exception or nothing
-		.log("NSD Onboarded Successfully")
+		.log("NSD Onboarded handled")
 		.doCatch(Exception.class)
 		.log("NSD Onboarding failed!");		
 
@@ -87,21 +87,21 @@ public class MANORouteBuilder  extends RouteBuilder{
 		from("seda:nsd.deploy?multipleConsumers=true")
 		.doTry()
 		.bean( aMANOController,"deployNSDToMANOProvider") //returns exception or nothing
-		.log("NS deployed Successfully").stop()
+		.log("NS deployed handled").stop()
 		.doCatch(Exception.class)
 		.log("NS deployment failed!").stop();		
 
 		from("seda:nsd.deployment.complete?multipleConsumers=true")
 		.doTry()
 		.bean( aMANOController,"terminateNSFromMANOProvider") //returns exception or nothing
-		.log("NS completed Successfully")
+		.log("NS completed handled")
 		.doCatch(Exception.class)
 		.log("NS completion failed!").stop();
 
 		from("seda:nsd.deployment.delete?multipleConsumers=true")
 		.doTry()
 		.bean( aMANOController,"deleteNSFromMANOProvider") //returns exception or nothing
-		.log("NS deleted Successfully")
+		.log("NS deleted handled")
 		.doCatch(Exception.class)
 		.log("NS deletion failed!").stop();
 		

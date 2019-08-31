@@ -756,7 +756,7 @@ public class ArtifactsAPIController {
 					refVxF = (VxFMetadata) vxfService.updateProductInfo( refVxF );						
 
 					// save VxFonBoardedDescriptor or not ???
-					obd = vxfOBDService.updateVxFOnBoardedDescriptor(obd);
+					//obd = vxfOBDService.updateVxFOnBoardedDescriptor(obd);
 					
 					//set proper scheme (http or https)
 					MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
@@ -1154,11 +1154,11 @@ public class ArtifactsAPIController {
 			{
 				if(vxfobd_tmp.getOnBoardingStatus()!=OnBoardingStatus.ONBOARDED)
 				{
-					vxf.getVxfOnBoardedDescriptors().remove(vxfobd_tmp);
-					vxfService.updateProductInfo(vxf);
-					vxfobd_tmp.setObMANOprovider(null);
-					vxfobd_tmp.setVxf(null);
-					vxfOBDService.deleteVxFOnBoardedDescriptor(vxfobd_tmp);
+					//vxf.getVxfOnBoardedDescriptors().remove(vxfobd_tmp);
+					//vxfService.updateProductInfo(vxf);
+					//vxfobd_tmp.setObMANOprovider(null);
+					//vxfobd_tmp.setVxf(null);
+					//vxfOBDService.deleteVxFOnBoardedDescriptor(vxfobd_tmp);
 					continue;
 				}
 				OnBoardingStatus previous_status = vxfobd_tmp.getOnBoardingStatus();
@@ -1200,7 +1200,7 @@ public class ArtifactsAPIController {
 					vxfobd_tmp.setFeedbackMessage(response.getBody().toString());					
 				}
 				// UnCertify Upon OffBoarding
-				vxfobd_tmp.getVxf().setCertified(false);
+				//vxfobd_tmp.getVxf().setCertified(false);
 				vxfobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 				try
 				{
@@ -1216,7 +1216,7 @@ public class ArtifactsAPIController {
 		}
 		BusController.getInstance().deletedVxF( vxf.getId() );	
 		
-		
+		//remove from categories
 		for (Category c : vxf.getCategories()) {
 			if (c.getProducts().contains(vxf)){
 				c.getProducts().remove(vxf);
@@ -1225,6 +1225,15 @@ public class ArtifactsAPIController {
 		}
 		
 		vxf.getCategories().clear();
+		
+		//remove from onboard descriptos
+		for(VxFOnBoardedDescriptor vxfobd_tmp : vxfobds)
+		{
+			VxFOnBoardedDescriptor sm = vxfOBDService.getVxFOnBoardedDescriptorByID( vxfobd_tmp.getId() );
+			vxfOBDService.deleteVxFOnBoardedDescriptor( sm );
+			
+		}
+		vxf.getVxfOnBoardedDescriptors().clear();
 		
 		PortalUser owner =  usersService.findById( vxf.getOwner().getId() );		
 		owner.getProducts().remove(vxf);
@@ -1578,7 +1587,7 @@ public class ArtifactsAPIController {
 					// save product
 					refNSD = (ExperimentMetadata) nsdService.updateProductInfo( refNSD );
 					// save VxFonBoardedDescriptor or not ???
-					obd = nsdOBDService.updateExperimentOnBoardDescriptor(obd);
+					//obd = nsdOBDService.updateExperimentOnBoardDescriptor(obd);
 					
 	//				try
 	//				{
@@ -2609,7 +2618,7 @@ public class ArtifactsAPIController {
 	}
 
 
-	@DeleteMapping( value =  "/admin/vxfobds/{mpid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/vxfobds/{mpid}" )
 	public ResponseEntity<?>  deleteVxFOnBoardedDescriptor(@PathVariable("mpid") int mpid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
@@ -2691,8 +2700,12 @@ public class ArtifactsAPIController {
 		}
 		
 		try {
-
-			BusController.getInstance().onBoardVxFAdded( vxfobd );
+			VxFOnBoardedDescriptor vobd = vxfOBDService.getVxFOnBoardedDescriptorByID(mpid);
+			MANOprovider mp = manoProviderService.getMANOproviderByID( vxfobd.getObMANOprovider().getId() );
+			
+			vobd.setObMANOprovider( mp );		
+			vobd = vxfOBDService.updateVxFOnBoardedDescriptor( vobd );
+			BusController.getInstance().onBoardVxFAdded( vobd );
 			//aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
 		} catch (Exception e) {				
 
@@ -2821,7 +2834,7 @@ public class ArtifactsAPIController {
 	}
 
 	
-	@DeleteMapping( value =  "/admin/experimentobds/{mpid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/experimentobds/{mpid}" )
 	public ResponseEntity<?>  deleteExperimentOnBoardDescriptor(@PathVariable("mpid") int mpid) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
