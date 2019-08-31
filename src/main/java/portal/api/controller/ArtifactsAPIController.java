@@ -759,7 +759,7 @@ public class ArtifactsAPIController {
 					//obd = vxfOBDService.updateVxFOnBoardedDescriptor(obd);
 					
 					//set proper scheme (http or https)
-					MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
+					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
 					
 					if ( obd.getVxf().getOwner() == null ) {
 						logger.error( " ========> obd.getVxf().getOwner() == null " );
@@ -1603,7 +1603,7 @@ public class ArtifactsAPIController {
 					//BusController.getInstance().newNSDAdded( vxf );
 					
 					//set proper scheme (http or https)
-					MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
+					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
 					BusController.getInstance().onBoardNSD( obd.getId() );
 				}
 			}

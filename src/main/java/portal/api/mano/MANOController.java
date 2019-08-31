@@ -45,6 +45,7 @@ import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDOBDService;
 import portal.api.service.NSDService;
+import portal.api.service.PortalPropertiesService;
 import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
 import io.openslice.model.DeploymentDescriptor;
@@ -87,6 +88,9 @@ public class MANOController {
 
 	@Autowired
 	NSDOBDService nsdOBDService;
+
+	@Autowired
+	PortalPropertiesService propsService;
 	
 	public MANOController() {
 
@@ -97,15 +101,15 @@ public class MANOController {
 		return new MANOController();
 	}
 
-	private static String HTTP_SCHEME = "https:";
+//	private static String HTTP_SCHEME = "https:";
 
-	public static void setHTTPSCHEME(String url) {
-		logger.info("setHTTPSCHEME url = " + url);
-		if (url.contains("localhost")) {
-			HTTP_SCHEME = "http:";
-		}
-		// HTTP_SCHEME = url + ":";
-	}
+//	public static void setHTTPSCHEME(String url) {
+//		logger.info("setHTTPSCHEME url = " + url);
+////		if (url.contains("localhost")) {
+////			HTTP_SCHEME = "http:";
+////		}
+//		// HTTP_SCHEME = url + ":";
+//	}
 
 	
 	/**
@@ -146,7 +150,7 @@ public class MANOController {
 		logger.info("VxF Package Location: " + pLocation);
 
 		if (!pLocation.contains("http")) {
-			pLocation = HTTP_SCHEME + pLocation;
+			pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
 		}
 //		if (!pLocation.contains("http")) {
 //			pLocation = "http:" + pLocation;
@@ -496,7 +500,7 @@ public class MANOController {
 		String pLocation = em.getPackageLocation();
 		logger.info("NSD Package Location: " + pLocation);
 		if (!pLocation.contains("http")) {
-			pLocation = HTTP_SCHEME + pLocation;
+			pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
 		}
 //		if (!pLocation.contains("http")) {
 //			pLocation = "http:" + pLocation;
