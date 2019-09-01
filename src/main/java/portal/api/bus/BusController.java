@@ -17,6 +17,8 @@ package portal.api.bus;
 
 import java.util.concurrent.Future;
 
+import javax.validation.Valid;
+
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.FluentProducerTemplate;
@@ -28,8 +30,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
+import io.openslice.model.DeploymentDescriptor;
+import io.openslice.model.ExperimentMetadata;
+import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.PortalUser;
 import io.openslice.model.VFImage;
+import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.mano.MANOStatus;
 
@@ -99,10 +105,10 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:deployments.create?multipleConsumers=true) that a new user is added
 	 * @param deployment a {@link DeploymentDescriptor}
 	 */
-	public void newDeploymentRequest(int deploymentdescriptorid) {
+	public void newDeploymentRequest( DeploymentDescriptor deployment) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:deployments.create?multipleConsumers=true");
-		template.withBody( deploymentdescriptorid ).asyncSend();
+		template.withBody( deployment ).asyncSend();
 		
 	}
 
@@ -110,10 +116,10 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:deployments.create?multipleConsumers=true) that a new user is added
 	 * @param deployment a {@link DeploymentDescriptor}
 	 */
-	public void rejectDeploymentRequest(int deploymentdescriptorid) {
+	public void rejectDeploymentRequest( DeploymentDescriptor deployment ) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:deployments.reject?multipleConsumers=true");
-		template.withBody( deploymentdescriptorid ).asyncSend();
+		template.withBody( deployment ).asyncSend();
 		
 	}
 	
@@ -121,10 +127,10 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:deployments.create?multipleConsumers=true) that a new user is added
 	 * @param deployment a {@link DeploymentDescriptor}
 	 */
-	public void updateDeploymentRequest( long deploymentdescriptorid) {
+	public void updateDeploymentRequest( DeploymentDescriptor deployment ) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:deployments.update?multipleConsumers=true");
-		template.withBody( deploymentdescriptorid ).asyncSend();
+		template.withBody( deployment ).asyncSend();
 		
 	}
 
@@ -162,29 +168,29 @@ public class BusController  {
 	 * @param deployment a {@link ExperimentMetadata}
 	 */
 	// There is no listener for nsd.create
-	public void newNSDAdded(long experimentmetadataid) {
+	public void newNSDAdded(ExperimentMetadata experimentSaved) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.create?multipleConsumers=true");
-		template.withBody( experimentmetadataid ).asyncSend();		
+		template.withBody( experimentSaved ).asyncSend();		
 	}
 
-	public void onBoardNSDFailed( long uexpobdid) {
+	public void onBoardNSDFailed( ExperimentOnBoardDescriptor uexpobds) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onboard.fail?multipleConsumers=true");
-		template.withBody( uexpobdid ).asyncSend();			
+		template.withBody( uexpobds ).asyncSend();			
 	}
 
-	public void onBoardNSDSucceded(long uexpobdid) {
+	public void onBoardNSDSucceded(ExperimentOnBoardDescriptor uexpobdid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onboard.success?multipleConsumers=true");
 		template.withBody( uexpobdid ).asyncSend();				
 	}
 	
 
-	public void scheduleExperiment(int deploymentdescriptorid) {
+	public void scheduleExperiment( DeploymentDescriptor aDeployment) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.schedule?multipleConsumers=true");
-		template.withBody( deploymentdescriptorid ).asyncSend();				
+		template.withBody( aDeployment ).asyncSend();				
 	}
 	
 
-	public void deployExperiment(int deploymentdescriptorid) {		
+	public void deployExperiment( DeploymentDescriptor  deploymentdescriptorid) {		
 		logger.info( "deployExperiment: to(\"seda:nsd.deploy?multipleConsumers=true\")");		
 		FluentProducerTemplate	template = contxt.createFluentProducerTemplate().to("seda:nsd.deploy?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();	
@@ -192,41 +198,41 @@ public class BusController  {
 
 	// seda:nsd.deployment
 	
-	public void deploymentInstantiationSucceded(int deploymentdescriptorid)
+	public void deploymentInstantiationSucceded(DeploymentDescriptor deploymentdescriptorid)
 	{
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deployment.instantiation.success?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();						
 	}
 	
-	public void deploymentInstantiationFailed(int deploymentdescriptorid)
+	public void deploymentInstantiationFailed(DeploymentDescriptor deploymentdescriptorid)
 	{
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deployment.instantiation.fail?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();						
 	}
 
-	public void deploymentTerminationSucceded(int deploymentdescriptorid)
+	public void deploymentTerminationSucceded(DeploymentDescriptor deploymentdescriptorid)
 	{
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deployment.termination.success?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();						
 	}
 	
-	public void deploymentTerminationFailed(int deploymentdescriptorid)
+	public void deploymentTerminationFailed(DeploymentDescriptor deploymentdescriptorid)
 	{
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deployment.termination.fail?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();						
 	}
 	
-	public void completeExperiment(int deploymentdescriptorid) {
+	public void completeExperiment(DeploymentDescriptor deploymentdescriptorid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deployment.complete?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();				
 	}
 
-	public void deleteExperiment(int deploymentdescriptorid) {
+	public void deleteExperiment(DeploymentDescriptor deploymentdescriptorid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deployment.delete?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();						
 	}
 
-	public void rejectExperiment(int deploymentdescriptorid) {
+	public void rejectExperiment(DeploymentDescriptor deploymentdescriptorid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deployment.reject?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();				
 	}
@@ -255,24 +261,24 @@ public class BusController  {
 		template.withBody(manostatus).asyncSend();						
 	}
 	
-	public void terminateInstanceSucceded(int deploymentdescriptorid)
+	public void terminateInstanceSucceded(DeploymentDescriptor deploymentdescriptorid)
 	{
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.instance.termination.success?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();						
 	}
 
-	public void terminateInstanceFailed(int deploymentdescriptorid)
+	public void terminateInstanceFailed(DeploymentDescriptor deploymentdescriptorid)
 	{
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.instance.termination.fail?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();						
 	}
 
-	public void deleteInstanceSucceded(int deploymentdescriptorid) {
+	public void deleteInstanceSucceded(DeploymentDescriptor deploymentdescriptorid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.instance.deletion.success?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();								
 	}
 		
-	public void deleteInstanceFailed(int deploymentdescriptorid) {
+	public void deleteInstanceFailed(DeploymentDescriptor deploymentdescriptorid) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.instance.deletion.fail?multipleConsumers=true");
 		template.withBody( deploymentdescriptorid ).asyncSend();								
 	}
@@ -282,7 +288,7 @@ public class BusController  {
 	 * @param deployment a {@link VxFMetadata}
 	 */
 	// There is no listener for this
-	public void updatedVxF(long vxfmetadataid) {
+	public void updatedVxF(VxFMetadata vxfmetadataid) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.update?multipleConsumers=true");
 		template.withBody( vxfmetadataid ).asyncSend();
@@ -294,9 +300,9 @@ public class BusController  {
 	 * @param experiment a {@link ExperimentMetadata}
 	 */
 	// There is no listener for this
-	public void updateNSD(long experimentmetadataid) {
+	public void updateNSD(ExperimentMetadata expmetasaved) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.update?multipleConsumers=true");
-		template.withBody( experimentmetadataid ).asyncSend();		
+		template.withBody( expmetasaved ).asyncSend();		
 	}
 
 	
@@ -304,7 +310,7 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:vxf.new.validation?multipleConsumers=true)to trigger VxF validation
 	 * @param vxf a {@link VxFMetadata}
 	 */
-	public void validateVxF(long vxfmetadataid) {
+	public void validateVxF(VxFMetadata vxfmetadataid) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.new.validation?multipleConsumers=true");
 		template.withBody( vxfmetadataid ).asyncSend();
@@ -315,10 +321,10 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:vxf.validationresult.update?multipleConsumers=true)to trigger update VxF validation
 	 * @param vresult  a {@link ValidationJobResult}
 	 */
-	public void updatedValidationJob(long vxfmetadataid) {
+	public void updatedValidationJob(VxFMetadata vxf) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.validationresult.update?multipleConsumers=true");
-		template.withBody( vxfmetadataid ).asyncSend();
+		template.withBody( vxf ).asyncSend();
 		
 	}
 
@@ -327,9 +333,9 @@ public class BusController  {
 	 * @param deployment a {@link ExperimentMetadata}
 	 */
 	// There is no listener for this
-	public void validateNSD(long experimentmetadataid) {
+	public void validateNSD(ExperimentMetadata experimentSaved) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.validate.new?multipleConsumers=true");
-		template.withBody( experimentmetadataid ).asyncSend();		
+		template.withBody( experimentSaved ).asyncSend();		
 	}
 	
 	
@@ -338,9 +344,9 @@ public class BusController  {
 	 * @param deployment a {@link ExperimentMetadata}
 	 */
 	// There is no listener for this
-	public void validationUpdateNSD(long experimentmetadataid) {
+	public void validationUpdateNSD(ExperimentMetadata expmetasaved) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.validate.update?multipleConsumers=true");
-		template.withBody( experimentmetadataid ).asyncSend();		
+		template.withBody( expmetasaved ).asyncSend();		
 	}
 
 	/**
@@ -348,10 +354,10 @@ public class BusController  {
 	 * @param deployment a {@link VxFMetadata}
 	 */
 	// There is no listener for this
-	public void deletedVxF(long vxfmetadataid) {
+	public void deletedVxF(VxFMetadata vxf) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.deleted?multipleConsumers=true");
-		template.withBody( vxfmetadataid ).asyncSend();
+		template.withBody( vxf ).asyncSend();
 		
 	}
 
@@ -360,50 +366,40 @@ public class BusController  {
 	 * @param deployment a {@link ExperimentMetadata}
 	 */
 	// There is no listener for this
-	public void deletedExperiment(long experimentmetadataid) {
+	public void deletedExperiment(ExperimentMetadata nsd) {
 
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deleted?multipleConsumers=true");
-		template.withBody( experimentmetadataid ).asyncSend();
+		template.withBody( nsd ).asyncSend();
 		
 	}
 
 
-	/**
-	 * Asynchronously sends to the routing bus (seda:mano.onboard.vxf?multipleConsumers=true) to trigger new VXF onboarding to target MANOs that
-	 * can support this VNF OSM version
-	 * @param deployment a {@link VxFOnBoardedDescriptor}
-	 */
-	//There is no listener for this
-	public void onBoardVxF(long vxfobdsid) {
-		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:mano.onboard.vxf?multipleConsumers=true");
-		template.withBody( vxfobdsid ).asyncSend();
-	}
 
 	/**
 	 * Asynchronously sends to the routing bus (seda:vxf.offboard?multipleConsumers=true) to trigger new VXF offboarding 
 	 * @param deployment a {@link VxFOnBoardedDescriptor}
 	 */
-	public void offBoardVxF(long l) {
+	public void offBoardVxF(VxFOnBoardedDescriptor u) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.offboard?multipleConsumers=true");
-		template.withBody( l ).asyncSend();		
+		template.withBody( u ).asyncSend();		
 	}
 
 	/**
 	 * Asynchronously sends to the routing bus (seda:nsd.onboard?multipleConsumers=true) to trigger new NSD onboarding 
 	 * @param deployment a {@link ExperimentOnBoardDescriptor}
 	 */
-	public void onBoardNSD(long uexpobdid) {
+	public void onBoardNSD(ExperimentOnBoardDescriptor obd) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onboard?multipleConsumers=true");
-		template.withBody( uexpobdid ).asyncSend();		
+		template.withBody( obd ).asyncSend();		
 	}
 
 	/**
 	 * Asynchronously sends to the routing bus (seda:nsd.offboard?multipleConsumers=true) to trigger new NSD offboarding 
 	 * @param deployment a {@link ExperimentOnBoardDescriptor}
 	 */
-	public void offBoardNSD(long uexpobdid) {
+	public void offBoardNSD(ExperimentOnBoardDescriptor u) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.offboard?multipleConsumers=true");
-		template.withBody( uexpobdid ).asyncSend();		
+		template.withBody( u ).asyncSend();		
 	}
 
 	/**

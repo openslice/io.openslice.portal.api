@@ -6,8 +6,13 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.MANOprovider;
+import io.openslice.model.VxFMetadata;
 import portal.api.repo.ManoProvidersRepository;
 import portal.api.repo.NSDsRepository;
 
@@ -22,6 +27,20 @@ public class NSDService {
 		Optional<ExperimentMetadata> o = this.nsdRepo.findById(id);
 
 		return o.orElse(null);
+	}
+	
+
+	public String getProductByIDEagerData(long id) throws JsonProcessingException {
+		
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+        mapper.registerModule(new Hibernate5Module());
+		
+        ExperimentMetadata o = this.getProductByID(id);
+        
+		String res = mapper.writeValueAsString( o );
+
+		return res;
 	}
 
 	public ExperimentMetadata updateProductInfo( ExperimentMetadata  refNSD) {

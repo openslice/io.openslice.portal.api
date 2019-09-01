@@ -746,17 +746,18 @@ public class ArtifactsAPIController {
 					VxFMetadata refVxF =  ( VxFMetadata ) vxfService.getProductByID( vxfsaved.getId() );
 					// Fill the VxFMetadata of VxFOnBoardedDescriptor
 					obd.setVxf( refVxF );
+					//save obd
+					obd = vxfOBDService.updateVxFOnBoardedDescriptor(obd);
+					
 					// Update the VxFMetadata Object with the obd Object
 					refVxF.getVxfOnBoardedDescriptors().add( obd ) ;				
 					
-					// ???????
-					obd.setVxf( refVxF );
 
 					// save product
 					refVxF = (VxFMetadata) vxfService.updateProductInfo( refVxF );						
 
 					// save VxFonBoardedDescriptor or not ???
-					//obd = vxfOBDService.updateVxFOnBoardedDescriptor(obd);
+					
 					
 					//set proper scheme (http or https)
 					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
@@ -765,6 +766,7 @@ public class ArtifactsAPIController {
 						logger.error( " ========> obd.getVxf().getOwner() == null " );
 					}
 					
+					
 					// Send the message for automatic onboarding
 					BusController.getInstance().onBoardVxFAdded( obd );
 				}
@@ -772,7 +774,7 @@ public class ArtifactsAPIController {
 			// AUTOMATIC ONBOARDING PROCESS -END
 			//======================================================
 			VxFMetadata vxfr =  ( VxFMetadata ) vxfService.getProductByID( vxfsaved.getId() );//rereading this, seems to keep the DB connection
-			BusController.getInstance().validateVxF(vxfr.getId());	
+			BusController.getInstance().validateVxF(vxfr);	
 			return ResponseEntity.ok( vxfr  );	
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body("{ \"message\" : \"Requested entity cannot be installed. " + emsg +"\"}");
@@ -864,7 +866,7 @@ public class ArtifactsAPIController {
 		if (vxfsaved != null) { 
 
 			
-			BusController.getInstance().updatedVxF( vxfsaved.getId());
+			BusController.getInstance().updatedVxF( vxfsaved);
 			//notify only if validation changed
 
 			if ( prodFile!= null ) { //if the descriptor changed then we must re-trigger validation
@@ -872,7 +874,7 @@ public class ArtifactsAPIController {
 				String vxfFileNamePosted = prodFile.getName();
 				if ( !vxfFileNamePosted.equals("unknown") ){
 					
-					BusController.getInstance().validateVxF(vxf.getId());
+					BusController.getInstance().validateVxF(vxf);
 				}
 			}
 
@@ -1211,10 +1213,10 @@ public class ArtifactsAPIController {
 					CentralLogger.log( CLevel.INFO, "No related VxF found for "+vxfobd_tmp.getId()+" in status  "+vxfobd_tmp.getOnBoardingStatus());					
 				}
 				u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
-				BusController.getInstance().offBoardVxF( u.getId() );
+				BusController.getInstance().offBoardVxF( u );
 			}
 		}
-		BusController.getInstance().deletedVxF( vxf.getId() );	
+		BusController.getInstance().deletedVxF( vxf );	
 		
 		//remove from categories
 		for (Category c : vxf.getCategories()) {
@@ -1556,8 +1558,8 @@ public class ArtifactsAPIController {
 
 		if (experimentSaved != null) {
 
-			BusController.getInstance().newNSDAdded( experimentSaved.getId() );		
-			BusController.getInstance().validateNSD( experimentSaved.getId() );
+			BusController.getInstance().newNSDAdded( experimentSaved );		
+			BusController.getInstance().validateNSD( experimentSaved );
 
 			//======================================================
 			// AUTOMATIC ONBOARDING PROCESS -START
@@ -1578,16 +1580,16 @@ public class ArtifactsAPIController {
 					ExperimentMetadata refNSD =  ( ExperimentMetadata )nsdService.getProductByID( experimentSaved.getId() );
 					// Fill the NSDMetadata of NSDOnBoardedDescriptor
 					obd.setExperiment( refNSD );
+					// save VxFonBoardedDescriptor or not ???
+					obd = nsdOBDService.updateExperimentOnBoardDescriptor(obd);
+					
 					// Update the NSDMetadata Object with the obd Object
 					refNSD.getExperimentOnBoardDescriptors().add( obd ) ;				
-					
-					// ???????
-					obd.setExperiment( refNSD );
+										
 					
 					// save product
 					refNSD = (ExperimentMetadata) nsdService.updateProductInfo( refNSD );
-					// save VxFonBoardedDescriptor or not ???
-					//obd = nsdOBDService.updateExperimentOnBoardDescriptor(obd);
+					
 					
 	//				try
 	//				{
@@ -1604,7 +1606,7 @@ public class ArtifactsAPIController {
 					
 					//set proper scheme (http or https)
 					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
-					BusController.getInstance().onBoardNSD( obd.getId() );
+					BusController.getInstance().onBoardNSD( obd );
 				}
 			}
 
@@ -1671,13 +1673,13 @@ public class ArtifactsAPIController {
 		
 		if ( expmetasaved != null) { 
 
-			BusController.getInstance().updateNSD(expmetasaved.getId());	
+			BusController.getInstance().updateNSD(expmetasaved );	
 			
 
 			if ( prodFile!= null ) { //if the descriptor changed then we must re-trigger validation
 				String a = prodFile.getName();
 				if ( !a.equals("unknown") ){
-					BusController.getInstance().validationUpdateNSD(expmetasaved.getId());
+					BusController.getInstance().validationUpdateNSD( expmetasaved );
 				}
 			}
 			
@@ -1748,11 +1750,11 @@ public class ArtifactsAPIController {
 				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																															
 				u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
-				BusController.getInstance().offBoardNSD(u.getId());
+				BusController.getInstance().offBoardNSD( u );
 				
 			}
 		}
-		BusController.getInstance().deletedExperiment(nsd.getId());		
+		BusController.getInstance().deletedExperiment( nsd );		
 		
 		
 		for (Category c : nsd.getCategories()) {
@@ -2003,7 +2005,7 @@ public class ArtifactsAPIController {
 			
 //			deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
 			
-			BusController.getInstance().newDeploymentRequest( deployment.getId() );	
+			BusController.getInstance().newDeploymentRequest( deployment  );	
 
 //			String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
 //			if ((adminemail != null) && (!adminemail.equals(""))) {
@@ -2123,7 +2125,7 @@ public class ArtifactsAPIController {
 								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 								logger.info("NS status change is now "+aDeployment.getStatus());															
-								BusController.getInstance().scheduleExperiment( aDeployment.getId() );								
+								BusController.getInstance().scheduleExperiment( aDeployment );								
 							}
 							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
 							{							
@@ -2132,7 +2134,7 @@ public class ArtifactsAPIController {
 								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 								logger.info("NS status change is now "+aDeployment.getStatus());															
-								BusController.getInstance().scheduleExperiment( aDeployment.getId() );								
+								BusController.getInstance().scheduleExperiment( aDeployment );								
 							}
 						}
 					}
@@ -2152,7 +2154,7 @@ public class ArtifactsAPIController {
 								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 								logger.info("NS status change is now "+aDeployment.getStatus());															
 	
-								BusController.getInstance().deployExperiment( aDeployment.getId() );	
+								BusController.getInstance().deployExperiment( aDeployment );	
 							}
 							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
 							{
@@ -2166,7 +2168,7 @@ public class ArtifactsAPIController {
 								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 								logger.info("NS status change is now "+aDeployment.getStatus());															
-								BusController.getInstance().deployExperiment( aDeployment.getId() );	
+								BusController.getInstance().deployExperiment( aDeployment );	
 							}
 						}
 					}
@@ -2177,7 +2179,7 @@ public class ArtifactsAPIController {
 						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 						logger.info("NS status change is now "+aDeployment.getStatus());															
-						BusController.getInstance().completeExperiment( aDeployment.getId() );						
+						BusController.getInstance().completeExperiment( aDeployment );						
 					}
 					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED && aDeployment.getInstanceId() == null)
 					{
@@ -2186,7 +2188,7 @@ public class ArtifactsAPIController {
 						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 						logger.info("NS status change is now "+aDeployment.getStatus());															
-						BusController.getInstance().rejectExperiment( aDeployment.getId() );
+						BusController.getInstance().rejectExperiment( aDeployment );
 						logger.info("Deployment Rejected");				
 					}
 					else
@@ -2760,7 +2762,7 @@ public class ArtifactsAPIController {
 		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus());																																
 		updatedObd.setFeedbackMessage(response.getBody().toString());
 		updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor( updatedObd );
-		BusController.getInstance().offBoardVxF( updatedObd.getId() );
+		BusController.getInstance().offBoardVxF( updatedObd );
 		
 		return ResponseEntity.ok( updatedObd  );
 		
@@ -2965,7 +2967,7 @@ public class ArtifactsAPIController {
 		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus());																																			
 		uExper.setFeedbackMessage(response.getBody().toString());
 		uExper = nsdOBDService.updateExperimentOnBoardDescriptor( uExper );
-		BusController.getInstance().offBoardNSD( uExper.getId() );
+		BusController.getInstance().offBoardNSD( uExper );
 		
 		return ResponseEntity.ok( uExper  );
 	}
@@ -3138,8 +3140,8 @@ public class ArtifactsAPIController {
 		// save product
 		vxf = (VxFMetadata) productService.updateProductInfo( vxf );		
 		
-		BusController.getInstance().updatedVxF( vxf.getId() );		
-		BusController.getInstance().updatedValidationJob( vxf.getId() );		
+		BusController.getInstance().updatedVxF( vxf );		
+		BusController.getInstance().updatedValidationJob( vxf  );		
 		
 		VxFMetadata vxfr = (VxFMetadata) productService.getProductByID( vxfid) ; //rereading this, seems to keep the DB connection
 		

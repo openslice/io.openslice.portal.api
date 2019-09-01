@@ -35,12 +35,11 @@ public class VxFService {
 		
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
         mapper.registerModule(new Hibernate5Module());
 		
-        VxFMetadata o = this.getProductByID(id);
-        
+        VxFMetadata o = this.getProductByID(id);        
 		String res = mapper.writeValueAsString( o );
-
 		return res;
 	}
 
