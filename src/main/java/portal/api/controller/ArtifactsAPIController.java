@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
@@ -79,6 +80,7 @@ import io.openslice.model.Category;
 import io.openslice.model.ConstituentVxF;
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorStatus;
+import io.openslice.model.DeploymentDescriptorVxFPlacement;
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.Infrastructure;
@@ -734,9 +736,10 @@ public class ArtifactsAPIController {
 			
 			List<MANOprovider> MANOprovidersEnabledForOnboarding =  manoProviderService.getMANOprovidersEnabledForOnboarding();
 			
-			if(MANOprovidersEnabledForOnboarding.size()>0 && vxfsaved.getPackagingFormat() == PackagingFormat.OSMvFIVE)
+			
+			for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
 			{
-				for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
+				if( vxfsaved.getPackagingFormat().equals( PackagingFormat.OSMvFIVE) &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM FIVE" ))
 				{
 					//Create VxfOnboardedDescriptor
 					VxFOnBoardedDescriptor obd = new VxFOnBoardedDescriptor();
@@ -1113,11 +1116,10 @@ public class ArtifactsAPIController {
 		}		
 
 		Product avxf = productService.getProducttByUUID(uuid);
-		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );		
-
-		if ((u == null) && (!avxf.isPublished() )) {
-			return (ResponseEntity<ByteArrayResource>) ResponseEntity.badRequest();
-		}
+//		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+//		if ((u == null) && (!avxf.isPublished() )) {
+//			return (ResponseEntity<ByteArrayResource>) ResponseEntity.badRequest();
+//		}
 		
 		Path path = Paths.get(file.getAbsolutePath());
 		ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
@@ -1199,7 +1201,12 @@ public class ArtifactsAPIController {
 					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body( "Requested VxFOnBoardedDescriptor with ID=" + vxfobd_tmp.getId() + " cannot be offboarded" );			
 					return builder;
 				} else {
-					vxfobd_tmp.setFeedbackMessage(response.getBody().toString());					
+					if ( response.getBody() != null ){
+						vxfobd_tmp.setFeedbackMessage(response.getBody().toString());
+					} else {
+						vxfobd_tmp.setFeedbackMessage(response.toString());
+					}
+										
 				}
 				// UnCertify Upon OffBoarding
 				//vxfobd_tmp.getVxf().setCertified(false);
@@ -1568,10 +1575,11 @@ public class ArtifactsAPIController {
 			// Get the MANO providers which are set for automatic onboarding
 			List<MANOprovider> MANOprovidersEnabledForOnboarding=manoProviderService.getMANOprovidersEnabledForOnboarding();
 		
-			if(MANOprovidersEnabledForOnboarding.size()>0 && experimentSaved.getPackagingFormat() == PackagingFormat.OSMvFIVE)
+			for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
 			{
-				for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
+				if( experimentSaved.getPackagingFormat().equals( PackagingFormat.OSMvFIVE)  &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM FIVE" ) )
 				{
+				
 					//Create NSDOnboardDescriptor
 					ExperimentOnBoardDescriptor obd = new ExperimentOnBoardDescriptor( );
 					// Get the first one for now			
@@ -1701,7 +1709,7 @@ public class ArtifactsAPIController {
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		// Get the OnBoarded Descriptors to OffBoard them
-		List<ExperimentOnBoardDescriptor> expobds = nsd.getExperimentOnBoardDescriptors();
+		Set<ExperimentOnBoardDescriptor> expobds = nsd.getExperimentOnBoardDescriptors();
 		
 		if ( nsd.isValid()   ) 
 		{
@@ -1978,9 +1986,9 @@ public class ArtifactsAPIController {
 		if (u != null) {
 			logger.info("addDeployment for userid: " + u.getId());
 
-			for (DeploymentDescriptor d : u.getDeployments()) {
-				logger.info("deployment already for userid: " + d.getId());
-			}
+//			for (DeploymentDescriptor d : u.getDeployments()) {
+//				logger.info("deployment already for userid: " + d.getId());
+//			}
 			String uuid = UUID.randomUUID().toString();
 			deployment.setUuid(uuid);
 			deployment.setDateCreated(new Date());
@@ -1988,17 +1996,39 @@ public class ArtifactsAPIController {
 			CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus());
 			logger.info( "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus());			
 
+			logger.info("reattach user from the DB model");
 			u = usersService.findById(u.getId());
 			deployment.setOwner(u); // reattach from the DB model
-			u.getDeployments().add(deployment);
 			
+
+			logger.info("reattach ExperimentMetadata from the DB model");
 			// Get the Experiment Metadata from the id of the experiment from the deployment request
 			ExperimentMetadata baseApplication = (ExperimentMetadata) nsdService
 					.getProductByID(deployment.getExperiment().getId());
 			deployment.setExperiment(baseApplication); // reattach from the DB model
 
+			logger.info("reattach InfrastructureForAll from the DB model");
+			deployment.setInfrastructureForAll(  infrastructureService.getInfrastructureByID( deployment.getInfrastructureForAll().getId() ) );
+
+			logger.info("reattach Mentor from the DB model");
+			deployment.setMentor( usersService.findById( deployment.getMentor().getId()) );
+						
+
+			logger.info("reattach DeploymentDescriptorVxFPlacement from the DB model");
+			for (DeploymentDescriptorVxFPlacement pl : deployment.getVxfPlacements()) {
+				pl.setInfrastructure(   infrastructureService.getInfrastructureByID( pl.getInfrastructure().getId()) );
+				
+			}
 			
+
+			logger.info("update deployment to the DB model");
 			deployment = deploymentDescriptorService.updateDeploymentDescriptor(deployment);
+
+
+			logger.info("update user owner to the DB model");
+			u.getDeployments().add(deployment);
+			usersService.updateUserInfo(u);
+			
 			logger.info("NS status change is now "+deployment.getStatus());														
 
 //			u = portalRepositoryRef.updateUserInfo(u);
@@ -2028,6 +2058,11 @@ public class ArtifactsAPIController {
 		DeploymentDescriptor dep = deploymentDescriptorService.getDeploymentByID(id);
 		if (u != null) {
 			if (u.getRoles().contains(UserRoleType.ROLE_ADMIN) || u.getId() == dep.getOwner().getId()) {
+				
+				PortalUser owner = usersService.findById( dep.getOwner().getId() );
+				owner.getDeployments().remove(dep);				
+				usersService.updateUserInfo( owner );
+				
 				deploymentDescriptorService.deleteDeployment( dep );
 				return ResponseEntity.ok( "{}"  );
 			}
@@ -2037,7 +2072,7 @@ public class ArtifactsAPIController {
 	}
 
 	@GetMapping( value = "/admin/deployments/{id}", produces = "application/json" )
-	public ResponseEntity<?>  getDeploymentById(@PathVariable("id") int deploymentId) {
+	public ResponseEntity<?>  getDeploymentById(@PathVariable("id") long deploymentId) {
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
@@ -2199,6 +2234,7 @@ public class ArtifactsAPIController {
 
 					logger.info( "Previous status is the same so just update deployment info");					
 					aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+					BusController.getInstance().updateDeploymentRequest(aDeployment);
 				}
 				return ResponseEntity.ok( aDeployment  );
 			}

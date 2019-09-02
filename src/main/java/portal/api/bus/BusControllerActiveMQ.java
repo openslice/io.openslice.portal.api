@@ -17,6 +17,7 @@ import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.PortalUser;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
+import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.NSDService;
 import portal.api.service.VxFService;
 
@@ -34,6 +35,9 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 
 	@Autowired
 	NSDService nsdService;
+
+	@Autowired
+	DeploymentDescriptorService deploymentDescriptorService;
 
 	private static final transient Log logger = LogFactory.getLog(BusControllerActiveMQ.class.getName());
 
@@ -105,12 +109,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		from("seda:deployments.reject?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
 		.convertBodyTo( String.class )
-		.to( "seda:deployments.reject" );
+		.to( "activemq:topic:deployments.reject" );
 		
 		from("seda:deployments.update?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
 		.convertBodyTo( String.class )
-		.to( "seda:deployments.update" );
+		.to( "activemq:topic:deployments.update" );
 		
 		from("seda:nsd.schedule?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
@@ -118,8 +122,8 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to( "activemq:topic:nsd.schedule" );
 		
 
-		from("seda:nsd.deploy?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		from("seda:nsd.deploy?multipleConsumers=true")		
+		.bean( deploymentDescriptorService, "getDeploymentEagerData" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deploy" );
 		

@@ -12,6 +12,10 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.VxFMetadata;
 import portal.api.mano.MANOController;
@@ -116,6 +120,18 @@ public class DeploymentDescriptorService {
 	}
 
 
+	public String getDeploymentEagerData( DeploymentDescriptor d ) throws JsonProcessingException {
+
+		DeploymentDescriptor dd = this.getDeploymentByID( d.getId() );
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dd );
+		
+		return res;
+	}
+	
 
 
 	public void deleteDeployment(DeploymentDescriptor entity) {

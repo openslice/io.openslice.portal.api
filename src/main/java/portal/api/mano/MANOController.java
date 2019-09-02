@@ -53,6 +53,7 @@ import io.openslice.model.DeploymentDescriptorStatus;
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.MANOprovider;
+import io.openslice.model.OnBoardDescriptor;
 import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
@@ -306,7 +307,8 @@ public class MANOController {
 			DeploymentDescriptor deployment_tmp = deploymentDescriptorService.getDeploymentByID(runningDeploymentDescriptors.get(i).getId());
 			try {
 				// Get the MANO Provider for each deployment
-				MANOprovider sm = manoProviderService.getMANOproviderByID(deployment_tmp.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0).getObMANOprovider().getId());
+				
+				MANOprovider sm = manoProviderService.getMANOproviderByID( getExperimOBD( deployment_tmp ).getObMANOprovider().getId() );
 				
 				//OSM5 - START
 				if (sm.getSupportedMANOplatform().getName().equals("OSM FIVE")) {
@@ -468,6 +470,16 @@ public class MANOController {
 		checkAndDeployExperimentToMANOProvider();
 		checkAndTerminateExperimentToMANOProvider();
 		checkAndDeleteTerminatedOrFailedDeployments();
+	}
+
+	private ExperimentOnBoardDescriptor getExperimOBD(DeploymentDescriptor deployment_tmp) {
+		
+		
+		for (ExperimentOnBoardDescriptor e : deployment_tmp.getExperimentFullDetails().getExperimentOnBoardDescriptors()) {
+
+			return e; //return the first one found
+		}
+		return null;
 	}
 
 	public void onBoardNSDToMANOProvider( long uexpobdid ) throws Exception {
@@ -697,18 +709,25 @@ public class MANOController {
 	public void deployNSDToMANOProvider(int deploymentdescriptorid) {
 		DeploymentDescriptor deploymentdescriptor = deploymentDescriptorService.getDeploymentByID(deploymentdescriptorid);
 		
+		ExperimentMetadata expm = nsdService.getProductByID( deploymentdescriptor.getExperimentFullDetails().getId());
+		
+		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + expm);
+		
+		edw skaei den ta fernei to hibernate
+		
+		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + expm.getExperimentOnBoardDescriptors());
+		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + getExperimOBD(deploymentdescriptor) ); 
+		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + getExperimOBD(deploymentdescriptor).getObMANOprovider());
+		
 		// OSM5 - START
-		if (deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
 			// There can be multiple MANOs for the Experiment. We need to handle that also.
 			OSM5Client osm5Client = null;
 			try {
 				 osm5Client = new OSM5Client(
-						deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-								.getObMANOprovider().getApiEndpoint(),
-						deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-								.getObMANOprovider().getUsername(),
-						deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-								.getObMANOprovider().getPassword(),
+						getExperimOBD(deploymentdescriptor).getObMANOprovider().getApiEndpoint(),
+						getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
+						getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
 						"admin");
 					MANOStatus.setOsm5CommunicationStatusActive(null);													
 			}
@@ -794,7 +813,7 @@ public class MANOController {
 		
 		// OSM5 START
 		deploymentdescriptor =  deploymentDescriptorService.getDeploymentByID(deploymentdescriptor.getId());
-		if (deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
 			 //deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATING ||			
 			logger.info("Current status change before termination is :"+deploymentdescriptor.getStatus());
 			if( deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.INSTANTIATING || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.RUNNING || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.FAILED )
@@ -802,12 +821,9 @@ public class MANOController {
 				try
 				{
 					OSM5Client osm5Client = new OSM5Client(
-							deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-									.getObMANOprovider().getApiEndpoint(),
-							deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-									.getObMANOprovider().getUsername(),
-							deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-									.getObMANOprovider().getPassword(),
+							getExperimOBD(deploymentdescriptor).getObMANOprovider().getApiEndpoint(),
+							getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
+							getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
 							"admin");
 					
 					MANOStatus.setOsm5CommunicationStatusActive(null);				
@@ -870,7 +886,7 @@ public class MANOController {
 		logger.info("Will delete with deploymentdescriptorid : " + deploymentdescriptorid);		
 		String aMANOplatform = "";
 		try {	
-			aMANOplatform = deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0).getObMANOprovider().getSupportedMANOplatform().getName();
+			aMANOplatform = getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName();
 			logger.info("MANOplatform: " + aMANOplatform);			
 		}catch (Exception e) {
 			aMANOplatform = "UNKNOWN";
@@ -903,12 +919,9 @@ public class MANOController {
 			try
 			{
 				 osm5Client = new OSM5Client(
-						deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-								.getObMANOprovider().getApiEndpoint(),
-						deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-								.getObMANOprovider().getUsername(),
-						deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0)
-								.getObMANOprovider().getPassword(),
+						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getApiEndpoint(),
+						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
+						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
 						"admin");	
 					MANOStatus.setOsm5CommunicationStatusActive(null);													
 			}

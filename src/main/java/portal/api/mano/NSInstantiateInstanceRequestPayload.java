@@ -25,61 +25,69 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorVxFPlacement;
+import io.openslice.model.ExperimentOnBoardDescriptor;
 
-public class NSInstantiateInstanceRequestPayload
-{
+public class NSInstantiateInstanceRequestPayload {
 	public String nsName;
 	public String vimAccountId;
 	public String nsdId;
-	class VnF
-	{
+
+	class VnF {
 		@JsonProperty("member-vnf-index")
 		public String memberVnFIndex;
 		@JsonProperty("vimAccountId")
 		public String vimAccount;
 	}
-	class Vld
-	{
+
+	class Vld {
 		public String name;
 		@JsonProperty("vim-network-name")
-		public LinkedHashMap<String,String> vimNetworkName = new LinkedHashMap<>();
+		public LinkedHashMap<String, String> vimNetworkName = new LinkedHashMap<>();
 	}
-	public List<VnF> vnf = new ArrayList<>();
-	//public List<Vld> vld = new ArrayList<>();
-	
-	
 
-	public NSInstantiateInstanceRequestPayload(DeploymentDescriptor deploymentdescriptor)
-	{
+	public List<VnF> vnf = new ArrayList<>();
+	// public List<Vld> vld = new ArrayList<>();
+
+	public NSInstantiateInstanceRequestPayload(DeploymentDescriptor deploymentdescriptor) {
 		this.nsName = deploymentdescriptor.getName();
 		this.vimAccountId = deploymentdescriptor.getInfrastructureForAll().getVIMid();
 		// Here we need to get the ExperimentOnBoardDescriptor based on the Experiment.
-		// An Experiment might have multiple OnBoardDescriptors if it is OnBoarded to multiple OSM MANOs.
-		// We temporarily select the first (and most probably the only one). 
-		// Otherwise the user needs to define the OSM MANO where the Experiment is OnBoarded in order to instantiate.
-		this.nsdId = deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0).getDeployId();
-		
-		Integer count=1;
-		for(DeploymentDescriptorVxFPlacement tmp : deploymentdescriptor.getVxfPlacements())
-		{
+		// An Experiment might have multiple OnBoardDescriptors if it is OnBoarded to
+		// multiple OSM MANOs.
+		// We temporarily select the first (and most probably the only one).
+		// Otherwise the user needs to define the OSM MANO where the Experiment is
+		// OnBoarded in order to instantiate.
+		this.nsdId = getExperimOBD(deploymentdescriptor).getDeployId();
+
+		Integer count = 1;
+		for (DeploymentDescriptorVxFPlacement tmp : deploymentdescriptor.getVxfPlacements()) {
 			VnF vnf_tmp = new VnF();
-			vnf_tmp.memberVnFIndex=count.toString();
+			vnf_tmp.memberVnFIndex = count.toString();
 			vnf_tmp.vimAccount = tmp.getInfrastructure().getVIMid();
 			this.vnf.add(vnf_tmp);
 			count++;
 		}
 	}
-	
-	public String toJSON()
-	{
-		String jsonInString=null;
+
+	private ExperimentOnBoardDescriptor getExperimOBD(DeploymentDescriptor deployment_tmp) {
+
+		for (ExperimentOnBoardDescriptor e : deployment_tmp.getExperimentFullDetails()
+				.getExperimentOnBoardDescriptors()) {
+
+			return e; // return the first one found
+		}
+		return null;
+	}
+
+	public String toJSON() {
+		String jsonInString = null;
 		ObjectMapper mapper = new ObjectMapper();
 		try {
 			jsonInString = mapper.writeValueAsString(this);
 		} catch (JsonProcessingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}	
+		}
 		return jsonInString;
 	}
 }

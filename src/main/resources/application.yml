@@ -11,7 +11,7 @@ spring:
     database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     hibernate:
       ddl-auto: update
-    show-sql: false
+    show-sql: true
     generate-ddl: true
   activemq:
     broker-url: tcp://localhost:61616

@@ -108,7 +108,7 @@ public class MANORouteBuilder  extends RouteBuilder{
 		//from("timer://checkAndDeployTimer?delay=2m&period=120000").bean( aMANOController,"checkAndDeployExperimentToMANOProvider").stop();
 		//from("timer://checkAndTerminateTimer?delay=2m&period=120000").bean( aMANOController,"checkAndTerminateExperimentToMANOProvider").stop();
 		
-		from("timer://checkAndUpdateRunningDeploymentDescriptors?delay=1m&period=120000").bean(  aMANOController,"checkAndUpdateRunningDeploymentDescriptors").stop();
+		from("timer://checkAndUpdateRunningDeploymentDescriptors?delay=1m&period=60000").bean(  aMANOController,"checkAndUpdateRunningDeploymentDescriptors").stop();
 		
 	}
 
