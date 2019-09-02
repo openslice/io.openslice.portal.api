@@ -29,8 +29,12 @@ public class NSDService {
 		return o.orElse(null);
 	}
 	
-
-	public String getProductByIDEagerData(long id) throws JsonProcessingException {
+	/**
+	 * @param id
+	 * @return a Json containing all data
+	 * @throws JsonProcessingException
+	 */
+	public String getProductByIDEagerDataJson(long id) throws JsonProcessingException {
 		
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
@@ -42,6 +46,13 @@ public class NSDService {
 
 		return res;
 	}
+	
+	public ExperimentMetadata getProductByIDEagerData(long id) {
+		Optional<ExperimentMetadata> o = this.nsdRepo.findByIdEager(id);
+
+		return o.orElse(null);
+	}
+
 
 	public ExperimentMetadata updateProductInfo( ExperimentMetadata  refNSD) {
 		return this.nsdRepo.save(refNSD);
@@ -82,4 +93,5 @@ public class NSDService {
 		return o.orElse(null);
 	}
 
+	
 }

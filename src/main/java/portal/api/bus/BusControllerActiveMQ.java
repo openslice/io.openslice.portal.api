@@ -123,7 +123,7 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		
 
 		from("seda:nsd.deploy?multipleConsumers=true")		
-		.bean( deploymentDescriptorService, "getDeploymentEagerData" )
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deploy" );
 		
@@ -190,13 +190,13 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		
 		from("activemq:queue:getVxFByID")
 		.log( "activemq:queue:getVxFByID for ${body} !" )		
-		.bean( vxfService, "getProductByIDEagerData" )
+		.bean( vxfService, "getProductByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 
 		from("activemq:queue:getNSDByID")
 		.log( "activemq:queue:getNSDByID for ${body} !" )		
-		.bean( nsdService, "getProductByIDEagerData" )
+		.bean( nsdService, "getProductByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		

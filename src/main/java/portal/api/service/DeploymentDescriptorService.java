@@ -9,6 +9,10 @@ import java.util.Optional;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hibernate.Hibernate;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +30,10 @@ public class DeploymentDescriptorService {
 
 	@Autowired
 	DeploymentDescriptorRepository ddRepo;
+
+
+	@Autowired
+	private SessionFactory  sessionFactory;
 
 
 	private static final transient Log logger = LogFactory.getLog( DeploymentDescriptorService.class.getName());
@@ -118,9 +126,40 @@ public class DeploymentDescriptorService {
 
 		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find DeploymentDescriptor with id: " + id));
 	}
+	
 
 
-	public String getDeploymentEagerData( DeploymentDescriptor d ) throws JsonProcessingException {
+
+	/**
+	 * @param id
+	 * @return
+	 */
+	public DeploymentDescriptor getDeploymentByIdEager(long id) {
+//		Optional<DeploymentDescriptor> o = this.ddRepo.findById(id);
+//		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find DeploymentDescriptor with id: " + id));
+		 Session session = sessionFactory.openSession();
+		    Transaction tx = session.beginTransaction();
+		    DeploymentDescriptor dd = null;
+		    try {
+		        dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
+		        Hibernate.initialize( dd.getExperimentFullDetails() );
+		        Hibernate.initialize( dd.getExperimentFullDetails().getExperimentOnBoardDescriptors() );
+
+		        tx.commit();
+		        dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();
+		    } finally {
+		        session.close();
+		    }
+		    return dd;
+	}
+
+
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getDeploymentEagerDataJson( DeploymentDescriptor d ) throws JsonProcessingException {
 
 		DeploymentDescriptor dd = this.getDeploymentByID( d.getId() );
 		ObjectMapper mapper = new ObjectMapper();
@@ -208,6 +247,8 @@ public class DeploymentDescriptorService {
 		List<DeploymentDescriptor> RunningDeploymentDescriptor_list = this.ddRepo.readRunningInstantiatingAndTerminatingDeployments();
 		return RunningDeploymentDescriptor_list;
 	}
+
+
 
 
 

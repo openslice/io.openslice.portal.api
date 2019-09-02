@@ -30,7 +30,12 @@ public class VxFService {
 		return o.orElse(null);
 	}
 	
-	public String getProductByIDEagerData(long id) throws JsonProcessingException {
+	/**
+	 * @param id
+	 * @return a Json containing all data
+	 * @throws JsonProcessingException
+	 */
+	public String getProductByIDEagerDataJson(long id) throws JsonProcessingException {
 
 		
 		ObjectMapper mapper = new ObjectMapper();
