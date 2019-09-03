@@ -7,6 +7,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import javax.persistence.EntityManagerFactory;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.Hibernate;
@@ -32,13 +34,26 @@ public class DeploymentDescriptorService {
 	DeploymentDescriptorRepository ddRepo;
 
 
-	@Autowired
 	private SessionFactory  sessionFactory;
 
 
 	private static final transient Log logger = LogFactory.getLog( DeploymentDescriptorService.class.getName());
 
 
+	/**
+	 * from https://stackoverflow.com/questions/25063995/spring-boot-handle-to-hibernate-sessionfactory
+	 * @param factory
+	 */
+	@Autowired
+	public DeploymentDescriptorService(EntityManagerFactory factory) {
+	    if(factory.unwrap(SessionFactory.class) == null){
+	        throw new NullPointerException("factory is not a hibernate factory");
+	      }
+	      this.sessionFactory = factory.unwrap(SessionFactory.class);
+	    }
+
+	
+	
 	public List<DeploymentDescriptor> getAllCompletedDeploymentDescriptors() {
 		return this.ddRepo.getAllCompletedDeploymentDescriptors();
 	}

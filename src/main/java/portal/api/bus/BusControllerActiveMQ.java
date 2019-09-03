@@ -128,58 +128,58 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to( "activemq:topic:nsd.deploy" );
 		
 		from("seda:nsd.deployment.instantiation.success?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deployment.instantiation.success" );
 		
 		from("seda:nsd.deployment.instantiation.fail?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deployment.instantiation.fail" );
 		
 		from("seda:nsd.deployment.termination.success?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deployment.termination.success" );
 		
 		from("seda:nsd.deployment.termination.fail?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deployment.termination.fail" );
 		
 		from("seda:nsd.deployment.complete?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deployment.complete" );
 		
 		from("seda:nsd.deployment.delete?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deployment.delete" );
 
 		from("seda:nsd.deployment.reject?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.deployment.reject" );
 		
 
 		from("seda:nsd.instance.termination.success?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.instance.termination.success" );
 
 		from("seda:nsd.instance.termination.fail?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.instance.termination.fail" );
 
 		from("seda:nsd.instance.deletion.success?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.instance.deletion.success" );
 
 		from("seda:nsd.instance.deletion.fail?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.instance.deletion.fail" );
 		

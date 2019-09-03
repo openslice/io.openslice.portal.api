@@ -11,8 +11,9 @@ spring:
     database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     generate-ddl: true
+    properties.hibernate.current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
   activemq:
     broker-url: tcp://localhost:61616
     user: admin
