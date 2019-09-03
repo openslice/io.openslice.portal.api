@@ -132,7 +132,7 @@ public class InMemoryDBIntegrationTest {
 	@Test
 	public void countDefaultProperties() {
 		assertThat( propsService.getProperties().size() )
-		.isEqualTo( 13 );
+		.isEqualTo( 14 );
 
 		assertThat( usersService.findAll().size() )
 		.isEqualTo( 1 );

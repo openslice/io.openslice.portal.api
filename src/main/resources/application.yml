@@ -32,9 +32,11 @@ spring:
         enabled: true
         prefix: config
         defaultContext: openslice
-        data-key: osapipropsdata
+        data-key: osdata
         profileSeparator: '::'
-        format: yaml
+        format: yaml        
+      discovery:
+        instanceId: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
 logging:
   level:
     root: INFO
