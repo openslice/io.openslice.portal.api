@@ -304,7 +304,7 @@ public class MANOController {
 		OSM5Client osm5Client = null;
 		// For each deployment get the status info and the IPs
 		for (int i = 0; i < runningDeploymentDescriptors.size(); i++) {
-			DeploymentDescriptor deployment_tmp = deploymentDescriptorService.getDeploymentByID(runningDeploymentDescriptors.get(i).getId());
+			DeploymentDescriptor deployment_tmp = deploymentDescriptorService.getDeploymentByIdEager(runningDeploymentDescriptors.get(i).getId());
 			try {
 				// Get the MANO Provider for each deployment
 				
@@ -805,11 +805,10 @@ public class MANOController {
 	}
 
 	public void terminateNSFromMANOProvider(int deploymentdescriptorid) {
-		DeploymentDescriptor deploymentdescriptor = deploymentDescriptorService.getDeploymentByID(deploymentdescriptorid);
+		DeploymentDescriptor deploymentdescriptor = deploymentDescriptorService.getDeploymentByIdEager(deploymentdescriptorid);
 		
 		
 		// OSM5 START
-		deploymentdescriptor =  deploymentDescriptorService.getDeploymentByID(deploymentdescriptor.getId());
 		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
 			 //deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATING ||			
 			logger.info("Current status change before termination is :"+deploymentdescriptor.getStatus());
@@ -878,7 +877,7 @@ public class MANOController {
 	}
 
 	public void deleteNSFromMANOProvider(int deploymentdescriptorid) {
-		DeploymentDescriptor deploymentdescriptor = deploymentDescriptorService.getDeploymentByID(deploymentdescriptorid);
+		DeploymentDescriptor deploymentdescriptor = deploymentDescriptorService.getDeploymentByIdEager(deploymentdescriptorid);
 
 		logger.info("Will delete with deploymentdescriptorid : " + deploymentdescriptorid);		
 		String aMANOplatform = "";

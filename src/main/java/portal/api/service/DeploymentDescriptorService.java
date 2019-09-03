@@ -159,6 +159,8 @@ public class DeploymentDescriptorService {
 		        dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
 		        Hibernate.initialize( dd.getExperimentFullDetails() );
 		        Hibernate.initialize( dd.getExperimentFullDetails().getExperimentOnBoardDescriptors() );
+		        Hibernate.initialize( dd.getVxfPlacements() );
+		        
 
 		        tx.commit();
 		        dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();
@@ -176,7 +178,7 @@ public class DeploymentDescriptorService {
 	 */
 	public String getDeploymentEagerDataJson( DeploymentDescriptor d ) throws JsonProcessingException {
 
-		DeploymentDescriptor dd = this.getDeploymentByID( d.getId() );
+		DeploymentDescriptor dd = this.getDeploymentByIdEager( d.getId() );
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
