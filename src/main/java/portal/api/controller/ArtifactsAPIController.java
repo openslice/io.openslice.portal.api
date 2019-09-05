@@ -188,7 +188,6 @@ public class ArtifactsAPIController {
 	private void sendPropertiesToBus() {
 		try {
 			ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(Feature.WRITE_DOC_START_MARKER));
-
 			String props;
 			props = mapper.writeValueAsString(propsService.getPropertiesAsMap());
 			BusController.getInstance().propertiesUpdate(props);

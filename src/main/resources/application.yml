@@ -3,6 +3,9 @@ server:
   servlet:
     context-path : /osapi
 spring:
+  profiles: default
+  application:
+    name: openslice-portal-api
   datasource:
     url: jdbc:mysql://localhost/osdb?createDatabaseIfNotExist=true
     password: letmein0
@@ -15,7 +18,7 @@ spring:
     generate-ddl: true
     properties.hibernate.current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
   activemq:
-    broker-url: tcp://localhost:61616
+    brokerUrl: tcp://localhost:61616
     user: admin
     password: admin
     pool:
@@ -26,7 +29,8 @@ spring:
     multipart.max-request-size: 10MB
   cloud:
     consul:
-      host: localhost
+      enabled: true
+      host: http://localhost:8500
       port: 8500
       config:
         enabled: true
@@ -36,7 +40,10 @@ spring:
         profileSeparator: '::'
         format: yaml        
       discovery:
+        tags: openslice-microservice
+        enabled: true
         instanceId: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
+        healthCheckInterval: 120s
 logging:
   level:
     root: INFO

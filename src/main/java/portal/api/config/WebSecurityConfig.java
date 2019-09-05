@@ -87,6 +87,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		.antMatchers("/testweb/**").permitAll()		
 		.antMatchers("/oauth/token/revokeById/**").permitAll()
 		.antMatchers("/tokens/**").permitAll()
+		.antMatchers("/actuator/**").permitAll()
 		.anyRequest().authenticated()
 		//.and().formLogin().permitAll()
 		.and().csrf().disable()

@@ -70,10 +70,6 @@ public class PortalPropertiesService {
 			propsRepo.save(p);
 			p = new PortalProperty("maindomain", "https://portal.example.org");
 			propsRepo.save(p);
-			p = new PortalProperty("bugzillaurl", "portal.example.org:443/bugzilla");
-			propsRepo.save(p);
-			p = new PortalProperty("bugzillakey", "");
-			propsRepo.save(p);
 			p = new PortalProperty("jenkinsciurl", "ci.example.org");
 			propsRepo.save(p);
 			p = new PortalProperty("jenkinscikey", "");
@@ -84,8 +80,6 @@ public class PortalPropertiesService {
 			propsRepo.save(p);
 			p = new PortalProperty("portaltitle", "OpenSlice Dev");
 			propsRepo.save(p);
-			p = new PortalProperty("main_operations_product", "OpenSlice Operations");
-			propsRepo.save(p);
 			
 		}
 				
@@ -93,9 +87,12 @@ public class PortalPropertiesService {
 
 	public Map<String, String> getPropertiesAsMap() {
 		Map<String, String> m = new HashMap<>();
-		for (PortalProperty p : propsRepo.findAll()) {
-			m.put(p.getName(), p.getValue());
-		}
+
+		m.put( "maindomain" , getPropertyByName("maindomain").getValue() );
+		m.put( "portaltitle" ,getPropertyByName("portaltitle").getValue() );
+		m.put( "centrallogerurl" , getPropertyByName("centrallogerurl").getValue() );
+
+		
 		return m;
 	}
 }
