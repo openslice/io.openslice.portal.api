@@ -45,6 +45,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -651,7 +652,9 @@ public class ArtifactsAPIController {
 		return ResponseEntity.ok( vxfs );		
 	}
 	
+	@PreAuthorize("#oauth2.hasScope('read') and #oauth2.hasScope('admin')")
 	@GetMapping( value = "/admin/vxfs", produces = "application/json" )
+	@ResponseBody
 	public  ResponseEntity<?> getVxFs(@RequestParam( name = "categoryid", required = false) Long categoryid) {
 		logger.info("getVxFs categoryid=" + categoryid);
 		
