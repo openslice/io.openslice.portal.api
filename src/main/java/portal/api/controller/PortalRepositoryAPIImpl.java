@@ -48,6 +48,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -69,6 +70,7 @@ import portal.api.service.UsersService;
 import portal.api.util.EmailUtil;
 
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -147,6 +149,17 @@ public class PortalRepositoryAPIImpl {
 	}
 
 
+
+	@PreAuthorize("#oauth2.hasScope('read')")
+	@GetMapping( value = "/admin/users/myuser", produces = "application/json" )
+	@ResponseBody
+	public PortalUser getUser( ) {
+
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+		return u  ;		
+	}
+	
+	
 	@PostMapping( value =  "/admin/users", produces = "application/json", consumes = "application/json" )
 	public ResponseEntity<?> addUser( @Valid @RequestBody PortalUser user) {
 
