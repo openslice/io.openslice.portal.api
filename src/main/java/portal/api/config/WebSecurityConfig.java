@@ -6,22 +6,29 @@ import java.util.Arrays;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import io.openslice.model.UserRoleType;
 
 @Configuration
+@EnableWebSecurity
+
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	
     @Autowired
@@ -93,7 +100,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		.anyRequest().authenticated()
 		//.and().formLogin().permitAll()
 		.and().csrf().disable()
-		.cors().and().csrf().disable()
+		//.cors().and().csrf().disable() // we use the filter..see below
 		.exceptionHandling()
 	    .authenticationEntryPoint(restAuthenticationEntryPoint)
 	    .and()
@@ -102,17 +109,22 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
     
 
-	 @Bean
-	    CorsConfigurationSource corsConfigurationSource() {
-	        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-	        CorsConfiguration corsConfiguration = new CorsConfiguration();
-	        corsConfiguration.setAllowedOrigins(Arrays.asList("*"));
-	        corsConfiguration.setAllowedMethods(Arrays.asList("*"));
-	        corsConfiguration.setAllowedHeaders(Arrays.asList("*"));
-	        corsConfiguration.setAllowCredentials(true);
-	        corsConfiguration.setMaxAge(1800L);
-	        source.registerCorsConfiguration("/**", corsConfiguration); // restrict path here
-	        return source;
-	 }
+    @Bean
+	public FilterRegistrationBean corsFilter() {
+
+	    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+	    CorsConfiguration config = new CorsConfiguration();
+	    config.setAllowCredentials(true);
+	    config.addAllowedOrigin("*");
+	    config.addAllowedHeader("*");
+	    config.addAllowedMethod("*");
+	    source.registerCorsConfiguration("/**", config);
+	    FilterRegistrationBean bean = new FilterRegistrationBean(new CorsFilter(source));
+
+	    bean.setOrder(0);
+
+	    return bean;
+
+	}
 
 }
