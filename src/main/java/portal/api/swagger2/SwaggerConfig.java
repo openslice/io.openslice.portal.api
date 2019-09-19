@@ -2,6 +2,7 @@ package portal.api.swagger2;
 
 import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,9 +26,18 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @Configuration
 @EnableSwagger2
 public class SwaggerConfig {
-    public static final String AUTH_SERVER = "http://localhost:13081/osapi-oauth-server/oauth";
-    public static final String CLIENT_ID = "fooClientIdPassword";
-    public static final String CLIENT_SECRET = "secret";
+	
+
+	@Value("${swagger.authserver}")
+	private String AUTH_SERVER;
+	@Value("${swagger.clientid}")
+	private String CLIENT_ID;
+	@Value("${swagger.clientsecret}")
+	private String CLIENT_SECRET;
+	
+//    public static final String AUTH_SERVER = "http://localhost:13081/osapi-oauth-server";
+//    public static final String CLIENT_ID = "fooClientIdPassword";
+//    public static final String CLIENT_SECRET = "secret";
 
     @Bean
     public Docket api() {
@@ -50,9 +60,9 @@ public class SwaggerConfig {
 
     private SecurityScheme securityScheme() {
         GrantType grantType = new AuthorizationCodeGrantBuilder()
-        		.tokenEndpoint(new TokenEndpoint(AUTH_SERVER + "/token", "oauthtoken"))
+        		.tokenEndpoint(new TokenEndpoint(AUTH_SERVER + "/oauth/token", "oauthtoken"))
         		.tokenRequestEndpoint(
-        		  new TokenRequestEndpoint(AUTH_SERVER + "/authorize", CLIENT_ID, CLIENT_ID))
+        		  new TokenRequestEndpoint(AUTH_SERVER + "/oauth/authorize", CLIENT_ID, CLIENT_ID))
         		.build();
 
         SecurityScheme oauth = new OAuthBuilder().name("spring_oauth")
