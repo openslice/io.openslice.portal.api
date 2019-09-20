@@ -916,23 +916,6 @@ public class ArtifactsAPIController {
 		
 		prevProduct.setDateUpdated(new Date());
 		
-		for (Category c : prevProduct.getCategories()) {
-			// logger.info("Will remove product "+prodPreUpdate.getName()+ ",
-			// from Previous Category "+c.getName() );
-			c.removeProduct(prevProduct);
-			categoryService.updateCategoryInfo(c);
-		}
-		prevProduct.getCategories().clear();
-
-		// we must replace API given product categories with the ones from our
-		// DB
-		for (Category c : prod.getCategories()) {
-			Category catToUpdate = categoryService.findById(c.getId());
-			// logger.info("BEFORE PROD SAVE, category "+catToUpdate.getName()+"
-			// contains Products: "+ catToUpdate.getProducts().size() );
-			//prod.getCategories().set(prod.getCategories().indexOf(c), catToUpdate);
-			prevProduct.getCategories().add(catToUpdate);
-		}
 
 		String endpointUrl = request.getContextPath() ;//request.getRequestURI();
 
@@ -1062,7 +1045,14 @@ public class ArtifactsAPIController {
 		prevProduct = productService.updateProductInfo( prevProduct );
 
 		// now fix category product references
-		for (Category catToUpdate : prevProduct.getCategories()) {
+		//first remove all
+		for (Category c : prevProduct.getCategories()) {
+			 logger.info("Will remove product "+ prevProduct.getName()+ ", from Previous Category "+c.getName() );
+			c.removeProduct(prevProduct);
+			categoryService.updateCategoryInfo(c);
+		}
+		//add only the defined
+		for (Category catToUpdate : prod.getCategories()) {
 			//Product p = portalRepositoryRef.getProductByID(prod.getId());
 			Category c = categoryService.findById(catToUpdate.getId() );
 			c.addProduct( prevProduct );
@@ -1120,7 +1110,7 @@ public class ArtifactsAPIController {
 		Product avxf = productService.getProducttByUUID(uuid);
 //		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 //		if ((u == null) && (!avxf.isPublished() )) {
-//			return (ResponseEntity<ByteArrayResource>) ResponseEntity.badRequest();
+//			return (ResponseEntity<ByteArrayResource>) ResponseEntity.badRequest().build();
 //		}
 		
 		Path path = Paths.get(file.getAbsolutePath());
@@ -1696,7 +1686,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok( expmetasaved );
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 		
 		
@@ -1820,7 +1810,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok( u  );	
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 
 	}
@@ -2244,7 +2234,7 @@ public class ArtifactsAPIController {
 		}
 
 
-		return (ResponseEntity<?>) ResponseEntity.badRequest();
+		return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 
 	}
 
@@ -2321,7 +2311,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok( u  );
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 	}
 
@@ -2343,7 +2333,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok( u  );
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 
 	}
@@ -2418,7 +2408,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok( u  );
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 	}
 
@@ -2444,7 +2434,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok( u  );
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 
 	}
@@ -2632,11 +2622,11 @@ public class ArtifactsAPIController {
 			if (refVxF != null) {
 				return ResponseEntity.ok( refVxF  );
 			} else {
-				return (ResponseEntity<?>) ResponseEntity.badRequest();
+				return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 			}
 			
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 	}
 
@@ -2652,7 +2642,7 @@ public class ArtifactsAPIController {
 		if (u != null) {
 			return ResponseEntity.ok( u  );
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 
 	}
@@ -2682,7 +2672,7 @@ public class ArtifactsAPIController {
 		if (sm != null) {
 			return ResponseEntity.ok( sm  );
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 			// throw new WebApplicationException(builder.build());
 		}
 	}
@@ -2846,11 +2836,11 @@ public class ArtifactsAPIController {
 			if (refExp != null) {
 				return ResponseEntity.ok( refExp  );
 			} else {
-				return (ResponseEntity<?>) ResponseEntity.badRequest();
+				return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 			}
 			
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 		
 		
@@ -2868,7 +2858,7 @@ public class ArtifactsAPIController {
 		if (u != null) {
 			return ResponseEntity.ok( u  );
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 
 	}
@@ -3031,7 +3021,7 @@ public class ArtifactsAPIController {
 		if (u != null) {
 			return ResponseEntity.ok( u);
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 	}
 
@@ -3054,7 +3044,7 @@ public class ArtifactsAPIController {
 		if (u != null) {
 			return ResponseEntity.ok( u);
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 
 	}
@@ -3117,7 +3107,7 @@ public class ArtifactsAPIController {
 			infrastructureService.updateInfrastructureInfo(infrs);
 			return ResponseEntity.ok( infrs );
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.badRequest();
+			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
 		}
 	}
 	

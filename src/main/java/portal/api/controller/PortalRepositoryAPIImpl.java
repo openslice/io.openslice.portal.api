@@ -586,7 +586,7 @@ public class PortalRepositoryAPIImpl {
 	
 	@Secured({ "ROLE_ADMIN" })
 	@PostMapping( value =  "/admin/categories", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> addCategory(Category c) {
+	public ResponseEntity<?> addCategory(@Valid @RequestBody Category c) {
 		
 		
 		Category u = categoryService.addCategory(c);
@@ -600,7 +600,7 @@ public class PortalRepositoryAPIImpl {
 
 	@Secured({ "ROLE_ADMIN" })
 	@PutMapping( value =  "/admin/categories/{catid}", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> updateCategory(@PathVariable("catid") long catid, @RequestBody Category c) {
+	public ResponseEntity<?> updateCategory(@PathVariable("catid") long catid, @Valid @RequestBody Category c) {
 		
 		
 		Category previousCategory = categoryService.findById(catid);
@@ -618,16 +618,23 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	@Secured({ "ROLE_ADMIN" })
-	@DeleteMapping( value =  "/admin/categories/{catid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/categories/{catid}", produces = "application/json")
 	public ResponseEntity<?> deleteCategory( @PathVariable("catid") long catid) {
 		
+		logger.info("deleteCategory  catid=" + catid);
 
 		Category previousCategory = categoryService.findById(catid);
-		if ( previousCategory != null ) {
-			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested category cannot be deleted" );
+		if ( previousCategory == null ) {
+			return (ResponseEntity<?>) ResponseEntity.notFound();
 		} else {
-			categoryService.deleteCategory( previousCategory );
-			return ResponseEntity.ok().body("OK");
+			try
+			{
+				categoryService.deleteCategory( previousCategory );
+				return ResponseEntity.ok( "{}"  );				
+			} catch (Exception e) {
+				
+				return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body("{ \"message\" : \"Cannot delete category. There are elements linked.\"}");
+			}
 		}
 	}
 
@@ -637,7 +644,7 @@ public class PortalRepositoryAPIImpl {
 		Category c = categoryService.findById(catid);
 
 		if (c != null) {
-			return ResponseEntity.ok( categoryService.findAll() );
+			return ResponseEntity.ok( c );
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested category not found" );
 		}

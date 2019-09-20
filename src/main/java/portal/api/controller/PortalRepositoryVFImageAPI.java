@@ -128,13 +128,13 @@ public class PortalRepositoryVFImageAPI {
 			return ResponseEntity.ok( vfimagess  );	
 
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.notFound();
+			return (ResponseEntity<?>) ResponseEntity.notFound().build();
 		}
 		
 	}
 
 
-	@PostMapping( value = "/admin/vfimages", produces = "application/json", consumes = "application/json" )
+	@PostMapping( value = "/admin/vfimages"  )
 	public ResponseEntity<?> addVFImage(
 			final @ModelAttribute("vfimage") String v,
 			@RequestParam(name = "prodFile", required = false) MultipartFile  prodFile,
@@ -145,7 +145,7 @@ public class PortalRepositoryVFImageAPI {
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
 		if (u == null) {
-			return (ResponseEntity<?>) ResponseEntity.notFound();
+			return (ResponseEntity<?>) ResponseEntity.notFound().build();
 		}
 
 		VFImage vfimg = null;
@@ -169,7 +169,7 @@ public class PortalRepositoryVFImageAPI {
 			String uuid = UUID.randomUUID().toString();
 			vfimg.setUuid(uuid);
 			vfimg.setDateCreated(new Date());
-			
+			vfimg.setOwner(u);
 			vfimg = addNewVFImage(vfimg,	prodFile, request);
 
 		} catch (JsonProcessingException e) {
@@ -293,7 +293,7 @@ public class PortalRepositoryVFImageAPI {
 	
 
 	@PutMapping( value =  "/admin/vfimages", produces = "application/json", consumes = "multipart/form-data" )
-	public ResponseEntity<?> updateVFImage(@PathVariable("uuid") int infraid, 
+	public ResponseEntity<?> updateVFImage(
 			final @ModelAttribute("vfimage") String v,
 			@RequestParam(name = "prodFile", required = false) MultipartFile  prodFile,
 			HttpServletRequest request) throws ForbiddenException {
@@ -379,7 +379,7 @@ public class PortalRepositoryVFImageAPI {
 			
 			return ResponseEntity.ok( sm );
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.notFound();
+			return (ResponseEntity<?>) ResponseEntity.notFound().build();
 		}
 	}
 	
@@ -395,7 +395,7 @@ public class PortalRepositoryVFImageAPI {
 	
 			return ResponseEntity.ok( sm  );
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.notFound();
+			return (ResponseEntity<?>) ResponseEntity.notFound().build();
 		}
 	}
 
