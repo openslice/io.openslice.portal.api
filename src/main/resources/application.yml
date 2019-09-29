@@ -60,3 +60,6 @@ swagger:
   clientid: "osapiWebClientId"
   clientsecret: "secret"
   
+oauthsign:
+   key: "EK97Y7Y9WPGG1MEG"
+  

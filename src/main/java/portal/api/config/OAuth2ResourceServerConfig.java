@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -25,6 +26,11 @@ import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 @EnableResourceServer
 public class OAuth2ResourceServerConfig extends ResourceServerConfigurerAdapter {
 
+
+
+	@Value("${oauthsign.key}")
+    private String SIGNING_KEY = null;
+	
     @Override
     public void configure(final HttpSecurity http) throws Exception {
         http.sessionManagement()
@@ -53,7 +59,7 @@ public class OAuth2ResourceServerConfig extends ResourceServerConfigurerAdapter 
     @Bean
     public JwtAccessTokenConverter accessTokenConverter() {
         final JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-        converter.setSigningKey("123");
+        converter.setSigningKey( SIGNING_KEY );
         converter.setJwtClaimsSetVerifier(jwtClaimsSetVerifier());
 
         // final Resource resource = new ClassPathResource("public.txt");
@@ -75,7 +81,7 @@ public class OAuth2ResourceServerConfig extends ResourceServerConfigurerAdapter 
     @Bean
     public JwtClaimsSetVerifier issuerClaimVerifier() {
         try {
-            return new IssuerClaimVerifier(new URL("http://localhost:13081"));
+            return new IssuerClaimVerifier(new URL("http://localhostx:13082"));
         } catch (final MalformedURLException e) {
             throw new RuntimeException(e);
         }
