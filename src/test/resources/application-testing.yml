@@ -29,6 +29,7 @@ spring:
     port: 8025
     properties.mail.smtp.auth: false
 
+
 logging:
   level:
     root: INFO
@@ -38,3 +39,7 @@ logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
     file: "%d %p %c{1.} [%t] %m%n"
+    
+ 
+oauthsign:
+   key: "EK97Y7Y9WPGG1MEG"

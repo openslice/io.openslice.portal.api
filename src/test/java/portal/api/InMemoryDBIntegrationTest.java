@@ -30,6 +30,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -61,10 +62,16 @@ import portal.api.service.VxFService;
 @RunWith(SpringRunner.class)
 @Transactional
 @SpringBootTest( webEnvironment = SpringBootTest.WebEnvironment.MOCK , classes = PortalApplication.class)
-@AutoConfigureTestDatabase
+//@AutoConfigureTestDatabase
 @AutoConfigureMockMvc 
-@TestPropertySource(
-		  locations = "classpath:application-testing.yml")
+@ActiveProfiles("testing")
+@TestPropertySource(properties = {"spring.cloud.consul.config.enabled=false",
+		"spring.cloud.bus.enabled=false",
+		"spring.cloud.discovery.enabled=false",
+		"spring.cloud.consul.enabled=false"})
+
+
+
 public class InMemoryDBIntegrationTest {
 
 
@@ -132,7 +139,7 @@ public class InMemoryDBIntegrationTest {
 	@Test
 	public void countDefaultProperties() {
 		assertThat( propsService.getProperties().size() )
-		.isEqualTo( 14 );
+		.isEqualTo( 11 );
 
 		assertThat( usersService.findAll().size() )
 		.isEqualTo( 1 );
@@ -140,6 +147,14 @@ public class InMemoryDBIntegrationTest {
 	
 	@Test
 	public void loginAdmin() throws Exception {
+
+		/**
+		 * no auth session
+		 */
+		mvc.perform(get("/admin/users")
+				.contentType(MediaType.APPLICATION_JSON)				
+				)
+	    	.andExpect(status().is(401) );
 		
 		UserSession pu = new UserSession();
 		pu.setUsername("admin");
@@ -167,13 +182,6 @@ public class InMemoryDBIntegrationTest {
 	    	.andExpect( jsonPath("$[0].name", is("None")) );
 		
 
-		/**
-		 * no auth session
-		 */
-		mvc.perform(get("/admin/categories")
-				.contentType(MediaType.APPLICATION_JSON)				
-				)
-	    	.andExpect(status().is(401) );
 		
 		/**
 		 * with auth session
