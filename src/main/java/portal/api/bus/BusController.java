@@ -420,8 +420,12 @@ public class BusController  {
 	 * @param deployment a {@link ExperimentOnBoardDescriptor}
 	 */
 	public void propertiesUpdate(String props) {
-		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:properties.update?multipleConsumers=true");
-		template.withBody( props ).asyncSend();		
+		
+		if ( contxt != null ) {
+			FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:properties.update?multipleConsumers=true");
+			template.withBody( props ).asyncSend();
+			
+		}		
 	}
 
 
