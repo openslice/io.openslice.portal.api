@@ -132,9 +132,9 @@ public class ValidationCIRouteBuilder extends RouteBuilder {
 				aProd.getValidationJobs().add(j);
 			}
 		    
-		    exchange.getOut().setBody( aProd  );
+		    exchange. getOut().setBody( aProd  );
 		    // copy attachements from IN to OUT to propagate them
-		    exchange.getOut().setAttachments(exchange.getIn().getAttachments());
+		    //exchange.getOut().setAttachments(exchange.getIn().getAttachments());
 			
 		}
 	};
@@ -164,7 +164,7 @@ public class ValidationCIRouteBuilder extends RouteBuilder {
 		    
 		    exchange.getOut().setBody( "" );
 		    // copy attachements from IN to OUT to propagate them
-		    exchange.getOut().setAttachments(exchange.getIn().getAttachments());
+		    //exchange.getOut().setAttachments(exchange.getIn().getAttachments());
 			
 		}
 	};

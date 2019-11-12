@@ -7,6 +7,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,6 +16,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.http.HttpSession;
 
@@ -34,6 +38,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -239,12 +244,33 @@ public class InMemoryDBIntegrationTest {
 		InputStream ing = new FileInputStream( gz );
 		MockMultipartFile prodFile = new MockMultipartFile("prodFile", "cirros_vnf.tar.gz", "application/x-gzip", IOUtils.toByteArray(ing));
 		     
-		 
-		 mvc.perform(MockMvcRequestBuilders.multipart("/admin/vxfs")
-				 .file(prodFile)
-				 .param("vxf", resvxf)
-				 .session( (MockHttpSession) session ))
-	    	.andExpect(status().isOk());
+        
+        Map<String, Object> sessionAttributes = new HashMap<>();
+        Enumeration<String> attr = session.getAttributeNames();
+        while ( attr.hasMoreElements()) {
+        	String aname = attr.nextElement();
+        	System.out.println("aname is: " + aname);
+        	System.out.println("Value is: " + session.getAttribute(aname));
+        	sessionAttributes.put(aname, session.getAttribute(aname));
+        }
+             
+        
+      
+        
+		MockMultipartHttpServletRequestBuilder mockMultipartHttpServletRequestBuilder = 
+        		(MockMultipartHttpServletRequestBuilder) multipart("/admin/vxfs").sessionAttrs(sessionAttributes) ;
+        
+        mockMultipartHttpServletRequestBuilder.file( prodFile );
+        mockMultipartHttpServletRequestBuilder.param("vxf", resvxf);
+        
+        mvc.perform(mockMultipartHttpServletRequestBuilder).andExpect(status().isOk());
+        		
+//		 mvc.perform(MockMvcRequestBuilders.multipart( "/admin/vxfs")
+//				 .file(prodFile)
+//				 .param("vxf", resvxf)
+//				 .session( (MockHttpSession) session )
+//				 )
+//	    	.andExpect(status().isOk());
 		 
 		 assertThat( vxfService.getVxFsByCategory((long) -1) .size() )
 			.isEqualTo( 1 );
@@ -312,7 +338,7 @@ public class InMemoryDBIntegrationTest {
 		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
 		 
 		 assertThat( vxfService.getVxFsByCategory((long) -1) .size() )
-			.isEqualTo( 0 );
+			.isEqualTo( 1 );
 
 	}
 	

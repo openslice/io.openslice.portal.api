@@ -49,6 +49,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -652,13 +653,15 @@ public class ArtifactsAPIController {
 		return ResponseEntity.ok( vxfs );		
 	}
 	
-	@PreAuthorize("#oauth2.hasScope('read') and #oauth2.hasScope('admin')")
+	//@PreAuthorize("#oauth2.hasScope('read') and #oauth2.hasScope('admin')")
 	@GetMapping( value = "/admin/vxfs", produces = "application/json" )
 	@ResponseBody
-	public  ResponseEntity<?> getVxFs(@RequestParam( name = "categoryid", required = false) Long categoryid) {
+	public  ResponseEntity<?> getVxFs(@RequestParam( name = "categoryid", required = false) Long categoryid, HttpServletRequest request) {
 		logger.info("getVxFs categoryid=" + categoryid);
 		
 
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr );  
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		
 		PortalUser u =  usersService.findByUsername( authentication.getName() );
@@ -703,12 +706,15 @@ public class ArtifactsAPIController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}  
+		
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr );  
 
-		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+		PortalUser u =  usersService.findByUsername(  SecurityContextHolder.getContext().getAuthentication().getName() );
 		
 
 		if (u == null) {
-			return (ResponseEntity<?>) ResponseEntity.badRequest().body( "User not found in registry");
+			return (ResponseEntity<String>) ResponseEntity.badRequest().body( "User " + SecurityContextHolder.getContext().getAuthentication().getName() + " not found in registry");
 		}
 		
 		String emsg = "";
@@ -782,7 +788,7 @@ public class ArtifactsAPIController {
 			BusController.getInstance().validateVxF(vxfr);	
 			return ResponseEntity.ok( vxfr  );	
 		} else {
-			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body("{ \"message\" : \"Requested entity cannot be installed. " + emsg +"\"}");
+			return (ResponseEntity<String>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body("{ \"message\" : \"Requested entity cannot be installed. " + emsg +"\"}");
 			//return (ResponseEntity<?>) ResponseEntity.badRequest().body( "Requested entity cannot be installed. " + emsg );
 		}
 			
@@ -1129,8 +1135,11 @@ public class ArtifactsAPIController {
 	}
 
 	@DeleteMapping( value =  "/admin/vxfs/{vxfid}", produces = "application/json" )
-	public ResponseEntity<?> deleteVxF( @PathVariable("vxfid") int vxfid) throws ForbiddenException {
+	public ResponseEntity<?> deleteVxF( @PathVariable("vxfid") int vxfid, HttpServletRequest request) throws ForbiddenException {
 
+
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr ); 
 		
 		VxFMetadata vxf = (VxFMetadata) vxfService.getProductByID( vxfid );
 				
@@ -1352,8 +1361,11 @@ public class ArtifactsAPIController {
 	// Experiments related API
 
 	@GetMapping( value = "/admin/experiments", produces = "application/json" )
-	public ResponseEntity<?> getApps(@RequestParam(name= "categoryid", required = false) Long categoryid) {
+	public ResponseEntity<?> getApps(@RequestParam(name= "categoryid", required = false) Long categoryid, HttpServletRequest request) {
 
+
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr );  
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
 		if (u != null) {
@@ -1467,6 +1479,7 @@ public class ArtifactsAPIController {
 	@GetMapping( value = "/admin/experiments/{appid}", produces = "application/json" )
 	public ResponseEntity<?>  getAdminExperimentMetadataByID(@PathVariable("appid") int appid) throws ForbiddenException {
 		
+		
 		logger.info("getAppMetadataByID  appid=" + appid);
 		ExperimentMetadata app = nsdService.getProductByID(appid);
 		
@@ -1528,7 +1541,9 @@ public class ArtifactsAPIController {
 			e.printStackTrace();
 		}  
 		
-		
+
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr );  
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
 		if (u == null) {
@@ -1693,7 +1708,12 @@ public class ArtifactsAPIController {
 	}
 
 	@DeleteMapping( value =  "/admin/experiments/{appid}", produces = "application/json" )
-	public  ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid) throws ForbiddenException {
+	public  ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid, HttpServletRequest request) throws ForbiddenException {
+		
+
+
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr ); 
 		
 		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID( appid );
 
