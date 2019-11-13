@@ -1,17 +1,23 @@
-/**
- * Copyright 2017 University of Patras 
+/*-
+ * ========================LICENSE_START=================================
+ * io.openslice.portal.api
+ * %%
+ * Copyright (C) 2019 openslice.io
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License.
- * You may obtain a copy of the License at:
+ *      http://www.apache.org/licenses/LICENSE-2.0
  * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 
- * See the License for the specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * =========================LICENSE_END==================================
  */
+
 
 package portal.api.controller;
 
@@ -122,6 +128,10 @@ import portal.api.validation.ci.ValidationJobResult;
 
 
 
+/**
+ * @author ctranoris
+ *
+ */
 @RestController
 //@RequestMapping("/repo")
 public class ArtifactsAPIController {
@@ -3199,54 +3209,5 @@ public class ArtifactsAPIController {
 	
 	
 	
-	
-//	/**
-//	 * 
-//	 * SFA related
-//	 */
-//	
-//	@POST
-//	@Path("/sfawrap")
-//	@Produces("text/xml")
-//	@Consumes("text/xml")
-//	public Response getSFA( String xmlreq) {
-//		logger.info("/sfawrap param=" + xmlreq );
-//		//AggregateManager.listAvailableResources
-//		
-//
-//		
-//		List<VxFMetadata> vxfs = portalRepositoryRef.getVxFs( null, true);
-//		
-//		Date d = new Date();
-//		StringBuilder sfaresponse = new StringBuilder();
-//		//sfaresponse.append( "<?xml version=\"1.0\"?>" );
-//		sfaresponse.append( "<rspec xmlns=\"http://www.protogeni.net/resources/rspec/2\"  type=\"advertisement\" valid_until=\"" + "2020-05-20T16:03:57+03:00" +  "\" generated=\"" + "2018-06-20T16:03:57+03:00"  + "\">" );
-//		sfaresponse.append( "<statistics call=\"ListResources\">" );
-//		sfaresponse.append( "<aggregate status=\"success\" name=\"5ginfire\" elapsed=\"0.1\"/>" );
-//		sfaresponse.append( "</statistics>" );
-//		sfaresponse.append( "<network name=\"5ginfire\">" );
-//		
-//		for (VxFMetadata vxFMetadata : vxfs) {
-//			sfaresponse.append( " <node component_manager_id=\"urn:publicid:IDN+5ginfire+authority+cm\"  component_id=\"urn:publicid:IDN+upatras:p2e+node+" + vxFMetadata.getUuid()  + "\"  component_name=\"" + vxFMetadata.getName() + "\" site_id=\"urn:publicid:IDN+5ginfire:p2e+authority+sa\">" );
-//			sfaresponse.append( "<displayname>" + vxFMetadata.getName() + "</displayname>" );
-//			sfaresponse.append( "<package>" + vxFMetadata.getPackageLocation()  + "</package>" );
-//			sfaresponse.append( "" );
-//			sfaresponse.append( "<location country=\"unknown\" longitude=\"21.7885\" latitude=\"38.2845\"/>" );
-//			sfaresponse.append( " <description>" + vxFMetadata.getShortDescription() + "</description>" );
-//			sfaresponse.append( "" );
-//			sfaresponse.append( "<lease from=\"" + d.toString() + "\" until=\"" + d.toString() + "\">false</lease>" );
-//			sfaresponse.append( "</node>" );
-//		}
-//		
-//		
-//		
-//		sfaresponse.append( "</network>" );
-//		sfaresponse.append( "</rspec>" );
-//		
-//
-//		
-//		return Response.ok().entity( sfaresponse.toString() ).build();
-//
-//	}
 
 }
