@@ -42,8 +42,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.DeploymentDescriptor;
-import io.openslice.model.VxFMetadata;
-import portal.api.mano.MANOController;
 import portal.api.repo.DeploymentDescriptorRepository;
 
 @Service
@@ -54,6 +52,7 @@ public class DeploymentDescriptorService {
 
 
 	private SessionFactory  sessionFactory;
+
 
 
 	private static final transient Log logger = LogFactory.getLog( DeploymentDescriptorService.class.getName());
@@ -283,7 +282,6 @@ public class DeploymentDescriptorService {
 		List<DeploymentDescriptor> RunningDeploymentDescriptor_list = this.ddRepo.readRunningInstantiatingAndTerminatingDeployments();
 		return RunningDeploymentDescriptor_list;
 	}
-
 
 
 

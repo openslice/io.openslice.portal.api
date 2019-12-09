@@ -64,7 +64,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.ExperimentMetadata;
+import io.openslice.model.Infrastructure;
 import io.openslice.model.UserSession;
 import io.openslice.model.VxFMetadata;
 import portal.api.mano.MANOController;
@@ -363,29 +365,165 @@ public class InMemoryDBIntegrationTest {
 	
 	
 	 
-		@Test
-		public void addNSD() throws Exception {
+	@Test
+	public void addNSD() throws Exception {
+		
+		UserSession pu = new UserSession();
+		pu.setUsername("admin");
+		pu.setPassword("changeme");
+		
+		/**
+		 * auth
+		 */
+		 HttpSession session = mvc.perform(post("/sessions")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content( toJson( pu ) ))
+			    .andExpect(status().isOk())
+			    .andExpect(content()
+			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    .andExpect(jsonPath("username", is("admin")))
+			    .andReturn().getRequest().getSession();
+		 			 
+		 
+
+		 	File vxfFile = new File( "src/test/resources/testvxf.txt" );
+			InputStream invxf = new FileInputStream( vxfFile );
+			String resvxf = IOUtils.toString( invxf, "UTF-8");
+			logger.info( "resvxf ========> " + resvxf );
+
+			File gzvxf = new File( "src/test/resources/cirros_vnf.tar.gz" );
+			InputStream inggzvxf = new FileInputStream( gzvxf );
+			MockMultipartFile prodFilevxf = new MockMultipartFile("prodFile", "cirros_vnf.tar.gz", "application/x-gzip", IOUtils.toByteArray( inggzvxf ));
+			     
+	        Map<String, Object> sessionAttributes = new HashMap<>();
+	        Enumeration<String> attr = session.getAttributeNames();
+	        while ( attr.hasMoreElements()) {
+	        	String aname = attr.nextElement();
+	        	System.out.println("aname is: " + aname);
+	        	System.out.println("Value is: " + session.getAttribute(aname));
+	        	sessionAttributes.put(aname, session.getAttribute(aname));
+	        }
+	        
+			MockMultipartHttpServletRequestBuilder mockMultipartHttpServletRequestBuilder = 
+	        		(MockMultipartHttpServletRequestBuilder) multipart("/admin/vxfs").sessionAttrs(sessionAttributes) ;
+	        
+	        mockMultipartHttpServletRequestBuilder.file( prodFilevxf );
+	        mockMultipartHttpServletRequestBuilder.param("vxf", resvxf);
+	        
+	        mvc.perform(mockMultipartHttpServletRequestBuilder).andExpect(status().isOk());
+	        		
+	        
+
+		File nsdFile = new File( "src/test/resources/testnsd.txt" );
+		InputStream in = new FileInputStream( nsdFile );
+		String resnsd = IOUtils.toString(in, "UTF-8");
+		logger.info( "resnsd ========> " + resnsd );
+
+		File gz = new File( "src/test/resources/cirros_2vnf_ns.tar.gz" );
+		InputStream ing = new FileInputStream( gz );
+		MockMultipartFile prodFile = new MockMultipartFile("prodFile", "cirros_2vnf_ns.tar.gz", "application/x-gzip", IOUtils.toByteArray(ing));
+		     
+		 
+		 mvc.perform(MockMvcRequestBuilders.multipart("/admin/experiments")
+				 .file(prodFile)
+				 .param("exprm", resnsd)
+				 .session( (MockHttpSession) session ))
+	    	.andExpect(status().isOk());
+		 
+		 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
+			.isEqualTo( 1 );
+
+		 ExperimentMetadata ansd = nsdService.getNSDByName( "cirros_2vnf_nsd" );
+		 
+		 
+		 assertThat(ansd).isNotNull();
+		 
+		 assertThat(ansd.getConstituentVxF().size()).isEqualTo(2);
+		 
+		 
+		 mvc.perform(get("/categories")
+					.contentType(MediaType.APPLICATION_JSON))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+		    	.andExpect( jsonPath("$[0].name", is("None")) )
+		    	.andExpect( jsonPath("$[1].name", is("Networking")))
+		    	.andExpect( jsonPath("$[1].appscount", is( 1 )));
+		 
+		 
+
 			
-			UserSession pu = new UserSession();
-			pu.setUsername("admin");
-			pu.setPassword("changeme");
-			
-			/**
-			 * auth
-			 */
-			 HttpSession session = mvc.perform(post("/sessions")
+		 //https://patras5g.eu/apiportal/services/api/repo/admin/deployments/
+
+		 session = mvc.perform(post("/sessions")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content( toJson( pu ) ))
+			    .andExpect(status().isOk())
+			    .andExpect(content()
+			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    .andExpect(jsonPath("username", is("admin")))
+			    .andReturn().getRequest().getSession();
+		 
+			Infrastructure infr = new Infrastructure();
+			infr.setName( "Cloudville" );
+
+			 mvc.perform(post("/admin/infrastructures").session( (MockHttpSession) session ) 
 					.contentType(MediaType.APPLICATION_JSON)
-					.content( toJson( pu ) ))
-				    .andExpect(status().isOk())
-				    .andExpect(content()
-				    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-				    .andExpect(jsonPath("username", is("admin")))
-				    .andReturn().getRequest().getSession();
-			 			 
+					.content( toJson( infr ) )
+					 )				
+			    	.andExpect(status().isOk())
+			    	.andExpect(content()
+			    	.contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
 			 
 
+		gz = new File( "src/test/resources/deploymentReq.txt" );
+		ing = new FileInputStream( gz );
+		resnsd = IOUtils.toString( ing, "UTF-8");
+		DeploymentDescriptor ddesc =  toJsonObj( resnsd, DeploymentDescriptor.class );
+				     
+		 String strddescResponse = mvc.perform(post("/admin/deployments").session( (MockHttpSession) session ) 
+				.contentType(MediaType.APPLICATION_JSON)
+				.content( toJson( ddesc ) )
+				 )				
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    	.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    .andReturn().getResponse().getContentAsString();
+		
 
-			File nsdFile = new File( "src/test/resources/testnsd.txt" );
+		 logger.info( "strddescResponse ========> " + strddescResponse );
+		 DeploymentDescriptor ddescResponse =  toJsonObj( strddescResponse, DeploymentDescriptor.class);
+
+		 assertThat(ddescResponse).isNotNull();
+		 assertThat(ddescResponse.getVxfPlacements().size()).isEqualTo(2);
+		 assertThat(ddescResponse.getVxfPlacements().get(0).getConstituentVxF() ).isNotNull();
+		 assertThat(ddescResponse.getVxfPlacements().get(0).getInfrastructure()  ).isNotNull();
+		 assertThat(ddescResponse.getVxfPlacements().get(1).getConstituentVxF() ).isNotNull();
+		 assertThat(ddescResponse.getVxfPlacements().get(1).getInfrastructure() ).isNotNull();
+
+	}
+
+	@Test
+	public void deleteNSD() throws Exception {
+		
+		
+		UserSession pu = new UserSession();
+		pu.setUsername("admin");
+		pu.setPassword("changeme");
+		
+		/**
+		 * auth
+		 */
+		 HttpSession session = mvc.perform(post("/sessions")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content( toJson( pu ) ))
+			    .andExpect(status().isOk())
+			    .andExpect(content()
+			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			    .andExpect(jsonPath("username", is("admin")))
+			    .andReturn().getRequest().getSession();
+		 
+		 File nsdFile = new File( "src/test/resources/testnsd.txt" );
 			InputStream in = new FileInputStream( nsdFile );
 			String resnsd = IOUtils.toString(in, "UTF-8");
 			logger.info( "resnsd ========> " + resnsd );
@@ -400,84 +538,41 @@ public class InMemoryDBIntegrationTest {
 					 .param("exprm", resnsd)
 					 .session( (MockHttpSession) session ))
 		    	.andExpect(status().isOk());
-			 
-			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
-				.isEqualTo( 1 );
+		 
+		 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
+			.isEqualTo( 1 );
 
-			 ExperimentMetadata ansd = nsdService.getNSDByName( "cirros_2vnf_nsd" );
-			 
-			 
-			 assertThat(ansd).isNotNull();
-			 
-			 assertThat(ansd.getConstituentVxF().size()).isEqualTo(2);
-			 
-			 
-			 mvc.perform(get("/categories")
-						.contentType(MediaType.APPLICATION_JSON))
-			    	.andExpect(status().isOk())
-			    	.andExpect(content()
-			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    	.andExpect( jsonPath("$[0].name", is("None")) )
-			    	.andExpect( jsonPath("$[1].name", is("Networking")))
-			    	.andExpect( jsonPath("$[1].appscount", is( 1 )));
+		 mvc.perform(get("/categories")
+					.contentType(MediaType.APPLICATION_JSON))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+		    	.andExpect( jsonPath("$[0].name", is("None")) )
+		    	.andExpect( jsonPath("$[1].name", is("Networking")))
+		    	.andExpect( jsonPath("$[1].appscount", is( 1 )))
+		    	.andExpect( jsonPath("$[2].name", is("Service")))
+		    	.andExpect( jsonPath("$[2].appscount", is( 1 )));
+		 
+		 String content =  mvc.perform(get("/admin/experiments")
+					.contentType(MediaType.APPLICATION_JSON).session( (MockHttpSession) session ))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+		    	 .andExpect(jsonPath("$[0].name", is( "cirros_2vnf_nsd" )))
+			    .andReturn().getResponse().getContentAsString();
+		 
 
-		}
+		 ExperimentMetadata[] n =  toJsonObj( content, ExperimentMetadata[].class );
+		 
+		 mvc.perform(delete("/admin/experiments/" + n[0].getId() )
+					 .session( (MockHttpSession) session ))
+		    	.andExpect(status().isOk())
+		    	.andExpect(content()
+		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+			   ;
+		 
+		 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
+			.isEqualTo( 0 );
 
-		@Test
-		public void deleteNSD() throws Exception {
-			
-			addNSD(); 
-			
-			UserSession pu = new UserSession();
-			pu.setUsername("admin");
-			pu.setPassword("changeme");
-			
-			/**
-			 * auth
-			 */
-			 HttpSession session = mvc.perform(post("/sessions")
-					.contentType(MediaType.APPLICATION_JSON)
-					.content( toJson( pu ) ))
-				    .andExpect(status().isOk())
-				    .andExpect(content()
-				    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-				    .andExpect(jsonPath("username", is("admin")))
-				    .andReturn().getRequest().getSession();
-			 
-			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
-				.isEqualTo( 1 );
-
-			 mvc.perform(get("/categories")
-						.contentType(MediaType.APPLICATION_JSON))
-			    	.andExpect(status().isOk())
-			    	.andExpect(content()
-			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    	.andExpect( jsonPath("$[0].name", is("None")) )
-			    	.andExpect( jsonPath("$[1].name", is("Networking")))
-			    	.andExpect( jsonPath("$[1].appscount", is( 1 )))
-			    	.andExpect( jsonPath("$[2].name", is("Service")))
-			    	.andExpect( jsonPath("$[2].appscount", is( 1 )));
-			 
-			 String content =  mvc.perform(get("/admin/experiments")
-						.contentType(MediaType.APPLICATION_JSON).session( (MockHttpSession) session ))
-			    	.andExpect(status().isOk())
-			    	.andExpect(content()
-			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    	 .andExpect(jsonPath("$[0].name", is( "cirros_2vnf_nsd" )))
-				    .andReturn().getResponse().getContentAsString();
-			 
-
-			 ExperimentMetadata[] n =  toJsonObj( content, ExperimentMetadata[].class );
-			 
-			 mvc.perform(delete("/admin/experiments/" + n[0].getId() )
-						 .session( (MockHttpSession) session ))
-			    	.andExpect(status().isOk())
-			    	.andExpect(content()
-			    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-				   ;
-			 
-			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
-				.isEqualTo( 0 );
-
-		}
+	}
 }

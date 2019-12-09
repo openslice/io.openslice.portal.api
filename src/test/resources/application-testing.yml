@@ -12,7 +12,7 @@ spring:
     hibernate:
       ddl-auto: create-drop
       hbm2ddl.auto: create-drop
-    show-sql: false
+    show-sql: true
     generate-ddl: true
   activemq:
     broker-url: tcp://localhost:61616

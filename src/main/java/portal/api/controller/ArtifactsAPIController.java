@@ -2001,8 +2001,11 @@ public class ArtifactsAPIController {
 	}
 
 	@PostMapping( value =  "/admin/deployments", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addDeployment( @Valid @RequestBody DeploymentDescriptor deployment) {
+	public ResponseEntity<?>  addDeployment( @Valid @RequestBody DeploymentDescriptor deployment, HttpServletRequest request) {
 
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr );  
+		
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
 
 		if (u != null) {
@@ -2038,26 +2041,30 @@ public class ArtifactsAPIController {
 
 			logger.info("reattach DeploymentDescriptorVxFPlacement from the DB model");
 			for (DeploymentDescriptorVxFPlacement pl : deployment.getVxfPlacements()) {
-				pl.setInfrastructure(   infrastructureService.getInfrastructureByID( pl.getInfrastructure().getId()) );
-				
+				Infrastructure infr = infrastructureService.getInfrastructureByID( pl.getInfrastructure().getId());
+				pl.setInfrastructure(  infr  );
+				VxFMetadata vv = vxfService.getVxFByName( pl.getConstituentVxF().getVnfdidRef() ) ;
+				pl.getConstituentVxF().setVxfref( vv  );
+			
 			}
 			
 
 			logger.info("update deployment to the DB model");
-			deployment = deploymentDescriptorService.updateDeploymentDescriptor(deployment);
-
+			DeploymentDescriptor deploymentSaved = deploymentDescriptorService.updateDeploymentDescriptor(deployment);
+			
+		
 
 			logger.info("update user owner to the DB model");
-			u.getDeployments().add(deployment);
+			u.getDeployments().add(deploymentSaved);
 			usersService.updateUserInfo(u);
 			
-			logger.info("NS status change is now "+deployment.getStatus());														
+			logger.info("NS status change is now "+deploymentSaved.getStatus());														
 
 //			u = portalRepositoryRef.updateUserInfo(u);
 			
 //			deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
 			
-			BusController.getInstance().newDeploymentRequest( deployment  );	
+			BusController.getInstance().newDeploymentRequest( deploymentSaved  );	
 
 //			String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
 //			if ((adminemail != null) && (!adminemail.equals(""))) {
@@ -2067,7 +2074,7 @@ public class ArtifactsAPIController {
 //						subj);
 //			}
 
-			return ResponseEntity.ok( deployment  );	
+			return ResponseEntity.ok( deploymentSaved  );	
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.notFound();
 		}
@@ -3042,7 +3049,11 @@ public class ArtifactsAPIController {
 
 
 	@PostMapping( value =  "/admin/infrastructures", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  addInfrastructure( @Valid @RequestBody Infrastructure c) throws ForbiddenException {
+	public ResponseEntity<?>  addInfrastructure( @Valid @RequestBody Infrastructure c, HttpServletRequest request) throws ForbiddenException {
+
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext( (SecurityContext) attr );  
+		
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
