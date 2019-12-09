@@ -403,6 +403,14 @@ public class InMemoryDBIntegrationTest {
 			 
 			 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
 				.isEqualTo( 1 );
+
+			 ExperimentMetadata ansd = nsdService.getNSDByName( "cirros_2vnf_nsd" );
+			 
+			 
+			 assertThat(ansd).isNotNull();
+			 
+			 assertThat(ansd.getConstituentVxF().size()).isEqualTo(2);
+			 
 			 
 			 mvc.perform(get("/categories")
 						.contentType(MediaType.APPLICATION_JSON))

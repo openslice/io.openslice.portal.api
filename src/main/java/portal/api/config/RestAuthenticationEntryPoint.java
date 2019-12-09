@@ -52,6 +52,5 @@ public final class RestAuthenticationEntryPoint implements AuthenticationEntryPo
 			AuthenticationException authException) throws IOException {
 
 		response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-	}
-	
+	}	
 }
