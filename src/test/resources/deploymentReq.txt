@@ -1,0 +1,129 @@
+{
+  "owner": {
+    "id": 1,
+    "organization": "University of Patras",
+    "name": "Portal Administrator",
+    "email": "tranoris@ece.upatras.gr",
+    "username": "admin",
+    "active": true,
+    "currentSessionID": "35382ff0-6947-411b-a806-4c2c53d8ac28",
+    "apikey": "b41717a1-192b-4843-8c2d-128ec7432bed",
+    "roles": [
+      "ROLE_ADMIN",
+      "ROLE_MENTOR"
+    ]
+  },
+  "mentor": {
+    "id": 1,
+    "organization": "University of Patras",
+    "name": "Portal Administrator",
+    "email": "tranoris@ece.upatras.gr",
+    "username": "admin",
+    "active": true,
+    "currentSessionID": "35382ff0-6947-411b-a806-4c2c53d8ac28",
+    "apikey": "b41717a1-192b-4843-8c2d-128ec7432bed",
+    "roles": [
+      "ROLE_ADMIN",
+      "ROLE_MENTOR"
+    ]
+  },
+  "startReqDate": "2019-12-10T00:00:00.000Z",
+  "endReqDate": "2019-12-23T00:00:00.000Z",
+  "startReqHour": "00",
+  "startReqMinute": "00",
+  "endReqHour": "00",
+  "endReqMinute": "00",
+  "experiment": {
+    "id": 26,
+    "name": "cirros_2vnf_nsd",
+    "iconsrc": "//patras5g.eu/apiportal/services/api/repo/images/22c41d0d-4706-4993-962f-ada27eea1c25/osm_2x.png",
+    "vendor": "OSM",
+    "published": false,
+    "termsOfUse": null,
+    "valid": false,
+    "validationStatus": "NOT_STARTED",
+    "packagingFormat": "OSMvFIVE",
+    "experimentOnBoardDescriptors": [
+      {
+        "id": 56,
+        "obMANOprovider": {
+          "id": 1,
+          "name": "Patras 5G OSM FIVE",
+          "description": "OSM FIVE installed in Patras 5G testbed",
+          "supportedMANOplatform": {
+            "id": 1,
+            "name": "OSM FIVE",
+            "version": "FIVE",
+            "description": "OSM FIVE"
+          },
+          "apiEndpoint": "https://10.10.10.5:9999",
+          "authorizationBasicHeader": null,
+          "username": "admin",
+          "password": "admin",
+          "enabledForONBOARDING": true
+        },
+        "onBoardingStatus": "ONBOARDED",
+        "lastOnboarding": 1568639467000,
+        "deployId": "5eaa933a-3e78-4f16-9aad-09e060451e54",
+        "feedbackMessage": "NSD Onboarded Successfully",
+        "uuid": "44f8e956-275e-47f0-ab18-e58443fb8625",
+        "vxfMANOProviderID": "cirros_2vnf_nsd",
+        "experimentMANOProviderID": "cirros_2vnf_nsd",
+        "experimentid": 26
+      }
+    ],
+    "constituentVxF": [
+      {
+        "membervnfIndex": 1,
+        "vnfdidRef": "cirros_vnfd"
+      },
+      {
+        "membervnfIndex": 2,
+        "vnfdidRef": "cirros_vnfd"
+      }
+    ]
+  },
+  "vxfPlacements": [
+    {
+      "constituentVxF": {
+        "membervnfIndex": 1,
+        "vnfdidRef": "cirros_vnfd"
+      },
+      "infrastructure": {
+        "id": 1,
+        "organization": "University of Patras",
+        "name": "Cloudville",
+        "email": "tranoris@ece.upatras.gr",
+        "datacentername": "Cloudville",
+        "vimid": "691c8956-0369-4b91-b914-b61dccba74db",
+        "refSupportedImages": []
+      }
+    },
+    {
+      "constituentVxF": {
+        "membervnfIndex": 2,
+        "vnfdidRef": "cirros_vnfd"
+      },
+      "infrastructure": {
+        "id": 1,
+        "organization": "University of Patras",
+        "name": "Cloudville",
+        "email": "tranoris@ece.upatras.gr",
+        "datacentername": "Cloudville",
+        "vimid": "691c8956-0369-4b91-b914-b61dccba74db",
+        "refSupportedImages": []
+      }
+    }
+  ],
+  "infrastructureForAll": {
+    "id": 1,
+    "organization": "University of Patras",
+    "name": "Cloudville",
+    "email": "tranoris@ece.upatras.gr",
+    "datacentername": "Cloudville",
+    "vimid": "691c8956-0369-4b91-b914-b61dccba74db",
+    "refSupportedImages": []
+  },
+  "name": "test",
+  "description": "Description"
+}
