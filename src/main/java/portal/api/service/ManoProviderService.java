@@ -25,6 +25,11 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+
+import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.MANOplatform;
 import io.openslice.model.MANOprovider;
 import portal.api.repo.ManoProvidersRepository;
@@ -45,6 +50,24 @@ public class ManoProviderService {
 		Optional<MANOprovider> o = this.manoProvidersRepo.findById(id);
 		return o.orElse(null);
 	}
+
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getMANOproviderByIDEagerDataJson( long id ) throws JsonProcessingException {
+
+		MANOprovider dd = this.getMANOproviderByID( id );
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dd );
+		
+		return res;
+	}
+	
 
 	public MANOprovider updateMANOproviderInfo(MANOprovider c) {
 		

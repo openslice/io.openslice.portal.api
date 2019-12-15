@@ -177,9 +177,7 @@ public class DeploymentDescriptorService {
 		        dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
 		        Hibernate.initialize( dd.getExperimentFullDetails() );
 		        Hibernate.initialize( dd.getExperimentFullDetails().getExperimentOnBoardDescriptors() );
-		        Hibernate.initialize( dd.getVxfPlacements() );
-		        
-
+		        Hibernate.initialize( dd.getVxfPlacements() );		        
 		        tx.commit();
 		        dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();
 		    } finally {
@@ -188,6 +186,22 @@ public class DeploymentDescriptorService {
 		    return dd;
 	}
 
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getDeploymentByIdEagerDataJson( long id ) throws JsonProcessingException {
+
+		DeploymentDescriptor dd = this.getDeploymentByIdEager( id );
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dd );
+		
+		return res;
+	}
 
 	/**
 	 * @param d
@@ -206,36 +220,28 @@ public class DeploymentDescriptorService {
 		return res;
 	}
 	
-
-
 	public void deleteDeployment(DeploymentDescriptor entity) {
 		this.ddRepo.delete(entity);		
 	}
 
-
-
-
-	public List<DeploymentDescriptor> getDeploymentsToBeDeleted() {
-		List<DeploymentDescriptor> deploymentDescriptorsToDelete = new ArrayList<>();
-		List<DeploymentDescriptor> deploymentDescriptor_list = this.ddRepo.readDeploymentsToBeDeleted();
-		for(DeploymentDescriptor d : deploymentDescriptor_list)
-		{
-			d.getExperimentFullDetails();
-			d.getInfrastructureForAll();			
-			OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC);
-			if(d.getEndDate().before(Date.from(utc.toInstant())))
-			{
-				logger.info("Deployment id:" + d.getId() + ", name:"+ d.getName() + ", status:"+ d.getStatus()  +" is scheduled to be DELETED now.");
-				deploymentDescriptorsToDelete.add(d);
-			}
-			
-		}
-		return deploymentDescriptorsToDelete;
+	public List<DeploymentDescriptor> getRunningInstantiatingAndTerminatingDeployments() {
+		List<DeploymentDescriptor> RunningDeploymentDescriptor_list = this.ddRepo.readRunningInstantiatingAndTerminatingDeployments();
+		return RunningDeploymentDescriptor_list;
 	}
 
+	public String getRunningInstantiatingAndTerminatingDeploymentsEagerDataJson() throws JsonProcessingException {
 
-
-
+		List<DeploymentDescriptor> dds = this.getRunningInstantiatingAndTerminatingDeployments();
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dds );
+		
+		return res;
+	}
+	
 	public List<DeploymentDescriptor> getDeploymentsToInstantiate() {
 		List<DeploymentDescriptor> DeploymentDescriptorsToRun = new ArrayList<>();
 		List<DeploymentDescriptor> DeploymentDescriptor_list = this.ddRepo.readScheduledDeployments();
@@ -253,9 +259,19 @@ public class DeploymentDescriptorService {
 		}
 		return DeploymentDescriptorsToRun;
 	}
+	
+	public String getDeploymentsToInstantiateEagerDataJson() throws JsonProcessingException {
 
-
-
+		List<DeploymentDescriptor> dds = this.getDeploymentsToInstantiate();
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dds );
+		
+		return res;
+	}
 
 	public List<DeploymentDescriptor> getDeploymentsToBeCompleted() {
 		List<DeploymentDescriptor> DeploymentDescriptorsToComplete = new ArrayList<>();
@@ -275,16 +291,48 @@ public class DeploymentDescriptorService {
 		return DeploymentDescriptorsToComplete;
 	}
 
+	public String getDeploymentsToBeCompletedEagerDataJson() throws JsonProcessingException {
 
-
-
-	public List<DeploymentDescriptor> getRunningInstantiatingAndTerminatingDeployments() {
-		List<DeploymentDescriptor> RunningDeploymentDescriptor_list = this.ddRepo.readRunningInstantiatingAndTerminatingDeployments();
-		return RunningDeploymentDescriptor_list;
+		List<DeploymentDescriptor> dds = this.getDeploymentsToBeCompleted();
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dds );
+		
+		return res;
 	}
 
+	public List<DeploymentDescriptor> getDeploymentsToBeDeleted() {
+		List<DeploymentDescriptor> deploymentDescriptorsToDelete = new ArrayList<>();
+		List<DeploymentDescriptor> deploymentDescriptor_list = this.ddRepo.readDeploymentsToBeDeleted();
+		for(DeploymentDescriptor d : deploymentDescriptor_list)
+		{
+			d.getExperimentFullDetails();
+			d.getInfrastructureForAll();			
+			OffsetDateTime utc = OffsetDateTime.now(ZoneOffset.UTC);
+			if(d.getEndDate().before(Date.from(utc.toInstant())))
+			{
+				logger.info("Deployment id:" + d.getId() + ", name:"+ d.getName() + ", status:"+ d.getStatus()  +" is scheduled to be DELETED now.");
+				deploymentDescriptorsToDelete.add(d);
+			}
+			
+		}
+		return deploymentDescriptorsToDelete;
+	}
 
+	public String getDeploymentsToBeDeletedEagerDataJson() throws JsonProcessingException {
 
-
-
+		List<DeploymentDescriptor> dds = this.getDeploymentsToBeDeleted();
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dds );
+		
+		return res;
+	}
+	
 }

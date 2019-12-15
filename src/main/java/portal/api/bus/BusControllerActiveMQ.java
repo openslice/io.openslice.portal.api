@@ -37,6 +37,7 @@ import io.openslice.model.PortalUser;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.service.DeploymentDescriptorService;
+import portal.api.service.ManoProviderService;
 import portal.api.service.NSDService;
 import portal.api.service.VxFService;
 
@@ -58,6 +59,9 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 	@Autowired
 	DeploymentDescriptorService deploymentDescriptorService;
 
+	@Autowired
+	ManoProviderService manoProviderService;
+	
 	private static final transient Log logger = LogFactory.getLog(BusControllerActiveMQ.class.getName());
 
 	// template.withBody( objectMapper.writeValueAsString(user) ).asyncSend();
@@ -140,7 +144,6 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.schedule" );
 		
-
 		from("seda:nsd.deploy?multipleConsumers=true")		
 		.bean( deploymentDescriptorService, "getDeploymentEagerDataJson" )
 		.convertBodyTo( String.class )
@@ -218,8 +221,36 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.bean( nsdService, "getProductByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
+		from("activemq:queue:getRunningInstantiatingAndTerminatingDeployments")
+		.log( "activemq:queue:getRunningInstantiatingAndTerminatingDeployments !" )		
+		.bean( deploymentDescriptorService, "getRunningInstantiatingAndTerminatingDeploymentsEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
-
+		from("activemq:queue:getDeploymentsToInstantiate")
+		.log( "activemq:queue:getDeploymentsToInstantiate !" )		
+		.bean( deploymentDescriptorService, "getDeploymentsToInstantiateEagerDataJson")
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getDeploymentsToBeCompleted")
+		.log( "activemq:queue:getDeploymentsToBeCompleted !" )		
+		.bean( deploymentDescriptorService, "getDeploymentsToBeCompletedEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getDeploymentsToBeDeleted")
+		.log( "activemq:queue:getDeploymentsToBeDeleted !" )		
+		.bean( deploymentDescriptorService, "getDeploymentsToBeDeletedEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getDeploymentByIdEager")
+		.log( "activemq:queue:getDeploymentByIdEager !" )		
+		.bean( deploymentDescriptorService, "getDeploymentByIdEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+				
+		from("activemq:queue:getMANOproviderByID")
+		.log( "activemq:queue:getMANOproviderByID !" )		
+		.bean( manoProviderService, "getMANOproviderByIDEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+						
 	}
 
 }
