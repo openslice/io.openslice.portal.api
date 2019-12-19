@@ -20,11 +20,13 @@
 package portal.api.bus;
 
 import org.apache.camel.CamelContext;
+import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
@@ -61,6 +63,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 
 	@Autowired
 	ManoProviderService manoProviderService;
+	
+
+	@Value("${VNFNSD_CATALOG_GET_NSD_BY_ID}")
+	private String VNFNSD_CATALOG_GET_NSD_BY_ID = "";
+	
+	
 	
 	private static final transient Log logger = LogFactory.getLog(BusControllerActiveMQ.class.getName());
 
@@ -250,6 +258,13 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log( "activemq:queue:getMANOproviderByID !" )		
 		.bean( manoProviderService, "getMANOproviderByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		
+		from( VNFNSD_CATALOG_GET_NSD_BY_ID )
+		.log(LoggingLevel.INFO, log, VNFNSD_CATALOG_GET_NSD_BY_ID + " message received!")
+		.to("log:DEBUG?showBody=true&showHeaders=true")
+		.bean( nsdService, "getProductByIDEagerDataJson")
+		.convertBodyTo( String.class );
 						
 	}
 
