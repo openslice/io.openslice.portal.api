@@ -246,7 +246,13 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.bean( deploymentDescriptorService, "getDeploymentByIdEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 				
-		from("activemq:queue:getMANOproviderByID")
+		from("activemq:queue:updateDeploymentDescriptor")
+		.log( "activemq:queue:updateDeploymentDescriptor !" )
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.DeploymentDescriptor.class, true)		
+		.bean( deploymentDescriptorService, "updateDeploymentEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+				
+		from("activemq:queue:getMANOProviderByID")
 		.log( "activemq:queue:getMANOproviderByID !" )		
 		.bean( manoProviderService, "getMANOproviderByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");

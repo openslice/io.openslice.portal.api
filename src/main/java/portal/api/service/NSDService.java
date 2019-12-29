@@ -59,7 +59,7 @@ public class NSDService {
         //Registering Hibernate4Module to support lazy objects
         mapper.registerModule(new Hibernate5Module());
 		
-        ExperimentMetadata o = this.getProductByID(id);
+        ExperimentMetadata o = this.getProductByIDEagerData(id);
         
 		String res = mapper.writeValueAsString( o );
 

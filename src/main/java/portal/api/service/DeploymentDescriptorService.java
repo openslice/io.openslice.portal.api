@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.persistence.EntityManagerFactory;
+import javax.validation.Valid;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,13 +36,24 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.DeploymentDescriptor;
+import io.openslice.model.DeploymentDescriptorStatus;
+import io.openslice.model.ExperimentOnBoardDescriptor;
+import io.openslice.model.PortalUser;
+import io.openslice.model.UserRoleType;
+import portal.api.bus.BusController;
+import portal.api.centrallog.CLevel;
+import portal.api.centrallog.CentralLogger;
 import portal.api.repo.DeploymentDescriptorRepository;
 
 @Service
@@ -331,6 +343,110 @@ public class DeploymentDescriptorService {
 		// this will fetch all lazy objects of VxF before marshaling
         mapper.registerModule(new Hibernate5Module()); 
 		String res = mapper.writeValueAsString( dds );
+		
+		return res;
+	}
+
+	public DeploymentDescriptor updateDeploymentByJSON(DeploymentDescriptor receivedDeployment) {
+
+		DeploymentDescriptor aDeployment = getDeploymentByID( receivedDeployment.getId() );														
+		logger.info("Previous Status is :"+aDeployment.getStatus()+",New Status is:"+receivedDeployment.getStatus()+" and Instance Id is "+receivedDeployment.getInstanceId());
+		
+		aDeployment.setConstituentVnfrIps(receivedDeployment.getConstituentVnfrIps());		
+		aDeployment.setConfigStatus(receivedDeployment.getConfigStatus());
+		aDeployment.setDetailedStatus(receivedDeployment.getDetailedStatus());
+		aDeployment.setOperationalStatus(receivedDeployment.getOperationalStatus());
+		
+		if( receivedDeployment.getStatus() != aDeployment.getStatus() )
+		{
+			aDeployment.setStatus( receivedDeployment.getStatus() );
+			CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus() );
+			logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus() );			
+			aDeployment.setInstanceId( receivedDeployment.getInstanceId() );
+			CentralLogger.log( CLevel.INFO, "Instance Id of deployment set to"+aDeployment.getInstanceId() );
+			logger.info( "Instance Id of deployment set to"+aDeployment.getInstanceId() );			
+			aDeployment.setFeedback( receivedDeployment.getFeedback() );
+			CentralLogger.log( CLevel.INFO, "Feedback of deployment set to "+aDeployment.getFeedback() );
+			logger.info( "Feedback of deployment set to "+aDeployment.getFeedback() );			
+			aDeployment.getExperimentFullDetails();
+			aDeployment.getInfrastructureForAll();
+			
+			logger.info("updateDeployment for id: " + aDeployment.getId());
+				
+			if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED && aDeployment.getInstanceId() == null)
+			{
+				for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails().getExperimentOnBoardDescriptors())
+				{
+					if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
+					{							
+						aDeployment.setStatus( receivedDeployment.getStatus() );
+						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+						aDeployment = updateDeploymentDescriptor(aDeployment);
+						logger.info("NS status change is now "+aDeployment.getStatus());															
+						//BusController.getInstance().scheduleExperiment( aDeployment );								
+					}
+				}
+			}
+			else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING && aDeployment.getInstanceId() == null)
+			{
+				for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails().getExperimentOnBoardDescriptors())
+				{
+					if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
+					{
+						aDeployment.setStatus( receivedDeployment.getStatus() );
+						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+						aDeployment = updateDeploymentDescriptor(aDeployment);
+						logger.info("NS status change is now "+aDeployment.getStatus());															
+						//BusController.getInstance().deployExperiment( aDeployment );	
+					}
+				}
+			}
+			else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED && aDeployment.getInstanceId() != null)
+			{
+				aDeployment.setStatus( receivedDeployment.getStatus() );
+				CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+				logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+				aDeployment = updateDeploymentDescriptor(aDeployment);
+				logger.info("NS status change is now "+aDeployment.getStatus());															
+				//BusController.getInstance().completeExperiment( aDeployment );						
+			}
+			else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED && aDeployment.getInstanceId() == null)
+			{
+				aDeployment.setStatus( receivedDeployment.getStatus() );
+				CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());
+				logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+				aDeployment = updateDeploymentDescriptor(aDeployment);
+				logger.info("NS status change is now "+aDeployment.getStatus());															
+				//BusController.getInstance().rejectExperiment( aDeployment );
+				logger.info("Deployment Rejected");				
+			}
+			else
+			{
+				//Do Nothing
+				logger.info( "Inconsistent Status Change tried. Returning the Deployment unchanged.");					
+				aDeployment = updateDeploymentDescriptor(aDeployment);
+				//BusController.getInstance().updateDeploymentRequest(aDeployment);
+			}
+		} else {
+			logger.info( "Previous status is the same so just update deployment info");					
+			aDeployment = updateDeploymentDescriptor(aDeployment);
+			//BusController.getInstance().updateDeploymentRequest(aDeployment);
+		}
+		return aDeployment;
+	}
+	
+	
+	public String updateDeploymentEagerDataJson(DeploymentDescriptor receivedDeployment) throws JsonProcessingException {
+
+		DeploymentDescriptor dd = this.updateDeploymentByJSON(receivedDeployment);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dd );
 		
 		return res;
 	}
