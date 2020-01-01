@@ -41,6 +41,7 @@ import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDService;
+import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
 
 @Configuration
@@ -60,6 +61,9 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 
 	@Autowired
 	DeploymentDescriptorService deploymentDescriptorService;
+	
+	@Autowired
+	VxFOBDService vxfObdService;
 
 	@Autowired
 	ManoProviderService manoProviderService;
@@ -86,8 +90,9 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to( "activemq:topic:users.create" );
 		
 		from("seda:vxf.onboard?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, VxFMetadata.class, true)
+		.marshal().json( JsonLibrary.Jackson, VxFOnBoardedDescriptor.class, true)
 		.convertBodyTo( String.class )
+		.log( "Send to activemq:topic:vxf.onboard the payload ${body} !" )
 		.to( "activemq:topic:vxf.onboard" );
 		
 		from("seda:vxf.onboard.fail?multipleConsumers=true")
@@ -259,6 +264,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.DeploymentDescriptor.class, true)		
 		.bean( deploymentDescriptorService, "updateDeploymentEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+//		
+//		from("activemq:queue:updateVxFOnBoardedDescriptor")
+//		.log( "activemq:queue:updateVxFOnBoardedDescriptor for ${body} !" )		
+//		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.VxFOnBoardedDescriptor.class, true)		
+//		.bean( vxfObdService , "updateVxFOnBoardedDescriptor" )
+//		.to("log:DEBUG?showBody=true&showHeaders=true");
 				
 		from("activemq:queue:getMANOProviderByID")
 		.log( "activemq:queue:getMANOproviderByID !" )		
