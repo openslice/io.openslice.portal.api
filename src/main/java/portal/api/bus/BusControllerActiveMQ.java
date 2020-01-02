@@ -291,7 +291,7 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to("log:DEBUG?showBody=true&showHeaders=true")
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.DeploymentDescriptor.class, true)
 		.bean( deploymentDescriptorService, "createDeploymentRequest")
-		.convertBodyTo( String.class );
+		.marshal().json( JsonLibrary.Jackson);
 		
 	}
 
