@@ -290,7 +290,8 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log(LoggingLevel.INFO, log, NFV_CATALOG_DEPLOY_NSD_REQ + " message received!")
 		.to("log:DEBUG?showBody=true&showHeaders=true")
 		.bean( deploymentDescriptorService, "createDeploymentRequest")
-		.convertBodyTo( String.class );
+		.convertBodyTo( String.class )
+		.convertBodyTo( DeploymentDescriptor.class );
 		
 	}
 
