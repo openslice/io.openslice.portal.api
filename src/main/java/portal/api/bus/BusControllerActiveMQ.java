@@ -290,8 +290,8 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log(LoggingLevel.INFO, log, NFV_CATALOG_DEPLOY_NSD_REQ + " message received!")
 		.to("log:DEBUG?showBody=true&showHeaders=true")
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.DeploymentDescriptor.class, true)
-		.bean( deploymentDescriptorService, "createDeploymentRequest")
-		.marshal().json( JsonLibrary.Jackson);
+		.bean( deploymentDescriptorService, "createDeploymentRequestJson")
+		.convertBodyTo( String.class );
 		
 	}
 

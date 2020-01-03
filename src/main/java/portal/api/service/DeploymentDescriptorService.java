@@ -519,4 +519,14 @@ public class DeploymentDescriptorService {
 		return this.ddRepo.save( depl );
 	}
 	
+
+	@Transactional
+	public String createDeploymentRequestJson(DeploymentDescriptor depl) throws JsonProcessingException {
+		DeploymentDescriptor dd = this.createDeploymentRequest( depl );
+		ObjectMapper mapper = new ObjectMapper();		
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dd );		
+		return res;
+	}
+	
 }
