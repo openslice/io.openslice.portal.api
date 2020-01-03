@@ -487,7 +487,11 @@ public class DeploymentDescriptorService {
 		String uuid = UUID.randomUUID().toString();
 		depl.setUuid(uuid);
 		depl.setDateCreated(new Date());
-		depl.setStatus(DeploymentDescriptorStatus.UNDER_REVIEW);
+		
+		if ( depl.getStatus() == null  ) {
+			depl.setStatus(DeploymentDescriptorStatus.UNDER_REVIEW);			
+		}
+		
 		
 		ExperimentMetadata baseNSD = (ExperimentMetadata) nsdService
 				.getProductByID(depl.getExperiment().getId());
