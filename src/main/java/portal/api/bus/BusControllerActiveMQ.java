@@ -69,12 +69,15 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 	ManoProviderService manoProviderService;
 	
 
-	@Value("${VNFNSD_CATALOG_GET_NSD_BY_ID}")
-	private String VNFNSD_CATALOG_GET_NSD_BY_ID = "";
+	@Value("${NFV_CATALOG_GET_NSD_BY_ID}")
+	private String NFV_CATALOG_GET_NSD_BY_ID = "";
 	
 	@Value("${NFV_CATALOG_DEPLOY_NSD_REQ}")
 	private String NFV_CATALOG_DEPLOY_NSD_REQ = "";
 
+	@Value("${NFV_CATALOG_GET_DEPLOYMENT_BY_ID}")
+	private String NFV_CATALOG_GET_DEPLOYMENT_BY_ID = "";
+	
 	
 	private static final transient Log logger = LogFactory.getLog(BusControllerActiveMQ.class.getName());
 
@@ -278,8 +281,8 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 
 		
-		from( VNFNSD_CATALOG_GET_NSD_BY_ID )
-		.log(LoggingLevel.INFO, log, VNFNSD_CATALOG_GET_NSD_BY_ID + " message received!")
+		from( NFV_CATALOG_GET_NSD_BY_ID )
+		.log(LoggingLevel.INFO, log, NFV_CATALOG_GET_NSD_BY_ID + " message received!")
 		.to("log:DEBUG?showBody=true&showHeaders=true")
 		.bean( nsdService, "getProductByIDEagerDataJson")
 		.convertBodyTo( String.class );
@@ -290,6 +293,13 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to("log:DEBUG?showBody=true&showHeaders=true")
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.DeploymentDescriptor.class, true)
 		.bean( deploymentDescriptorService, "createDeploymentRequestJson")
+		.convertBodyTo( String.class );
+		
+		//
+		from( NFV_CATALOG_GET_DEPLOYMENT_BY_ID )
+		.log(LoggingLevel.INFO, log, NFV_CATALOG_GET_DEPLOYMENT_BY_ID + " message received!")
+		.to("log:DEBUG?showBody=true&showHeaders=true")	
+		.bean( deploymentDescriptorService, "getDeploymentByIdEagerDataJson" )
 		.convertBodyTo( String.class );
 		
 	}
