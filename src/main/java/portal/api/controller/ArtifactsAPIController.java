@@ -787,7 +787,21 @@ public class ArtifactsAPIController {
 						logger.error( " ========> obd.getVxf().getOwner() == null " );
 					}
 					
-					
+					//***************************************************************************************************************************\
+					// Because in portal.api.mano we need the url for the package location in order not to ask back, if the package locations 
+					// does not contain http add the default maindomain value.
+					// We can either add it here or change that where the pLocation is set initially for the object.
+					// Get the location of the package
+					String pLocation = obd.getVxf().getPackageLocation();
+					logger.info("VxF Package Location: " + pLocation);
+					if (!pLocation.contains("http")) {
+						pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
+						obd.getVxf().setPackageLocation(pLocation);
+						productService.updateProductInfo(obd.getVxf());
+					}					
+					logger.info("PROPER VxF Package Location: " + pLocation);					
+					//***************************************************************************************************************************
+										
 					// Send the message for automatic onboarding
 					BusController.getInstance().onBoardVxFAdded( obd );
 				}
@@ -1184,7 +1198,8 @@ public class ArtifactsAPIController {
 
 				ResponseEntity<String> response = null;
 				try {
-					response = aMANOController.offBoardVxFFromMANOProvider( vxfobd_tmp );
+					//response = aMANOController.offBoardVxFFromMANOProvider( vxfobd_tmp );
+					response=BusController.getInstance().offBoardVxF(vxfobd_tmp);									 
 				}
 				catch( HttpClientErrorException e)
 				{
@@ -1193,7 +1208,8 @@ public class ArtifactsAPIController {
 					vxfobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
 					u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
 					JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
-					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status(e.getRawStatusCode()).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
+					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status(e.getRawStatusCode()).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));
+					//BusController.getInstance().offBoardVxFFailed( u );
 					return builder;
 				}        
 				
@@ -1231,7 +1247,7 @@ public class ArtifactsAPIController {
 					CentralLogger.log( CLevel.INFO, "No related VxF found for "+vxfobd_tmp.getId()+" in status  "+vxfobd_tmp.getOnBoardingStatus());					
 				}
 				u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
-				BusController.getInstance().offBoardVxF( u );
+				//BusController.getInstance().offBoardVxFSucceded( u );
 			}
 		}
 		BusController.getInstance().deletedVxF( vxf );	
@@ -1260,9 +1276,7 @@ public class ArtifactsAPIController {
 		usersService.updateUserInfo(owner);
 		vxf.setOwner(null);
 		
-		
-		//check also if deleted from consistuent VNFs
-		
+		//check also if deleted from consistuent VNFs		
 		vxfService.deleteProduct( vxf );
 		return ResponseEntity.ok().body("{}");		
 	}
@@ -2772,6 +2786,20 @@ public class ArtifactsAPIController {
 			
 			vobd.setObMANOprovider( mp );		
 			vobd = vxfOBDService.updateVxFOnBoardedDescriptor( vobd );
+			//***************************************************************************************************************************\
+			// Because in portal.api.mano we need the url for the package location in order not to ask back, if the package locations 
+			// does not contain http add the default maindomain value.
+			// We can either add it here or change that where the pLocation is set initially for the object.
+			// Get the location of the package
+			String pLocation = vobd.getVxf().getPackageLocation();
+			logger.info("VxF Package Location: " + pLocation);
+			if (!pLocation.contains("http")) {
+				pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
+				vobd.getVxf().setPackageLocation(pLocation);
+				productService.updateProductInfo(vobd.getVxf());				
+			}					
+			logger.info("PROPER VxF Package Location: " + pLocation);			
+			//***************************************************************************************************************************\			
 			BusController.getInstance().onBoardVxFAdded( vobd );
 			//aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
 		} catch (Exception e) {				
@@ -2799,7 +2827,8 @@ public class ArtifactsAPIController {
 
 		ResponseEntity<String> response = null;
 		try {
-			response = aMANOController.offBoardVxFFromMANOProvider( updatedObd );			
+			//response = aMANOController.offBoardVxFFromMANOProvider( updatedObd );			
+			BusController.getInstance().offBoardVxF(updatedObd);									 			
 		}
 		catch( HttpClientErrorException e)
 		{

@@ -79,12 +79,16 @@ public class MANORouteBuilder  extends RouteBuilder{
 		//We get the message here and we need to route it to the proper point.
 		//If onboarding is successfull we need to send a Bugzilla message
 		//If it is unsuccessful we need to send another Bugzilla message
-		from("seda:vxf.onboard?multipleConsumers=true")
-		.doTry()
-		.bean( aMANOController,"onBoardVxFToMANOProvider") //returns exception or nothing
-		.log("VNFD Onboarded handled")
-		.doCatch(Exception.class)
-		.log("VNFD Onboarding failed!");
+
+		//************************************************************************************
+		// DISABLING THIS TO OFFLOAD THE CALL TO io.openslice.mano
+		//from("seda:vxf.onboard?multipleConsumers=true")
+		//.doTry()
+		//.bean( aMANOController,"onBoardVxFToMANOProvider") //returns exception or nothing
+		//.log("VNFD Onboarded handled")
+		//.doCatch(Exception.class)
+		//.log("VNFD Onboarding failed!");
+		//************************************************************************************
 
 		from("seda:nsd.onboard?multipleConsumers=true")
 		.doTry()

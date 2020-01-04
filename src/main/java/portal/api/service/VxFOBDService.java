@@ -19,13 +19,31 @@
  */
 package portal.api.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+
+import OSM5NBIClient.OSM5Client;
+import io.openslice.model.DeploymentDescriptor;
+import io.openslice.model.DeploymentDescriptorStatus;
+import io.openslice.model.ExperimentOnBoardDescriptor;
+import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.VxFOnBoardedDescriptor;
+import portal.api.centrallog.CLevel;
+import portal.api.centrallog.CentralLogger;
+import portal.api.repo.DeploymentDescriptorRepository;
 import portal.api.repo.VxFOBDRepository;
 
 @Service
@@ -33,10 +51,12 @@ public class VxFOBDService {
 	
 	@Autowired
 	VxFOBDRepository vxfOBDRepository;
+	
+	private static final transient Log logger = LogFactory.getLog( VxFOBDService.class.getName());	
 
 	public VxFOnBoardedDescriptor updateVxFOnBoardedDescriptor(VxFOnBoardedDescriptor obd) {
 		//Optional<VxFOnBoardedDescriptor> o = vxfOBDRepository.
-		return vxfOBDRepository.save( obd );
+		return this.vxfOBDRepository.save( obd );
 	}
 
 	public VxFOnBoardedDescriptor getVxFOnBoardedDescriptorByID(long vxfobdid) {
@@ -53,4 +73,37 @@ public class VxFOBDService {
 		
 	}
 
+	public VxFOnBoardedDescriptor updateVxFOBDByJSON(VxFOnBoardedDescriptor vxfOBD) {
+
+		VxFOnBoardedDescriptor aVxFOBD = getVxFOnBoardedDescriptorByID( vxfOBD.getId() );														
+		logger.info("Previous Status is :"+aVxFOBD.getOnBoardingStatus()+",New Status is:"+vxfOBD.getOnBoardingStatus()+" and Instance Id is "+vxfOBD.getId());
+				
+		aVxFOBD.setOnBoardingStatus(vxfOBD.getOnBoardingStatus()); 		
+		aVxFOBD.setDeployId(vxfOBD.getDeployId());
+		aVxFOBD.setVxfMANOProviderID(vxfOBD.getVxfMANOProviderID());
+		aVxFOBD.setLastOnboarding(vxfOBD.getLastOnboarding());
+		aVxFOBD.setFeedbackMessage(vxfOBD.getFeedbackMessage());
+		aVxFOBD.setOnBoardingStatus(vxfOBD.getOnBoardingStatus());
+		//aVxFOBD.getVxf().setCertified(vxfOBD.getVxf().isCertified());
+		
+		logger.info("updateVxFODB for id: " + aVxFOBD.getId());				
+		aVxFOBD = updateVxFOnBoardedDescriptor(aVxFOBD);
+			
+		return aVxFOBD;
+	}
+	
+	
+	public String updateVxFOBDEagerDataJson(VxFOnBoardedDescriptor receivedVxFOBD) throws JsonProcessingException {
+
+		VxFOnBoardedDescriptor vxfobd = this.updateVxFOBDByJSON(receivedVxFOBD);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( vxfobd );
+		
+		return res;
+	}
+	
 }

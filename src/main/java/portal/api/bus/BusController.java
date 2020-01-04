@@ -20,6 +20,7 @@
 
 package portal.api.bus;
 
+import java.io.IOException;
 import java.util.concurrent.Future;
 
 import javax.validation.Valid;
@@ -27,13 +28,23 @@ import javax.validation.Valid;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.FluentProducerTemplate;
+import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.ModelCamelContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.ExperimentMetadata;
@@ -68,6 +79,9 @@ public class BusController  {
 
 	/** This is set by method setActx, see later */
 	static CamelContext contxt;
+
+	@Autowired
+	ProducerTemplate producerTemplate;
 
 
 	private static final transient Log logger = LogFactory.getLog( BusController.class.getName());
@@ -165,6 +179,42 @@ public class BusController  {
 
 	public void onBoardVxFSucceded(VxFOnBoardedDescriptor vxfobds_final) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard.success?multipleConsumers=true");
+		template.withBody( vxfobds_final ).asyncSend();				
+	}
+	
+	public ResponseEntity<String> offBoardVxF(VxFOnBoardedDescriptor u) {
+		// Serialize the received object
+		ObjectMapper mapper = new ObjectMapper();
+		String vxfobd_serialized = null;
+		try {
+			vxfobd_serialized = mapper.writeValueAsString( u );
+		} catch (JsonProcessingException e2) {
+			// TODO Auto-generated catch block
+			logger.error(e2.getMessage());
+		}
+		logger.info("Sending Message " + vxfobd_serialized + " to offBoardVxF from AMQ:");		
+		// Send it to activemq endpoint
+		String ret = contxt.createProducerTemplate().requestBody( "activemq:topic:vxf.offboard",  vxfobd_serialized, String.class);
+		logger.info("Message Received for offBoard from AMQ:"+ret);
+
+		// Get the response and Map object to ExperimentMetadata
+		ResponseEntity<String> response = null;
+		logger.info("From ActiveMQ:"+ret.toString());
+		// Map object to VxFOnBoardedDescriptor
+		JSONObject obj = new JSONObject(ret);
+		logger.info("Status Code of response:"+obj.get("statusCode"));
+		response = new ResponseEntity<String>(obj.get("body").toString(),HttpStatus.valueOf(obj.get("statusCode").toString()));
+		logger.info("Response from offboarding "+response);
+		return response;			
+	}
+
+	public void offBoardVxFFailed(VxFOnBoardedDescriptor vxfobds_final) {
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.offboard.fail?multipleConsumers=true");
+		template.withBody( vxfobds_final ).asyncSend();			
+	}
+
+	public void offBoardVxFSucceded(VxFOnBoardedDescriptor vxfobds_final) {
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.offboard.success?multipleConsumers=true");
 		template.withBody( vxfobds_final ).asyncSend();				
 	}
 	
@@ -376,17 +426,6 @@ public class BusController  {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.deleted?multipleConsumers=true");
 		template.withBody( nsd ).asyncSend();
 		
-	}
-
-
-
-	/**
-	 * Asynchronously sends to the routing bus (seda:vxf.offboard?multipleConsumers=true) to trigger new VXF offboarding 
-	 * @param deployment a {@link VxFOnBoardedDescriptor}
-	 */
-	public void offBoardVxF(VxFOnBoardedDescriptor u) {
-		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.offboard?multipleConsumers=true");
-		template.withBody( u ).asyncSend();		
 	}
 
 	/**
