@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.persistence.EntityManagerFactory;
 import javax.validation.Valid;
@@ -39,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -46,11 +48,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
+import io.openslice.model.ConstituentVxF;
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorStatus;
+import io.openslice.model.DeploymentDescriptorVxFPlacement;
+import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
+import io.openslice.model.Infrastructure;
 import io.openslice.model.PortalUser;
 import io.openslice.model.UserRoleType;
+import io.openslice.model.VxFMetadata;
 import portal.api.bus.BusController;
 import portal.api.centrallog.CLevel;
 import portal.api.centrallog.CentralLogger;
@@ -62,7 +69,19 @@ public class DeploymentDescriptorService {
 	@Autowired
 	DeploymentDescriptorRepository ddRepo;
 
+	@Autowired
+    UsersService usersService;
 
+	@Autowired
+	NSDService nsdService;
+
+	@Autowired
+	InfrastructureService infrastructureService;
+	
+
+	@Autowired
+	VxFService vxfService;
+	
 	private SessionFactory  sessionFactory;
 
 
@@ -448,6 +467,69 @@ public class DeploymentDescriptorService {
         mapper.registerModule(new Hibernate5Module()); 
 		String res = mapper.writeValueAsString( dd );
 		
+		return res;
+	}
+	
+
+	@Transactional
+	public DeploymentDescriptor createDeploymentRequest(DeploymentDescriptor depl) {
+		PortalUser u;
+		if ( depl.getOwner() == null ) {
+			u = usersService.findByUsername("admin");
+		} else {
+			u = usersService.findByUsername( depl.getOwner().getUsername() );
+		}
+		
+		if ( depl.getExperiment() != null ) {
+			
+		}
+		
+		String uuid = UUID.randomUUID().toString();
+		depl.setUuid(uuid);
+		depl.setDateCreated(new Date());
+		
+		if ( depl.getStatus() == null  ) {
+			depl.setStatus(DeploymentDescriptorStatus.UNDER_REVIEW);			
+		}
+		
+		
+		ExperimentMetadata baseNSD = (ExperimentMetadata) nsdService
+				.getProductByID(depl.getExperiment().getId());
+		depl.setExperiment(baseNSD); // reattach from the DB model
+		
+		logger.info("reattach InfrastructureForAll from the DB model");
+		Infrastructure infrDefault = infrastructureService.getInfrastructures().get(0);
+		depl.setInfrastructureForAll(  
+				infrDefault
+				);
+
+		logger.info("reattach Mentor from the DB model");
+		depl.setMentor( usersService.findByUsername("admin") );
+		
+		logger.info("reattach DeploymentDescriptorVxFPlacement from the DB model");
+		int member = 1;
+		for (ConstituentVxF cvf : baseNSD.getConstituentVxF()) {
+			DeploymentDescriptorVxFPlacement place = new DeploymentDescriptorVxFPlacement();
+			place.setInfrastructure(infrDefault);
+			ConstituentVxF constituentVxF = new ConstituentVxF();
+			constituentVxF.setVxfref( cvf.getVxfref() );
+			constituentVxF.setMembervnfIndex(member);
+			constituentVxF.setVnfdidRef( cvf.getVnfdidRef() );
+			place.setConstituentVxF(constituentVxF );
+		}
+		
+				
+		depl.setOwner( u );
+		return this.ddRepo.save( depl );
+	}
+	
+
+	@Transactional
+	public String createDeploymentRequestJson(DeploymentDescriptor depl) throws JsonProcessingException {
+		DeploymentDescriptor dd = this.createDeploymentRequest( depl );
+		ObjectMapper mapper = new ObjectMapper();		
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dd );		
 		return res;
 	}
 	
