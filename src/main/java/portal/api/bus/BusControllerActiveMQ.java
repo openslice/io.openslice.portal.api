@@ -41,6 +41,7 @@ import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDService;
+import portal.api.service.UsersService;
 import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
 
@@ -67,7 +68,9 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 
 	@Autowired
 	ManoProviderService manoProviderService;
-	
+
+	@Autowired
+	UsersService usersService;
 
 	@Value("${NFV_CATALOG_GET_NSD_BY_ID}")
 	private String NFV_CATALOG_GET_NSD_BY_ID = "";
@@ -77,6 +80,10 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 
 	@Value("${NFV_CATALOG_GET_DEPLOYMENT_BY_ID}")
 	private String NFV_CATALOG_GET_DEPLOYMENT_BY_ID = "";
+	
+	
+	@Value("${GET_USER_BY_USERNAME}")
+	private String GET_USER_BY_USERNAME = "";
 	
 	
 	private static final transient Log logger = LogFactory.getLog(BusControllerActiveMQ.class.getName());
@@ -300,6 +307,13 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log(LoggingLevel.INFO, log, NFV_CATALOG_GET_DEPLOYMENT_BY_ID + " message received!")
 		.to("log:DEBUG?showBody=true&showHeaders=true")	
 		.bean( deploymentDescriptorService, "getDeploymentByIdEagerDataJson" )
+		.convertBodyTo( String.class );
+		
+		
+		from( GET_USER_BY_USERNAME )
+		.log(LoggingLevel.INFO, log, GET_USER_BY_USERNAME + " message received!")
+		.to("log:DEBUG?showBody=true&showHeaders=true")	
+		.bean( usersService, "getPortalUserByUserNameDataJson" )
 		.convertBodyTo( String.class );
 		
 	}

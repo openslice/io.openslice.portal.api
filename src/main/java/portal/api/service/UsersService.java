@@ -30,6 +30,11 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.PortalUser;
 import io.openslice.model.UserRoleType;
@@ -126,6 +131,18 @@ public class UsersService {
 	public void delete(PortalUser u) {
 		usersRepo.delete(u);
 		
+	}
+
+	@Transactional
+	public String getPortalUserByUserNameDataJson(String username) throws JsonProcessingException {
+		PortalUser user = findByUsername( username );
+		if ( user != null ) {
+			ObjectMapper mapper = new ObjectMapper();		
+	        mapper.registerModule(new Hibernate5Module()); 
+			String res = mapper.writeValueAsString( user );		
+			return res;			
+		}
+		return "";
 	}
 
 }
