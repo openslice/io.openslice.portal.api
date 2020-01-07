@@ -516,6 +516,7 @@ public class DeploymentDescriptorService {
 			constituentVxF.setMembervnfIndex(member);
 			constituentVxF.setVnfdidRef( cvf.getVnfdidRef() );
 			place.setConstituentVxF(constituentVxF );
+			depl.getVxfPlacements().add(place);
 		}
 		
 				
