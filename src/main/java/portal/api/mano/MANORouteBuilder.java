@@ -88,15 +88,15 @@ public class MANORouteBuilder  extends RouteBuilder{
 		//.log("VNFD Onboarded handled")
 		//.doCatch(Exception.class)
 		//.log("VNFD Onboarding failed!");
+		//
+		//from("seda:nsd.onboard?multipleConsumers=true")
+		//.doTry()
+		//.bean( aMANOController,"onBoardNSDToMANOProvider") //returns exception or nothing
+		//.log("NSD Onboarded handled")
+		//.doCatch(Exception.class)
+		//.log("NSD Onboarding failed!");		
+		//
 		//************************************************************************************
-
-		from("seda:nsd.onboard?multipleConsumers=true")
-		.doTry()
-		.bean( aMANOController,"onBoardNSDToMANOProvider") //returns exception or nothing
-		.log("NSD Onboarded handled")
-		.doCatch(Exception.class)
-		.log("NSD Onboarding failed!");		
-
 		
 		from("seda:nsd.deploy?multipleConsumers=true")
 		.doTry()

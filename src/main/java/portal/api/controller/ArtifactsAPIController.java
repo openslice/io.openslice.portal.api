@@ -1630,16 +1630,22 @@ public class ArtifactsAPIController {
 					refNSD = (ExperimentMetadata) nsdService.updateProductInfo( refNSD );
 					
 					
-	//				try
-	//				{
-	//					aMANOController.onBoardNSDToMANOProvider(obd);					
-	//				}
-	//				catch(Exception e)
-	//				{
-	//					System.out.println("OnBoarding Failed");					
-	//					System.out.println(e.getMessage());
-	//					e.printStackTrace();
-	//				}
+					//***************************************************************************************************************************\
+					// Because in portal.api.mano we need the url for the package location in order not to ask back, if the package locations 
+					// does not contain http add the default maindomain value.
+					// We can either add it here or change that where the pLocation is set initially for the object.
+					// Get the location of the package
+					String pLocation = obd.getExperiment().getPackageLocation();
+					logger.info("VxF Package Location: " + pLocation);
+					if (!pLocation.contains("http")) {
+						pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
+						obd.getExperiment().setPackageLocation(pLocation);
+						productService.updateProductInfo(obd.getExperiment());
+					}					
+					logger.info("PROPER VxF Package Location: " + pLocation);					
+					//***************************************************************************************************************************
+										
+
 					// Send the message for automatic onboarding
 					//BusController.getInstance().newNSDAdded( vxf );
 					
@@ -1767,34 +1773,70 @@ public class ArtifactsAPIController {
 
 				ResponseEntity<String> response = null;
 				try {
-					response = aMANOController.offBoardNSDFromMANOProvider( expobd_tmp );
+					//response = aMANOController.offBoardNSDFromMANOProvider( expobd_tmp );
+					response=BusController.getInstance().offBoardNSD(expobd_tmp);					
 				}
 				catch( HttpClientErrorException e)
 				{
 					expobd_tmp.setOnBoardingStatus(previous_status);
-					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
+					CentralLogger.log( CLevel.INFO, "Boarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
 					expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());					
 					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 					JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
 					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status(e.getRawStatusCode()).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
-					
+					//BusController.getInstance().offBoardNSDFailed( u );			
+					return builder;
 				}        
 				
+//				if (response == null) {
+//					expobd_tmp.setOnBoardingStatus(previous_status);
+//					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
+//					expobd_tmp.setFeedbackMessage("Null response on OffBoarding request.Requested VxFOnBoardedDescriptor with ID=\" + expobd_tmp.getId() + \" cannot be offboarded.");
+//					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
+//					
+//					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body( "Requested ExperimentOnBoardedDescriptor with ID=" + expobd_tmp.getId() + " cannot be offboarded" );
+//				}
+//				// UnCertify Upon OffBoarding
+//				expobd_tmp.getExperiment().setValid(false);
+//				expobd_tmp.setFeedbackMessage(response.getBody().toString());
+//				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
+//				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());
 				if (response == null) {
 					expobd_tmp.setOnBoardingStatus(previous_status);
-					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
-					expobd_tmp.setFeedbackMessage("Null response on OffBoarding request.Requested VxFOnBoardedDescriptor with ID=\" + expobd_tmp.getId() + \" cannot be offboarded.");
+					try
+					{
+						CentralLogger.log( CLevel.INFO, "Onboarding Status change of NSD "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																											
+					}
+					catch(Exception e)
+					{
+						CentralLogger.log( CLevel.INFO, "No related NSD found for "+expobd_tmp.getId()+" in status  "+expobd_tmp.getOnBoardingStatus());					
+					}
+					expobd_tmp.setFeedbackMessage("Null response on OffBoarding request.Requested VxFOnBoardedDescriptor with ID=\" + nsdobd_tmp.getId() + \" cannot be offboarded.");
 					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
-					
-					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body( "Requested ExperimentOnBoardedDescriptor with ID=" + expobd_tmp.getId() + " cannot be offboarded" );
+					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body( "Requested VxFOnBoardedDescriptor with ID=" + expobd_tmp.getId() + " cannot be offboarded" );			
+					return builder;
+				} else {
+					if ( response.getBody() != null ){
+						expobd_tmp.setFeedbackMessage(response.getBody().toString());
+					} else {
+						expobd_tmp.setFeedbackMessage(response.toString());
+					}
+										
 				}
 				// UnCertify Upon OffBoarding
-				expobd_tmp.getExperiment().setValid(false);
-				expobd_tmp.setFeedbackMessage(response.getBody().toString());
+				//vxfobd_tmp.getVxf().setCertified(false);
 				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
-				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());																															
+				try
+				{
+					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus());
+				}
+				catch(Exception e)
+				{
+					CentralLogger.log( CLevel.INFO, "No related VxF found for "+expobd_tmp.getId()+" in status  "+expobd_tmp.getOnBoardingStatus());					
+				}
+				
 				u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
-				BusController.getInstance().offBoardNSD( u );
+				//BusController.getInstance().offBoardNSDSucceded( u );
 				
 			}
 		}
@@ -1808,6 +1850,15 @@ public class ArtifactsAPIController {
 			}				
 		}
 		nsd.getCategories().clear();
+
+		//remove from onboard descriptos
+		for(ExperimentOnBoardDescriptor expobd_tmp : expobds)
+		{
+			ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID( expobd_tmp.getId() );
+			nsdOBDService.deleteExperimentOnBoardDescriptor( sm );
+			
+		}
+		nsd.getExperimentfOnBoardDescriptors().clear();	
 		
 		PortalUser owner =  usersService.findById( nsd.getOwner().getId() );		
 		owner.getProducts().remove( nsd );

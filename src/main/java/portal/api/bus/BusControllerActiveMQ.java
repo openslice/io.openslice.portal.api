@@ -40,6 +40,7 @@ import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
+import portal.api.service.NSDOBDService;
 import portal.api.service.NSDService;
 import portal.api.service.UsersService;
 import portal.api.service.VxFOBDService;
@@ -65,6 +66,9 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 	
 	@Autowired
 	VxFOBDService vxfObdService;
+
+	@Autowired
+	NSDOBDService nsdObdService;
 
 	@Autowired
 	ManoProviderService manoProviderService;
@@ -136,12 +140,13 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to( "activemq:topic:nsd.onboard.success" );
 
 		
-		
 		from("seda:nsd.offboard?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, ExperimentMetadata.class, true)
+		.marshal().json( JsonLibrary.Jackson, ExperimentOnBoardDescriptor.class, true)
 		.convertBodyTo( String.class )
-		.to( "activemq:topic:nsd.offboard" );
-		
+		.log( "Send to activemq:topic:nsd.offboard the payload ${body} !" )
+		.to( "activemq:topic:nsd.offboard" )
+		.log("Got back from activemq:topic:nsd.offboard ${body}");
+	
 		from("seda:nsd.onboard.fail?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, ExperimentOnBoardDescriptor.class, true)
 		.convertBodyTo( String.class )
@@ -281,6 +286,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.VxFOnBoardedDescriptor.class, true)		
 		.bean( vxfObdService , "updateVxFOBDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+
+		from("activemq:queue:updateExperimentOnBoardDescriptor")
+		.log( "activemq:queue:updateExperimentOnBoardDescriptor for ${body} !" )		
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.ExperimentOnBoardDescriptor.class, true)		
+		.bean( nsdObdService , "updateNSDOBDEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");		
 				
 		from("activemq:queue:getMANOProviderByID")
 		.log( "activemq:queue:getMANOproviderByID !" )		

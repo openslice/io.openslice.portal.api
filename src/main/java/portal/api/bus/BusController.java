@@ -238,7 +238,43 @@ public class BusController  {
 		template.withBody( uexpobdid ).asyncSend();				
 	}
 	
+	public ResponseEntity<String> offBoardNSD(ExperimentOnBoardDescriptor u) {
+		// Serialize the received object
+		ObjectMapper mapper = new ObjectMapper();
+		String nsdobd_serialized = null;
+		try {
+			nsdobd_serialized = mapper.writeValueAsString( u );
+		} catch (JsonProcessingException e2) {
+			// TODO Auto-generated catch block
+			logger.error(e2.getMessage());
+		}
+		logger.info("Sending Message " + nsdobd_serialized + " to offBoardNSD from AMQ:");		
+		// Send it to activemq endpoint
+		String ret = contxt.createProducerTemplate().requestBody( "activemq:topic:nsd.offboard",  nsdobd_serialized, String.class);
+		logger.info("Message Received for offBoard from AMQ:"+ret);
 
+		// Get the response and Map object to ExperimentMetadata
+		ResponseEntity<String> response = null;
+		logger.info("From ActiveMQ:"+ret.toString());
+		// Map object to VxFOnBoardedDescriptor
+		JSONObject obj = new JSONObject(ret);
+		logger.info("Status Code of response:"+obj.get("statusCode"));
+		response = new ResponseEntity<String>(obj.get("body").toString(),HttpStatus.valueOf(obj.get("statusCode").toString()));
+		logger.info("Response from offboarding "+response);
+		return response;			
+	}
+
+	public void offBoardNSDFailed(ExperimentOnBoardDescriptor experimentobds_final) {
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.offboard.fail?multipleConsumers=true");
+		template.withBody( experimentobds_final ).asyncSend();			
+	}
+
+	public void offBoardNSDSucceded(ExperimentOnBoardDescriptor experimentobds_final) {
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.offboard.success?multipleConsumers=true");
+		template.withBody( experimentobds_final ).asyncSend();				
+	}
+	
+	
 	public void scheduleExperiment( DeploymentDescriptor aDeployment) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.schedule?multipleConsumers=true");
 		template.withBody( aDeployment ).asyncSend();				
@@ -437,14 +473,14 @@ public class BusController  {
 		template.withBody( obd ).asyncSend();		
 	}
 
-	/**
-	 * Asynchronously sends to the routing bus (seda:nsd.offboard?multipleConsumers=true) to trigger new NSD offboarding 
-	 * @param deployment a {@link ExperimentOnBoardDescriptor}
-	 */
-	public void offBoardNSD(ExperimentOnBoardDescriptor u) {
-		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.offboard?multipleConsumers=true");
-		template.withBody( u ).asyncSend();		
-	}
+//	/**
+//	 * Asynchronously sends to the routing bus (seda:nsd.offboard?multipleConsumers=true) to trigger new NSD offboarding 
+//	 * @param deployment a {@link ExperimentOnBoardDescriptor}
+//	 */
+//	public void offBoardNSD(ExperimentOnBoardDescriptor u) {
+//		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.offboard?multipleConsumers=true");
+//		template.withBody( u ).asyncSend();		
+//	}
 
 	/**
 	 * @param vfimg

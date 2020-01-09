@@ -22,8 +22,14 @@ package portal.api.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.VxFOnBoardedDescriptor;
@@ -35,6 +41,8 @@ public class NSDOBDService {
 	@Autowired
 	NSDOBDRepository nsdOBDRepository;
 
+	private static final transient Log logger = LogFactory.getLog( VxFOBDService.class.getName());	
+	
 	public ExperimentOnBoardDescriptor updateExperimentOnBoardDescriptor(ExperimentOnBoardDescriptor obd) {
 		
 		return nsdOBDRepository.save( obd );
@@ -54,5 +62,38 @@ public class NSDOBDService {
 		this.nsdOBDRepository.delete(u);
 		
 	}
+	
+	public ExperimentOnBoardDescriptor updateNSDOBDByJSON(ExperimentOnBoardDescriptor NSDOBD) {
+
+		ExperimentOnBoardDescriptor aNSDOBD = getExperimentOnBoardDescriptorByID( NSDOBD.getId() );														
+		logger.info("Previous Status is :"+aNSDOBD.getOnBoardingStatus()+",New Status is:"+NSDOBD.getOnBoardingStatus()+" and Instance Id is "+NSDOBD.getId());
+
+		aNSDOBD.setOnBoardingStatus(NSDOBD.getOnBoardingStatus()); 		
+		aNSDOBD.setDeployId(NSDOBD.getDeployId());
+		aNSDOBD.setVxfMANOProviderID(NSDOBD.getVxfMANOProviderID());
+		aNSDOBD.setLastOnboarding(NSDOBD.getLastOnboarding());
+		aNSDOBD.setFeedbackMessage(NSDOBD.getFeedbackMessage());
+		aNSDOBD.setOnBoardingStatus(NSDOBD.getOnBoardingStatus());
+		//aNSDOBD.getExperiment().setCertified(NSDOBD.getExperiment().isCertified());
+
+		logger.info("updateExperimentODB for id: " + aNSDOBD.getId());				
+		aNSDOBD = updateExperimentOnBoardDescriptor(aNSDOBD);
+
+		return aNSDOBD;
+	}
+
+
+	public String updateNSDOBDEagerDataJson(ExperimentOnBoardDescriptor receivedVxFOBD) throws JsonProcessingException {
+
+		ExperimentOnBoardDescriptor vxfobd = this.updateNSDOBDByJSON(receivedVxFOBD);
+		ObjectMapper mapper = new ObjectMapper();
+
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( vxfobd );
+
+		return res;
+	}	
 
 }
