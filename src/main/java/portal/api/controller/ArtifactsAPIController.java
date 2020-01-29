@@ -107,8 +107,8 @@ import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import osm5.ns.riftware._1._0.project.nsd.rev170228.project.nsd.catalog.Nsd;
 import portal.api.bus.BusController;
-import portal.api.centrallog.CLevel;
-import portal.api.centrallog.CentralLogger;
+//import portal.api.centrallog.CLevel;
+//import portal.api.centrallog.CentralLogger;
 import portal.api.mano.MANOController;
 import portal.api.service.CategoryService;
 import portal.api.service.DeploymentDescriptorService;
@@ -125,7 +125,7 @@ import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
 import portal.api.util.AttachmentUtil;
 import portal.api.validation.ci.ValidationJobResult;
-
+import io.openslice.centrallog.client.*;
 
 
 /**

@@ -41,8 +41,8 @@ import io.openslice.model.DeploymentDescriptorStatus;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.VxFOnBoardedDescriptor;
-import portal.api.centrallog.CLevel;
-import portal.api.centrallog.CentralLogger;
+//import portal.api.centrallog.CLevel;
+//import portal.api.centrallog.CentralLogger;
 import portal.api.repo.DeploymentDescriptorRepository;
 import portal.api.repo.VxFOBDRepository;
 

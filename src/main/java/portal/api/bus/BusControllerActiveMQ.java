@@ -42,6 +42,7 @@ import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDOBDService;
 import portal.api.service.NSDService;
+import portal.api.service.PortalPropertiesService;
 import portal.api.service.UsersService;
 import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
@@ -73,6 +74,9 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 	@Autowired
 	ManoProviderService manoProviderService;
 
+	@Autowired
+	PortalPropertiesService portalPropertyService;
+	
 	@Autowired
 	UsersService usersService;
 
@@ -297,7 +301,6 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log( "activemq:queue:getMANOproviderByID !" )		
 		.bean( manoProviderService, "getMANOproviderByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
-
 		
 		from( NFV_CATALOG_GET_NSD_BY_ID )
 		.log(LoggingLevel.INFO, log, NFV_CATALOG_GET_NSD_BY_ID + " message received!")

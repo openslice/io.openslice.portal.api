@@ -59,9 +59,10 @@ import io.openslice.model.PortalUser;
 import io.openslice.model.UserRoleType;
 import io.openslice.model.VxFMetadata;
 import portal.api.bus.BusController;
-import portal.api.centrallog.CLevel;
-import portal.api.centrallog.CentralLogger;
+//import portal.api.centrallog.CLevel;
+//import portal.api.centrallog.CentralLogger;
 import portal.api.repo.DeploymentDescriptorRepository;
+import io.openslice.centrallog.client.*;
 
 @Service
 public class DeploymentDescriptorService {

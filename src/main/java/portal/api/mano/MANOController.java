@@ -45,8 +45,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 
 import OSM5NBIClient.OSM5Client;
 import portal.api.bus.BusController;
-import portal.api.centrallog.CLevel;
-import portal.api.centrallog.CentralLogger;
+//import portal.api.centrallog.CLevel;
+//import portal.api.centrallog.CentralLogger;
 import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDOBDService;
@@ -63,6 +63,7 @@ import io.openslice.model.OnBoardDescriptor;
 import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
+import io.openslice.centrallog.client.*;
 
 
 
