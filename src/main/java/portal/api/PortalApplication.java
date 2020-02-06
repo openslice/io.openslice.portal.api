@@ -33,7 +33,7 @@ import org.springframework.context.annotation.ComponentScan;
  *
  */
 @EntityScan( basePackages = {"io.openslice.model", "io.openslice.centrallog.client"})
-@ComponentScan(basePackages = {	"io.openslice.centrallog.client"})
+//@ComponentScan(basePackages = {	"io.openslice.centrallog.client"})
 @SpringBootApplication()
 public class PortalApplication{
 
