@@ -22,6 +22,7 @@ package portal.api;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * Our API docs are at:
@@ -31,7 +32,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
  * @author ctranoris
  *
  */
-@EntityScan("io.openslice.model")
+@EntityScan( basePackages = {"io.openslice.model", "io.openslice.centrallog.client"})
+@ComponentScan(basePackages = {	"io.openslice.centrallog.client"})
 @SpringBootApplication()
 public class PortalApplication{
 
