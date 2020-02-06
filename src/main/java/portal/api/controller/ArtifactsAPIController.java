@@ -84,6 +84,8 @@ import OSM5Util.OSM5ArchiveExtractor.OSM5NSExtractor;
 import OSM5Util.OSM5ArchiveExtractor.OSM5VNFDExtractor;
 import OSM5Util.OSM5NSReq.OSM5NSRequirements;
 import OSM5Util.OSM5VNFReq.OSM5VNFRequirements;
+import io.openslice.centrallog.client.CLevel;
+import io.openslice.centrallog.client.CentralLogger;
 import io.openslice.model.Category;
 import io.openslice.model.ConstituentVxF;
 import io.openslice.model.DeploymentDescriptor;
@@ -125,7 +127,6 @@ import portal.api.service.VxFOBDService;
 import portal.api.service.VxFService;
 import portal.api.util.AttachmentUtil;
 import portal.api.validation.ci.ValidationJobResult;
-import io.openslice.centrallog.client.*;
 
 
 /**
