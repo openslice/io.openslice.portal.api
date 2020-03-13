@@ -201,8 +201,13 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>io.openslice</groupId>
+			<groupId>io.openslice.sol005nbi</groupId>
 			<artifactId>io.openslice.sol005nbi.osm5</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.openslice.sol005nbi</groupId>
+			<artifactId>io.openslice.sol005nbi.osm7</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
