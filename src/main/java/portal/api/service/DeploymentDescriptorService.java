@@ -403,30 +403,24 @@ public class DeploymentDescriptorService {
 			{
 				for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails().getExperimentOnBoardDescriptors())
 				{
-					if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
-					{							
-						aDeployment.setStatus( receivedDeployment.getStatus() );
-						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
-						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-						aDeployment = updateDeploymentDescriptor(aDeployment);
-						logger.info("NS status change is now "+aDeployment.getStatus());															
-						//BusController.getInstance().scheduleExperiment( aDeployment );								
-					}
+					aDeployment.setStatus( receivedDeployment.getStatus() );
+					CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+					logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+					aDeployment = updateDeploymentDescriptor(aDeployment);
+					logger.info("NS status change is now "+aDeployment.getStatus());															
+					//BusController.getInstance().scheduleExperiment( aDeployment );								
 				}
 			}
 			else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING && aDeployment.getInstanceId() == null)
 			{
 				for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails().getExperimentOnBoardDescriptors())
 				{
-					if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
-					{
-						aDeployment.setStatus( receivedDeployment.getStatus() );
-						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
-						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
-						aDeployment = updateDeploymentDescriptor(aDeployment);
-						logger.info("NS status change is now "+aDeployment.getStatus());															
-						//BusController.getInstance().deployExperiment( aDeployment );	
-					}
+					aDeployment.setStatus( receivedDeployment.getStatus() );
+					CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+					logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+					aDeployment = updateDeploymentDescriptor(aDeployment);
+					logger.info("NS status change is now "+aDeployment.getStatus());															
+					//BusController.getInstance().deployExperiment( aDeployment );	
 				}
 			}
 			else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED && aDeployment.getInstanceId() != null)

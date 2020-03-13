@@ -45,6 +45,9 @@ import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
+import org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.nsd.rev170228.nsd.constituent.vnfd.ConstituentVnfd;
+import org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.vnfd.base.rev170228.vnfd.descriptor.Vdu;
+import org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.vnfd.rev170228.vnfd.catalog.Vnfd;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -85,6 +88,11 @@ import OSM5Util.OSM5ArchiveExtractor.OSM5NSExtractor;
 import OSM5Util.OSM5ArchiveExtractor.OSM5VNFDExtractor;
 import OSM5Util.OSM5NSReq.OSM5NSRequirements;
 import OSM5Util.OSM5VNFReq.OSM5VNFRequirements;
+import OSM7NBIClient.OSM7Client;
+import OSM7Util.OSM7ArchiveExtractor.OSM7NSExtractor;
+import OSM7Util.OSM7ArchiveExtractor.OSM7VNFDExtractor;
+import OSM7Util.OSM7NSReq.OSM7NSRequirements;
+import OSM7Util.OSM7VNFReq.OSM7VNFRequirements;
 import io.openslice.centrallog.client.CLevel;
 import io.openslice.centrallog.client.CentralLogger;
 import io.openslice.model.Category;
@@ -293,6 +301,11 @@ public class ArtifactsAPIController {
 							logger.info("VxF OSMvFIVE route");	
 							this.loadVxfMetadataFromOSMvFIVEVxFDescriptorFile( (VxFMetadata) prod, descriptorFile, request);
 						}
+						if(((VxFMetadata) prod).getPackagingFormat().name().equals("OSMvSEVEN"))
+						{
+							logger.info("VxF OSMvSEVEN route");	
+							this.loadVxfMetadataFromOSMvSEVENVxFDescriptorFile( (VxFMetadata) prod, descriptorFile, request);
+						}
 					}
 					catch (NullPointerException e)
 					{
@@ -303,12 +316,16 @@ public class ArtifactsAPIController {
 					// If prod is an NS Descriptor
 				} else if (prod instanceof ExperimentMetadata) {
 					try
-					{
-							
+					{							
 						if(((ExperimentMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
 							logger.info("NSD OSMvFIVE route");	
 							this.loadNSMetadataFromOSMvFIVENSDescriptorFile( (ExperimentMetadata) prod, descriptorFile, request);															
+						}
+						if(((ExperimentMetadata) prod).getPackagingFormat().name().equals("OSMvSEVEN"))
+						{
+							logger.info("NSD OSMvSEVEN route");	
+							this.loadNSMetadataFromOSMvSEVENSDescriptorFile( (ExperimentMetadata) prod, descriptorFile, request);															
 						}
 					}
 					catch (NullPointerException e)
@@ -388,7 +405,7 @@ public class ArtifactsAPIController {
 
 	private void loadNSMetadataFromOSMvFIVENSDescriptorFile(ExperimentMetadata prod,File aNSDdescriptorFile, HttpServletRequest request) throws IOException,NullPointerException
 	{
-		// Create a nsExtractor Object for the OSMvTWO file 		
+		// Create a nsExtractor Object for the OSMvFIVE file 		
 		OSM5NSExtractor nsExtract = new OSM5NSExtractor(aNSDdescriptorFile);
 		// Get the nsd object out of the file info		
 		osm5.ns.yang.nfvo.nsd.rev170228.nsd.catalog.Nsd ns = nsExtract.extractNsDescriptor();
@@ -419,6 +436,65 @@ public class ArtifactsAPIController {
 
 				
 				VxFMetadata vxf = (VxFMetadata) vxfService.getVxFByName(v.getVnfdIdRef());
+
+				cvxf.setVxfref(vxf);
+
+				((ExperimentMetadata) prod).getConstituentVxF().add(cvxf);
+			}
+			// If we got an IconfilePath file from/through the vnfExtractor
+			if (nsExtract.getIconfilePath() != null) {
+
+				String imageFileNamePosted = ns.getLogo();
+				logger.info("image = " + imageFileNamePosted);
+				// If the name is not empty				
+				if (!imageFileNamePosted.equals("")) {
+					String imgfile = AttachmentUtil.saveFile(nsExtract.getIconfilePath(),
+							METADATADIR + prod.getUuid() + File.separator + imageFileNamePosted);
+					logger.info("imgfile saved to = " + imgfile);
+					prod.setIconsrc( request.getContextPath() + "/images/" + prod.getUuid()
+							+ "/" + imageFileNamePosted);
+				}
+			}
+			//*************LOAD THE Product Object from the NSD Descriptor END************************************			
+		} else {
+			throw new NullPointerException();
+		}
+		
+	}	
+
+	private void loadNSMetadataFromOSMvSEVENSDescriptorFile(ExperimentMetadata prod,File aNSDdescriptorFile, HttpServletRequest request) throws IOException,NullPointerException
+	{
+		// Create a nsExtractor Object for the OSMvTWO file 		
+		OSM7NSExtractor nsExtract = new OSM7NSExtractor(aNSDdescriptorFile);
+		// Get the nsd object out of the file info		
+		org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.nsd.rev170228.project.nsd.catalog.Nsd ns = nsExtract.extractNsDescriptor();
+		if (ns != null) {
+			//*************LOAD THE Product Object from the NSD Descriptor START************************************
+			// Check if a vnfd with this id already exists in the DB
+			
+			ExperimentMetadata existingmff = nsdService.getNSDByName( ns.getName() );														
+			if ( ( existingmff != null  ) ) {
+				throw new IOException( "Descriptor with same name already exists. No updates were performed." );	
+			}
+			prod.setName(ns.getName());
+			prod.setVersion(ns.getVersion());
+			prod.setVendor(ns.getVendor());
+			prod.setShortDescription(ns.getName());
+			prod.setLongDescription(ns.getDescription());
+			// Get VNF Requirements from the vnfd			
+			OSM7NSRequirements vr = new OSM7NSRequirements(ns);
+			// Store the requirements in HTML			
+			prod.setDescriptorHTML(vr.toHTML());
+			// Store the YAML file			
+			prod.setDescriptor(nsExtract.getDescriptorYAMLfile());
+			
+			for (ConstituentVnfd v : ns.getConstituentVnfd()) {
+				ConstituentVxF cvxf = new ConstituentVxF();
+				cvxf.setMembervnfIndex(Integer.parseInt(v.getMemberVnfIndex())); 
+				cvxf.setVnfdidRef((String)v.getVnfdIdRef());
+
+				
+				VxFMetadata vxf = (VxFMetadata) vxfService.getVxFByName((String)v.getVnfdIdRef());
 
 				cvxf.setVxfref(vxf);
 
@@ -515,6 +591,74 @@ public class ArtifactsAPIController {
 		}
 	}
 	
+	private void loadVxfMetadataFromOSMvSEVENVxFDescriptorFile(VxFMetadata prod,File aVxFdescriptorFile, HttpServletRequest request) throws IOException, NullPointerException
+	{
+		// Create a vnfExtractor Object for the OSMvSEVEN file 
+		OSM7VNFDExtractor vnfExtract = new OSM7VNFDExtractor(aVxFdescriptorFile);
+		// Get the vnfd object out of the file info
+		Vnfd vnfd = vnfExtract.extractVnfdDescriptor();
+		if (vnfd != null) {							
+			//*************LOAD THE Product Object from the VNFD Descriptor START************************************
+			// Check if a vnfd with this id already exists in the DB
+			VxFMetadata existingvmf = vxfService.getVxFByName( vnfd.getName());														
+			if ( ( existingvmf != null  ) ) {
+				throw new IOException( "Descriptor with same name already exists. No updates were performed. Please change the name of the descriptor" );				
+			}
+			// Get the name for the db							
+			prod.setName(vnfd.getName());
+			prod.setVersion(vnfd.getVersion());
+			prod.setVendor(vnfd.getVendor());
+			prod.setShortDescription(vnfd.getName());
+			prod.setLongDescription(vnfd.getDescription());
+			
+			((VxFMetadata) prod).setValidationStatus( ValidationStatus.UNDER_REVIEW  );
+			((VxFMetadata) prod).getVfimagesVDU().clear();//clear previous referenced images
+			for (Vdu vdu : vnfd.getVdu()) {
+				String imageName = vdu.getImage();
+				if ( ( imageName != null) && (!imageName.equals("")) ){
+					VFImage sm = vfImageService.getVFImageByName( imageName );
+					if ( sm == null ){
+						sm = new VFImage();
+						sm.setName( imageName );
+						PortalUser vfImagewner =  usersService.findById(prod.getOwner().getId());
+						sm.setOwner( vfImagewner );
+						sm.setShortDescription( "Automatically created during vxf " + prod.getName() + " submission. Owner must update." );
+						String uuidVFImage = UUID.randomUUID().toString();
+						sm.setUuid( uuidVFImage );
+						sm.setDateCreated(new Date());
+						sm = vfImageService.saveVFImage( sm );
+					}
+					((VxFMetadata) prod).getVfimagesVDU().add( sm );
+					
+				}
+			}			
+			
+			// Get VNF Requirements from the vnfd
+			OSM7VNFRequirements vr = new OSM7VNFRequirements(vnfd);
+			// Store the requirements in HTML
+			prod.setDescriptorHTML(vr.toHTML());
+			// Store the YAML file
+			prod.setDescriptor(vnfExtract.getDescriptorYAMLfile());
+			// If we got an IconfilePath file from/through the vnfExtractor
+			if (vnfExtract.getIconfilePath() != null) {
+				String imageFileNamePosted = vnfd.getLogo();
+				logger.info("image = " + imageFileNamePosted);
+				// If the name is not empty
+				if (!imageFileNamePosted.equals("")) {
+					String imgfile = AttachmentUtil.saveFile(vnfExtract.getIconfilePath(),
+							METADATADIR + prod.getUuid() + File.separator + imageFileNamePosted);
+					logger.info("imgfile saved to = " + imgfile);
+					prod.setIconsrc( request.getContextPath().toString().replace("http:", "") + "/images/" + prod.getUuid()
+							+ "/" + imageFileNamePosted);
+				}
+			}
+			//*************LOAD THE Product Object from the VNFD Descriptor END************************************
+		}
+		else
+		{
+			throw new NullPointerException();
+		}
+	}
 
 	private void updateVxfMetadataFromOSMvFIVEVxFDescriptorFile(Product prevProduct,File aVxFdescriptorFile, HttpServletRequest request) throws IOException, NullPointerException
 	{
@@ -524,7 +668,7 @@ public class ArtifactsAPIController {
 		osm5.ns.yang.nfvo.vnfd.rev170228.vnfd.catalog.Vnfd vnfd = vnfExtract.extractVnfdDescriptor();
 		if (vnfd != null) {							
 			//on update we need to check if name and version are the same. Only then we will accept it
-			if ( !prevProduct.getName().equals( vnfd.getId()) ||  !prevProduct.getVersion().equals( vnfd.getVersion() )  ){
+			if ( !prevProduct.getName().equals( vnfd.getName()) ||  !prevProduct.getVersion().equals( vnfd.getVersion() )  ){
 				throw new IOException( "Name and version are not equal to existing descriptor. No updates were performed." );
 			}							
 			if ( ( (VxFMetadata) prevProduct).isCertified()  ) {
@@ -598,16 +742,99 @@ public class ArtifactsAPIController {
 			throw new NullPointerException();
 		}
 	}
+
+	private void updateVxfMetadataFromOSMvSEVENVxFDescriptorFile(Product prevProduct,File aVxFdescriptorFile, HttpServletRequest request) throws IOException, NullPointerException
+	{
+		// Create a vnfExtractor Object for the OSMvFIVE file 
+		OSM7VNFDExtractor vnfExtract = new OSM7VNFDExtractor(aVxFdescriptorFile);
+		// Get the vnfd object out of the file info
+		Vnfd vnfd = vnfExtract.extractVnfdDescriptor();
+		if (vnfd != null) {							
+			//on update we need to check if name and version are the same. Only then we will accept it
+			if ( !prevProduct.getName().equals( vnfd.getName()) ||  !prevProduct.getVersion().equals( vnfd.getVersion() )  ){
+				throw new IOException( "Name and version are not equal to existing descriptor. No updates were performed." );
+			}							
+			if ( ( (VxFMetadata) prevProduct).isCertified()  ) {
+				throw new IOException( "Descriptor is already Validated and cannot change! No updates were performed." );								
+			}
+			
+			// Get the name for the db							
+			prevProduct.setName(vnfd.getName());
+			prevProduct.setVersion(vnfd.getVersion());
+			prevProduct.setVendor(vnfd.getVendor());
+			prevProduct.setShortDescription(vnfd.getName());
+			prevProduct.setLongDescription(vnfd.getDescription());
+			
+			((VxFMetadata) prevProduct).setValidationStatus( ValidationStatus.UNDER_REVIEW  );
+			
+			
+			
+			for (VFImage img : ((VxFMetadata) prevProduct).getVfimagesVDU()) {
+				logger.info("img.getUsedByVxFs().remove(prevProduct) = " + img.getUsedByVxFs().remove(prevProduct));
+				vfImageService.updateVFImageInfo(img);
+			}			
+			((VxFMetadata) prevProduct).getVfimagesVDU().clear();//clear previous referenced images
+			for (Vdu vdu : vnfd.getVdu()) {
+				String imageName = vdu.getImage();
+				if ( ( imageName != null) && (!imageName.equals("")) ){
+					VFImage sm = vfImageService.getVFImageByName( imageName );
+					if ( sm == null ){
+						sm = new VFImage();
+						sm.setName( imageName );
+						PortalUser vfImagewner = usersService.findById(prevProduct.getOwner().getId());
+						sm.setOwner( vfImagewner );
+						sm.setShortDescription( "Automatically created during vxf " + prevProduct.getName() + " submission. Owner must update." );
+						String uuidVFImage = UUID.randomUUID().toString();
+						sm.setUuid( uuidVFImage );
+						sm.setDateCreated(new Date());
+						sm = vfImageService.saveVFImage( sm );
+					}
+					if ( !((VxFMetadata) prevProduct).getVfimagesVDU().contains(sm) ){
+						((VxFMetadata) prevProduct).getVfimagesVDU().add( sm );
+						sm.getUsedByVxFs().add( ((VxFMetadata) prevProduct) );
+						vfImageService.updateVFImageInfo( sm );
+						
+					}
+					
+				}
+			}			
+			
+			// Get VNF Requirements from the vnfd
+			OSM7VNFRequirements vr = new OSM7VNFRequirements(vnfd);
+			// Store the requirements in HTML
+			prevProduct.setDescriptorHTML(vr.toHTML());
+			// Store the YAML file
+			prevProduct.setDescriptor(vnfExtract.getDescriptorYAMLfile());
+			// If we got an IconfilePath file from/through the vnfExtractor
+			if (vnfExtract.getIconfilePath() != null) {
+				String imageFileNamePosted = vnfd.getLogo();
+				logger.info("image = " + imageFileNamePosted);
+				// If the name is not empty
+				if (!imageFileNamePosted.equals("")) {
+					String imgfile = AttachmentUtil.saveFile(vnfExtract.getIconfilePath(),
+							METADATADIR + prevProduct.getUuid() + File.separator + imageFileNamePosted);
+					logger.info("imgfile saved to = " + imgfile);
+					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "/images/" + prevProduct.getUuid()
+							+ "/" + imageFileNamePosted);
+				}
+			}
+			//*************LOAD THE Product Object from the VNFD Descriptor END************************************
+		}
+		else
+		{
+			throw new NullPointerException();
+		}
+	}
 	
 	private void updateNSMetadataFromOSMvFIVENSDescriptorFile(Product prevProduct, File aNSDdescriptorFile, HttpServletRequest request) throws IOException,NullPointerException {
-		// Create a nsExtractor Object for the OSMvTWO file 		
+		// Create a nsExtractor Object for the OSMvFIVE file 		
 		OSM5NSExtractor nsExtract = new OSM5NSExtractor(aNSDdescriptorFile);
 		// Get the nsd object out of the file info		
 		osm5.ns.yang.nfvo.nsd.rev170228.nsd.catalog.Nsd ns = nsExtract.extractNsDescriptor();
 		if (ns != null) {
 			//*************LOAD THE Product Object from the NSD Descriptor START************************************
 			//on update we need to check if name and version are the same. Only then we will accept it
-			if ( !prevProduct.getName().equals( ns.getId()) ||  !prevProduct.getVersion().equals( ns.getVersion() )  ){
+			if ( !prevProduct.getName().equals( ns.getName()) ||  !prevProduct.getVersion().equals( ns.getVersion() )  ){
 				throw new IOException( "Name and version are not equal to existing descriptor. No updates were performed." );
 			}							
 			if ( ( (ExperimentMetadata) prevProduct).isValid()  ) {
@@ -632,6 +859,65 @@ public class ArtifactsAPIController {
 				cvxf.setVnfdidRef(v.getVnfdIdRef());
 
 				VxFMetadata vxf = vxfService.getVxFByName(v.getVnfdIdRef());
+
+				cvxf.setVxfref(vxf);
+
+				((ExperimentMetadata) prevProduct).getConstituentVxF().add(cvxf);
+			}
+			// If we got an IconfilePath file from/through the vnfExtractor
+			if (nsExtract.getIconfilePath() != null) {
+
+				String imageFileNamePosted = ns.getLogo();
+				logger.info("image = " + imageFileNamePosted);
+				// If the name is not empty				
+				if (!imageFileNamePosted.equals("")) {
+					String imgfile = AttachmentUtil.saveFile(nsExtract.getIconfilePath(),
+							METADATADIR + prevProduct.getUuid() + File.separator + imageFileNamePosted);
+					logger.info("imgfile saved to = " + imgfile);
+					prevProduct.setIconsrc( request.getRequestURI().toString().replace("http:", "") + "/images/" + prevProduct.getUuid()
+							+ "/" + imageFileNamePosted);
+				}
+			}
+			//*************LOAD THE Product Object from the NSD Descriptor END************************************			
+		} else {
+			throw new NullPointerException();
+		}
+
+	}
+	
+	private void updateNSMetadataFromOSMvSEVENSDescriptorFile(Product prevProduct, File aNSDdescriptorFile, HttpServletRequest request) throws IOException,NullPointerException {
+		// Create a nsExtractor Object for the OSMvFIVE file 		
+		OSM7NSExtractor nsExtract = new OSM7NSExtractor(aNSDdescriptorFile);
+		// Get the nsd object out of the file info		
+		org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.nsd.rev170228.project.nsd.catalog.Nsd ns = nsExtract.extractNsDescriptor();
+		if (ns != null) {
+			//*************LOAD THE Product Object from the NSD Descriptor START************************************
+			//on update we need to check if name and version are the same. Only then we will accept it
+			if ( !prevProduct.getName().equals( ns.getName()) ||  !prevProduct.getVersion().equals( ns.getVersion() )  ){
+				throw new IOException( "Name and version are not equal to existing descriptor. No updates were performed." );
+			}							
+			if ( ( (ExperimentMetadata) prevProduct).isValid()  ) {
+				throw new IOException( "Descriptor is already Validated and cannot change! No updates were performed." );								
+			}
+			prevProduct.setName(ns.getName());
+			prevProduct.setVersion(ns.getVersion());
+			prevProduct.setVendor(ns.getVendor());
+			prevProduct.setShortDescription(ns.getName());
+			prevProduct.setLongDescription(ns.getDescription());
+			// Get VNF Requirements from the vnfd			
+			OSM7NSRequirements vr = new OSM7NSRequirements(ns);
+			// Store the requirements in HTML			
+			prevProduct.setDescriptorHTML(vr.toHTML());
+			// Store the YAML file			
+			prevProduct.setDescriptor(nsExtract.getDescriptorYAMLfile());
+
+			((ExperimentMetadata) prevProduct).getConstituentVxF().clear();
+			for (ConstituentVnfd v : ns.getConstituentVnfd()) {
+				ConstituentVxF cvxf = new ConstituentVxF();
+				cvxf.setMembervnfIndex(Integer.parseInt(v.getMemberVnfIndex())); 
+				cvxf.setVnfdidRef((String)v.getVnfdIdRef());
+
+				VxFMetadata vxf = vxfService.getVxFByName((String)v.getVnfdIdRef());
 
 				cvxf.setVxfref(vxf);
 
@@ -762,7 +1048,8 @@ public class ArtifactsAPIController {
 			
 			for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
 			{
-				if( vxfsaved.getPackagingFormat().equals( PackagingFormat.OSMvFIVE) &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM FIVE" ))
+				if( (vxfsaved.getPackagingFormat().equals( PackagingFormat.OSMvFIVE) &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM FIVE" ))
+|| ( vxfsaved.getPackagingFormat().equals( PackagingFormat.OSMvSEVEN) &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM SEVEN" )))
 				{
 					//Create VxfOnboardedDescriptor
 					VxFOnBoardedDescriptor obd = new VxFOnBoardedDescriptor();
@@ -809,7 +1096,7 @@ public class ArtifactsAPIController {
 										
 					// Send the message for automatic onboarding
 					BusController.getInstance().onBoardVxFAdded( obd );
-				}
+				}				
 			}
 			// AUTOMATIC ONBOARDING PROCESS -END
 			//======================================================
@@ -1021,11 +1308,15 @@ public class ArtifactsAPIController {
 				if ( prevProduct instanceof VxFMetadata) {
 					try
 					{
-
 						if(((VxFMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
 							logger.info("VxF OSMvFIVE route");	
 							this.updateVxfMetadataFromOSMvFIVEVxFDescriptorFile(prevProduct, descriptorFile, request);
+						}
+						if(((VxFMetadata) prod).getPackagingFormat().name().equals("OSMvSEVEN"))
+						{
+							logger.info("VxF OSMvSEVEN route");	
+							this.updateVxfMetadataFromOSMvSEVENVxFDescriptorFile(prevProduct, descriptorFile, request);
 						}
 					}
 					catch (NullPointerException e)
@@ -1037,11 +1328,15 @@ public class ArtifactsAPIController {
 				} else if ( prevProduct instanceof ExperimentMetadata) {
 					try
 					{
-
 						if(((ExperimentMetadata) prod).getPackagingFormat().name().equals("OSMvFIVE"))
 						{
 							logger.info("NSD OSMvFIVE route");
 							this.updateNSMetadataFromOSMvFIVENSDescriptorFile(prevProduct, descriptorFile, request);															
+						}
+						if(((ExperimentMetadata) prod).getPackagingFormat().name().equals("OSMvSEVEN"))
+						{
+							logger.info("NSD OSMvSEVEN route");
+							this.updateNSMetadataFromOSMvSEVENSDescriptorFile(prevProduct, descriptorFile, request);															
 						}
 					}
 					catch (NullPointerException e)
@@ -1613,7 +1908,53 @@ public class ArtifactsAPIController {
 		
 			for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
 			{
-				if( experimentSaved.getPackagingFormat().equals( PackagingFormat.OSMvFIVE)  &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM FIVE" ) )
+				if( (experimentSaved.getPackagingFormat().equals( PackagingFormat.OSMvFIVE)  &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM FIVE" ) )
+						|| ( experimentSaved.getPackagingFormat().equals( PackagingFormat.OSMvSEVEN) &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM SEVEN" )))					
+				{
+				
+					//Create NSDOnboardDescriptor
+					ExperimentOnBoardDescriptor obd = new ExperimentOnBoardDescriptor( );
+					// Get the first one for now			
+					obd.setObMANOprovider(mp);
+					obd.setUuid( UUID.randomUUID().toString() ); 
+					ExperimentMetadata refNSD =  ( ExperimentMetadata )nsdService.getProductByID( experimentSaved.getId() );
+					// Fill the NSDMetadata of NSDOnBoardedDescriptor
+					obd.setExperiment( refNSD );
+					// save VxFonBoardedDescriptor or not ???
+					obd = nsdOBDService.updateExperimentOnBoardDescriptor(obd);
+					
+					// Update the NSDMetadata Object with the obd Object
+					refNSD.getExperimentOnBoardDescriptors().add( obd ) ;				
+										
+					
+					// save product
+					refNSD = (ExperimentMetadata) nsdService.updateProductInfo( refNSD );
+					
+					
+					//***************************************************************************************************************************\
+					// Because in portal.api.mano we need the url for the package location in order not to ask back, if the package locations 
+					// does not contain http add the default maindomain value.
+					// We can either add it here or change that where the pLocation is set initially for the object.
+					// Get the location of the package
+					String pLocation = obd.getExperiment().getPackageLocation();
+					logger.info("VxF Package Location: " + pLocation);
+					if (!pLocation.contains("http")) {
+						pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
+						obd.getExperiment().setPackageLocation(pLocation);
+						productService.updateProductInfo(obd.getExperiment());
+					}					
+					logger.info("PROPER VxF Package Location: " + pLocation);					
+					//***************************************************************************************************************************
+										
+
+					// Send the message for automatic onboarding
+					//BusController.getInstance().newNSDAdded( vxf );
+					
+					//set proper scheme (http or https)
+					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
+					BusController.getInstance().onBoardNSD( obd );
+				}
+				if( experimentSaved.getPackagingFormat().equals( PackagingFormat.OSMvSEVEN)  &&  mp.getSupportedMANOplatform().getVersion().equals( "OSM SEVEN" ) )
 				{
 				
 					//Create NSDOnboardDescriptor
@@ -2270,6 +2611,15 @@ public class ArtifactsAPIController {
 								logger.info("NS status change is now "+aDeployment.getStatus());															
 								BusController.getInstance().scheduleExperiment( aDeployment );								
 							}
+							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM SEVEN"))
+							{							
+								aDeployment.setStatus( receivedDeployment.getStatus() );
+								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now "+aDeployment.getStatus());															
+								BusController.getInstance().scheduleExperiment( aDeployment );								
+							}
 						}
 					}
 					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING && aDeployment.getInstanceId() == null)
@@ -2291,6 +2641,20 @@ public class ArtifactsAPIController {
 								BusController.getInstance().deployExperiment( aDeployment );	
 							}
 							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE"))
+							{
+								//Trigger Automatic Instantiation
+								//Initially we try synchronously
+								//aMANOController.deployNSDToMANOProvider(prevDeployment);
+								//Then try asynchronously
+	
+								aDeployment.setStatus( receivedDeployment.getStatus() );
+								CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+								logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now "+aDeployment.getStatus());															
+								BusController.getInstance().deployExperiment( aDeployment );	
+							}
+							if(tmpExperimentOnBoardDescriptor.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM SEVEN"))
 							{
 								//Trigger Automatic Instantiation
 								//Initially we try synchronously
@@ -2598,6 +2962,16 @@ public class ArtifactsAPIController {
 				return (ResponseEntity<?>) ResponseEntity.notFound();
 			}
 		}
+		if(sm.getSupportedMANOplatform().getName().equals("OSM SEVEN"))
+		{
+			OSM7Client osm7Client = new OSM7Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
+			org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.vnfd.rev170228.project.vnfd.catalog.Vnfd vnfd = osm7Client.getVNFDbyID(vxfid);
+			if (vnfd != null) {
+				return ResponseEntity.ok( vnfd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
 		return (ResponseEntity<?>) ResponseEntity.notFound();
 	}
 
@@ -2632,6 +3006,27 @@ public class ArtifactsAPIController {
 				return (ResponseEntity<?>) ResponseEntity.notFound();
 			}
 		}
+		if(sm.getSupportedMANOplatform().getName().equals("OSM SEVEN"))
+		{
+			OSM7Client osm7Client = null;			
+			try {
+				osm7Client = new OSM7Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
+			}
+		    catch(HttpStatusCodeException e) 
+			{
+				logger.error("getOSMVNFMetadata, OSM7 fails authentication. Aborting action.");
+				CentralLogger.log( CLevel.ERROR, "getOSMVNFMetadata, OSM5 fails authentication. Aborting action.", compname);
+				
+				return (ResponseEntity<?>) ResponseEntity.status( e.getRawStatusCode() ).body("manoprovid with id=" + manoprovid + " does not belong to the supported types or failed to communication with OSM") ;
+			}						
+			
+			org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.vnfd.rev170228.project.vnfd.catalog.Vnfd[] vnfd = osm7Client.getVNFDs();
+			if (vnfd != null) {
+				return ResponseEntity.ok( vnfd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
 		return (ResponseEntity<?>) ResponseEntity.notFound();
 	}
 
@@ -2651,6 +3046,16 @@ public class ArtifactsAPIController {
 		{
 			OSM5Client osm5Client = new OSM5Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
 			Nsd nsd = osm5Client.getNSDbyID(nsdid);
+			if (nsd != null) {
+				return ResponseEntity.ok( nsd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
+		if(sm.getSupportedMANOplatform().getName().equals("OSM SEVEN"))
+		{
+			OSM7Client osm7Client = new OSM7Client(sm.getApiEndpoint(),sm.getUsername(),sm.getPassword(),"admin");
+			org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.nsd.rev170228.project.nsd.catalog.Nsd nsd = osm7Client.getNSDbyID(nsdid);
 			if (nsd != null) {
 				return ResponseEntity.ok( nsd  );
 			} else {
@@ -2685,6 +3090,27 @@ public class ArtifactsAPIController {
 			}						
 			
 			osm5.ns.riftware._1._0.project.nsd.rev170228.project.nsd.catalog.Nsd[] nsd = osm5Client.getNSDs();
+			if (nsd != null) {
+				return ResponseEntity.ok( nsd  );
+			} else {
+				return (ResponseEntity<?>) ResponseEntity.notFound();
+			}
+		}
+		if(sm.getSupportedMANOplatform().getName().equals("OSM SEVEN"))
+		{
+			OSM7Client osm7Client = null;			
+			try {
+				osm7Client = new OSM7Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");
+			}
+		    catch(HttpStatusCodeException e) 
+			{
+				logger.error("getOSM_NSD_Metadata, OSM5 fails authentication. Aborting action.");
+				CentralLogger.log( CLevel.ERROR, "getOSM_NSD_Metadata, OSM5 fails authentication. Aborting action.", compname);
+				
+				return (ResponseEntity<?>) ResponseEntity.status( e.getRawStatusCode() ).body("manoprovid with id=" + manoprovid + " does not belong to the supported types or failed to communication with OSM") ;
+			}						
+			
+			org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.nsd.rev170228.project.nsd.catalog.Nsd[] nsd = osm7Client.getNSDs();
 			if (nsd != null) {
 				return ResponseEntity.ok( nsd  );
 			} else {
