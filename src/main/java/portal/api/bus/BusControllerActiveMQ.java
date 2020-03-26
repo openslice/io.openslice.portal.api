@@ -248,7 +248,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.bean( vxfService, "getProductByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
-
+		from("activemq:queue:getVxFByName")
+		.log( "activemq:queue:getVxFByName for ${body} !" )		
+		.bean( vxfService, "getProductByNameEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
 		from("activemq:queue:getNSDByID")
 		.log( "activemq:queue:getNSDByID for ${body} !" )		
 		.bean( nsdService, "getProductByIDEagerDataJson" )

@@ -22,23 +22,36 @@ package portal.api.util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.vnfd.rev170228.vnfd.catalog.Vnfd;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 /**
  * @author ctranoris
  *
  */
-/**
- * @author ctranoris
- *
- */
+
 public class AttachmentUtil {
 
-
-
+	private static int BUFFER_SIZE = 4 * 1024;
+	private String descriptorYAMLfile;
+	private ByteArrayOutputStream iconfilePath;
+	
+	private static final transient Log logger = LogFactory.getLog(AttachmentUtil.class.getName());
 
 	/**
 	 * @param att
@@ -106,4 +119,120 @@ public class AttachmentUtil {
 		return null;
 
 	}
+	
+    public static String extractYAMLfile(String filePath) throws IOException {
+        
+    	String descriptorYAMLfile = null;
+    	try (InputStream in = new FileInputStream(filePath);
+    		//unzip
+            GzipCompressorInputStream gzipIn = new GzipCompressorInputStream(in);
+    		//untar
+            TarArchiveInputStream tarIn = new TarArchiveInputStream(gzipIn)){
+            TarArchiveEntry entry = null;
+            // Iterate through the files in the archive
+            while ((entry = tarIn.getNextTarEntry()) != null) {              
+                // If the file ends in .yaml
+                if (entry.getName().endsWith(".yaml")) {
+
+					logger.info("INFO: Examining " + entry.getName() + " for vnfd tag..." );
+					// Create a new file
+					ByteArrayOutputStream file = new ByteArrayOutputStream();
+					
+					int count;
+					byte data[] = new byte[BUFFER_SIZE];
+					// Read in chunks of BUFFER SIZE
+					while((count = tarIn.read(data, 0, BUFFER_SIZE)) != -1) {
+						// Write in a separate file.
+					    file.write(data, 0, count);
+					}
+					// Set the file as the yaml file
+					descriptorYAMLfile = new String(file.toByteArray());
+						
+			    }
+			}
+    	}
+        return descriptorYAMLfile;
+    }
+
+    public static ByteArrayOutputStream extractIcon(String filePath) throws IOException {
+    	ByteArrayOutputStream iconfilePath = null;
+        try (InputStream in = new FileInputStream(filePath);
+    		//unzip
+            GzipCompressorInputStream gzipIn = new GzipCompressorInputStream(in);
+    		//untar
+            TarArchiveInputStream tarIn = new TarArchiveInputStream(gzipIn)){
+            TarArchiveEntry entry = null;
+            // Iterate through the files in the archive
+            while ((entry = tarIn.getNextTarEntry()) != null) {              
+                // If the file is a png or a jpg
+                if  ( entry.getName().endsWith(".png") || entry.getName().endsWith(".jpg")) {                    	
+					iconfilePath = new ByteArrayOutputStream();
+					//Copy the file to iconfilePath
+					int count;
+					byte data[] = new byte[BUFFER_SIZE];
+					while((count = tarIn.read(data, 0, BUFFER_SIZE)) != -1) {
+						iconfilePath.write(data, 0, count);
+					}                	
+                }
+            }
+        }
+        return iconfilePath;
+    }
+	
+    public void extractYAMLfileAndIcon(String filePath) throws IOException {
+    	try (InputStream in = new FileInputStream(filePath);
+    		//unzip
+            GzipCompressorInputStream gzipIn = new GzipCompressorInputStream(in);
+    		//untar
+            TarArchiveInputStream tarIn = new TarArchiveInputStream(gzipIn)){
+            TarArchiveEntry entry = null;
+            // Iterate through the files in the archive
+            while ((entry = tarIn.getNextTarEntry()) != null) {              
+                // If the file ends in .yaml
+                if (entry.getName().endsWith(".yaml")) {
+
+					logger.info("INFO: Examining " + entry.getName() + " for vnfd tag..." );
+					// Create a new file
+					ByteArrayOutputStream file = new ByteArrayOutputStream();
+					
+					int count;
+					byte data[] = new byte[BUFFER_SIZE];
+					// Read in chunks of BUFFER SIZE
+					while((count = tarIn.read(data, 0, BUFFER_SIZE)) != -1) {
+						// Write in a separate file.
+					    file.write(data, 0, count);
+					}
+					// Set the file as the yaml file
+					this.setDescriptorYAMLfile(new String(file.toByteArray()));					
+			    }
+                // If the file is a png or a jpg
+                if  ( entry.getName().endsWith(".png") || entry.getName().endsWith(".jpg")) {                    	
+					this.iconfilePath = new ByteArrayOutputStream();
+					//Copy the file to iconfilePath
+					int count;
+					byte data[] = new byte[BUFFER_SIZE];
+					while((count = tarIn.read(data, 0, BUFFER_SIZE)) != -1) {
+						this.iconfilePath.write(data, 0, count);
+					}                	
+                }                
+			}
+    	}
+    }
+
+	public String getDescriptorYAMLfile() {
+		return descriptorYAMLfile;
+	}
+
+	public void setDescriptorYAMLfile(String descriptorYAMLfile) {
+		this.descriptorYAMLfile = descriptorYAMLfile;
+	}
+
+	public ByteArrayOutputStream getIconfilePath() {
+		return iconfilePath;
+	}
+
+	public void setIconfilePath(ByteArrayOutputStream iconfilePath) {
+		this.iconfilePath = iconfilePath;
+	}
+	
 }

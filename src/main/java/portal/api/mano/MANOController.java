@@ -187,7 +187,7 @@ public class MANOController {
 
 		
 		// OSM5 START
-		if (vxfobds.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if (vxfobds.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
 			OSM5Client osm5Client = null;
 			try {
 				osm5Client = new OSM5Client(vxfobds.getObMANOprovider().getApiEndpoint(), vxfobds.getObMANOprovider().getUsername(), vxfobds.getObMANOprovider().getPassword(), "admin");
@@ -324,7 +324,7 @@ public class MANOController {
 				MANOprovider sm = manoProviderService.getMANOproviderByID( getExperimOBD( deployment_tmp ).getObMANOprovider().getId() );
 				
 				//OSM5 - START
-				if (sm.getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+				if (sm.getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
 					if (osm5Client == null || !osm5Client.getMANOApiEndpoint().equals(sm.getApiEndpoint())) {
 						try
 						{
@@ -553,7 +553,7 @@ public class MANOController {
 	
 		
 		// OSM5 - START
-		if (uexpobds.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if (uexpobds.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
 			ResponseEntity<String> response = null;
 			OSM5Client osm5Client = null;
 			try {
@@ -643,7 +643,7 @@ public class MANOController {
 		// TODO Auto-generated method stub
 		ResponseEntity<String> response = null;
 		// OSM5 START
-		if (obd.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if (obd.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
 			String vnfd_id = obd.getDeployId();
 			OSM5Client osm5Client = null;			
 			try {
@@ -696,7 +696,7 @@ public class MANOController {
 		ResponseEntity<String> response = null;
 		
 		// OSM5 START
-		if (uexpobd.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if (uexpobd.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
 			String nsd_id = uexpobd.getDeployId();
 			OSM5Client osm5Client = null;			
 			try {
@@ -730,7 +730,7 @@ public class MANOController {
 		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + getExperimOBD(deploymentdescriptor).getObMANOprovider());
 		
 		// OSM5 - START
-		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
 			// There can be multiple MANOs for the Experiment. We need to handle that also.
 			OSM5Client osm5Client = null;
 			try {
@@ -822,7 +822,7 @@ public class MANOController {
 		
 		
 		// OSM5 START
-		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM FIVE")) {
+		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
 			 //deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATING ||			
 			logger.info("Current status change before termination is :"+deploymentdescriptor.getStatus());
 			if( deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.INSTANTIATING || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.RUNNING || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.FAILED )
@@ -904,8 +904,8 @@ public class MANOController {
 		
 		
 		// OSM5 START
-		if ( aMANOplatform.equals("OSM FIVE")) {
-			logger.info("Descriptor targets an OSM FIVE deploymentdescriptorid: " + deploymentdescriptorid);		
+		if ( aMANOplatform.equals("OSMvFIVE")) {
+			logger.info("Descriptor targets an OSMvFIVE deploymentdescriptorid: " + deploymentdescriptorid);		
 			// There can be multiple MANOs for the Experiment. We need to handle that also.
 			// After TERMINATION
 			boolean force;

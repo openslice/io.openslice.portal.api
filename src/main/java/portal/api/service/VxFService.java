@@ -49,20 +49,43 @@ public class VxFService {
 		return o.orElse(null);
 	}
 	
+	public VxFMetadata getProductByName(String name) {
+
+		Optional<VxFMetadata> o = this.vxfsRepo.findByName(name);
+
+		return o.orElse(null);
+	}
+	
 	/**
 	 * @param id
 	 * @return a Json containing all data
 	 * @throws JsonProcessingException
 	 */
 	public String getProductByIDEagerDataJson(long id) throws JsonProcessingException {
-
-		
+	
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
         mapper.registerModule(new Hibernate5Module());
 		
         VxFMetadata o = this.getProductByID(id);        
+		String res = mapper.writeValueAsString( o );
+		return res;
+	}
+
+	/**
+	 * @param id
+	 * @return a Json containing all data
+	 * @throws JsonProcessingException
+	 */
+	public String getProductByNameEagerDataJson(String name) throws JsonProcessingException {
+	
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module());
+		
+        VxFMetadata o = this.getProductByName(name);        
 		String res = mapper.writeValueAsString( o );
 		return res;
 	}

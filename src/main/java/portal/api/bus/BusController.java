@@ -20,6 +20,7 @@
 
 package portal.api.bus;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
@@ -50,6 +51,7 @@ import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.PortalUser;
+import io.openslice.model.Product;
 import io.openslice.model.VFImage;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
@@ -264,6 +266,98 @@ public class BusController  {
 		return response;			
 	}
 
+	public VxFMetadata getVNFDMetadataFromMANO(VxFMetadata prod) {
+		// Serialize the received object
+		ObjectMapper mapper = new ObjectMapper();
+		String prod_serialized = null;
+		try {
+			prod_serialized = mapper.writeValueAsString( prod );
+		} catch (JsonProcessingException e2) {
+			// TODO Auto-generated catch block
+			logger.error(e2.getMessage());
+		}
+		logger.info("Sending Object to get VxFMetadata from AMQ:");		
+		// Send it to activemq endpoint
+		String ret = contxt.createProducerTemplate().requestBody("activemq:topic:vxf.metadata.retrieve", prod_serialized, String.class) ;
+
+		logger.info("From ActiveMQ:"+ret.toString());
+		// Map object to VxFMetadata
+		// Get the response and Map object to ExperimentMetadata
+		VxFMetadata vxfmetadata = null;
+		try {
+			// Map object to VxFOnBoardedDescriptor
+			//ObjectMapper mapper = new ObjectMapper();
+			logger.info("From ActiveMQ:"+ret.toString());
+			vxfmetadata = mapper.readValue(ret, VxFMetadata.class);
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e11) {
+			// TODO Auto-generated catch block
+			e11.printStackTrace();
+		}				
+		return vxfmetadata;
+	}
+
+	public VxFMetadata getVNFDMetadataFromMANO(String osmType, String yamlFile) {
+		logger.info("Sending Object to get VxFMetadata from AMQ:");		
+		// Send it to activemq endpoint
+		String ret = contxt.createProducerTemplate().requestBodyAndHeader("activemq:topic:vxf.metadata.retrieve", yamlFile, "OSMType", osmType, String.class);
+
+		logger.info("From ActiveMQ:"+ret.toString());
+		ObjectMapper mapper = new ObjectMapper();
+		// Map object to VxFMetadata
+		// Get the response and Map object to ExperimentMetadata
+		VxFMetadata vxfmetadata = null;
+		try {
+			// Map object to VxFOnBoardedDescriptor
+			//ObjectMapper mapper = new ObjectMapper();
+			logger.info("From ActiveMQ:"+ret.toString());
+			vxfmetadata = mapper.readValue(ret, VxFMetadata.class);
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e11) {
+			// TODO Auto-generated catch block
+			e11.printStackTrace();
+		}				
+		return vxfmetadata;
+	}
+	
+	public ExperimentMetadata getNSDMetadataFromMANO(String osmType, String yamlFile) {
+		logger.info("Sending Object to get ExperimentMetadata from AMQ:");		
+		// Send it to activemq endpoint
+		String ret = contxt.createProducerTemplate().requestBodyAndHeader("activemq:topic:ns.metadata.retrieve", yamlFile, "OSMType", osmType, String.class);
+
+		logger.info("From ActiveMQ:"+ret.toString());
+		ObjectMapper mapper = new ObjectMapper();
+		// Map object to VxFMetadata
+		// Get the response and Map object to ExperimentMetadata
+		ExperimentMetadata experimentmetadata = null;
+		try {
+			// Map object to VxFOnBoardedDescriptor
+			//ObjectMapper mapper = new ObjectMapper();
+			logger.info("From ActiveMQ:"+ret.toString());
+			experimentmetadata = mapper.readValue(ret, ExperimentMetadata.class);
+		} catch (JsonParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonMappingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e11) {
+			// TODO Auto-generated catch block
+			e11.printStackTrace();
+		}				
+		return experimentmetadata;
+	}
+	
 	public void offBoardNSDFailed(ExperimentOnBoardDescriptor experimentobds_final) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.offboard.fail?multipleConsumers=true");
 		template.withBody( experimentobds_final ).asyncSend();			
