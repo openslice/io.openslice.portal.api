@@ -1172,7 +1172,6 @@ public class ArtifactsAPIController {
 					String pLocation = obd.getVxf().getPackageLocation();
 					logger.info("VxF Package Location: " + pLocation);
 					if (!pLocation.contains("http")) {
-						pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
 						obd.getVxf().setPackageLocation(pLocation);
 						productService.updateProductInfo(obd.getVxf());
 					}					
@@ -2003,7 +2002,6 @@ public class ArtifactsAPIController {
 					String pLocation = obd.getExperiment().getPackageLocation();
 					logger.info("VxF Package Location: " + pLocation);
 					if (!pLocation.contains("http")) {
-						pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
 						obd.getExperiment().setPackageLocation(pLocation);
 						productService.updateProductInfo(obd.getExperiment());
 					}					
