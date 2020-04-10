@@ -590,6 +590,7 @@ public class ArtifactsAPIController {
 			
 			for(ConstituentVxF cvxf : tmp_prod.getConstituentVxF())
 			{
+				cvxf.setVxfref(vxfService.getVxFByName(cvxf.getVnfdidRef()));
 				((ExperimentMetadata) prod).getConstituentVxF().add(cvxf);
 			}
 			// Store the requirements in HTML			
@@ -1174,7 +1175,7 @@ public class ArtifactsAPIController {
 					if (!pLocation.contains("http")) {
 						pLocation = propsService.getPropertyByName( "maindomain" ).getValue() + pLocation;
 						obd.getVxf().setPackageLocation(pLocation);
-						productService.updateProductInfo(obd.getVxf());
+						vxfService.updateProductInfo(obd.getVxf());
 					}					
 					logger.info("PROPER VxF Package Location: " + pLocation);					
 					//***************************************************************************************************************************

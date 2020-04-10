@@ -494,8 +494,7 @@ public class DeploymentDescriptorService {
 		}
 		
 		
-		ExperimentMetadata baseNSD = (ExperimentMetadata) nsdService
-				.getProductByID(depl.getExperiment().getId());
+		ExperimentMetadata baseNSD = (ExperimentMetadata) nsdService.getProductByID(depl.getExperiment().getId());
 		depl.setExperiment(baseNSD); // reattach from the DB model
 		
 		logger.info("reattach InfrastructureForAll from the DB model");
@@ -512,12 +511,14 @@ public class DeploymentDescriptorService {
 		for (ConstituentVxF cvf : baseNSD.getConstituentVxF()) {
 			DeploymentDescriptorVxFPlacement place = new DeploymentDescriptorVxFPlacement();
 			place.setInfrastructure(infrDefault);
-			ConstituentVxF constituentVxF = new ConstituentVxF();
-			constituentVxF.setVxfref( cvf.getVxfref() );
-			constituentVxF.setMembervnfIndex(member);
-			constituentVxF.setVnfdidRef( cvf.getVnfdidRef() );
-			place.setConstituentVxF(constituentVxF );
-			depl.getVxfPlacements().add(place);
+			place.setConstituentVxF(cvf);
+			
+//			ConstituentVxF constituentVxF = new ConstituentVxF();
+//			constituentVxF.setVxfref( cvf.getVxfref() );
+//			constituentVxF.setMembervnfIndex(member);
+//			constituentVxF.setVnfdidRef( cvf.getVnfdidRef() );
+//			place.setConstituentVxF(constituentVxF );
+//			depl.getVxfPlacements().add(place);
 		}
 		
 				
