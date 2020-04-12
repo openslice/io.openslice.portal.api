@@ -40,6 +40,7 @@ import javax.validation.Valid;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -76,7 +77,7 @@ import portal.api.util.EmailUtil;
 
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
+//import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -110,8 +111,8 @@ public class PortalRepositoryAPIImpl {
 	ObjectMapper objectMapper;
 	
 	
-    @Resource(name="authenticationManager")
-    private AuthenticationManager authManager;
+//    @Resource(name="authenticationManager")
+//    private AuthenticationManager authManager;
 
 
     @Autowired
@@ -137,8 +138,13 @@ public class PortalRepositoryAPIImpl {
 
 	@Secured({ "ROLE_ADMIN" })
 	@GetMapping( value = "/admin/users", produces = "application/json" )
-	public ResponseEntity<List<PortalUser>>  getUsers() {
+	public ResponseEntity<List<PortalUser>>  getUsers(Principal principal) {
 
+		logger.info("principal" + principal.toString() );
+//		logger.info("getAuthorities" + principal.getAuthorities().toString() );
+//		logger.info("getAuthorities" + principal.getDetails().toString() );
+//		logger.info("getAuthorities" + principal.getAccount().toString() );
+		
 		
 		return ResponseEntity.ok( usersService.findAll() );
 	}
@@ -159,12 +165,19 @@ public class PortalRepositoryAPIImpl {
 
 
 
-	@PreAuthorize("#oauth2.hasScope('read')")
+	//@PreAuthorize("#oauth2.hasScope('read')")
 	@GetMapping( value = "/admin/users/myuser", produces = "application/json" )
 	@ResponseBody
 	public PortalUser getUser( ) {
 
 		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+		
+		if ( u == null ) {
+			logger.info("New user with username=" + SecurityContextHolder.getContext().getAuthentication().getName()  + " cannot be found but is logged in. Will try to fetch from auth server");
+			u = usersService.addPortalUserToUsersFromAuthServer( SecurityContextHolder.getContext().getAuthentication().getName() );
+		}
+		
+		
 		return u  ;		
 	}
 	
@@ -203,7 +216,8 @@ public class PortalRepositoryAPIImpl {
 		}
 
 		user.setApikey( UUID.randomUUID().toString() );
-		user.setPassword(  passwordEncoder.encode( user.getPassword() ) );
+		//user.setPassword(  passwordEncoder.encode( user.getPassword() ) );
+		user.setPassword(  user.getPassword()  );
 		portaluser = usersService.addPortalUserToUsers(user);
 
 		if (portaluser != null) {
@@ -238,7 +252,7 @@ public class PortalRepositoryAPIImpl {
 		user.setActive(false);// in any case the user should be not active
 		user.getRoles().clear();
 		user.addRole(UserRoleType.ROLE_EXPERIMENTER); // otherwise in post he can choose
-		user.addRole(UserRoleType.ROLE_VXF_DEVELOPER); // otherwise in post he can choose
+		user.addRole(UserRoleType.ROLE_NFV_DEVELOPER); // otherwise in post he can choose
 
 
 		String msg = emailmessage;
@@ -299,11 +313,13 @@ public class PortalRepositoryAPIImpl {
 //
 		previousUser.setActive( user.getActive() );
 		previousUser.setEmail( user.getEmail() );
-		previousUser.setName( user.getName());
+		previousUser.setFirstname( user.getFirstname());
+		previousUser.setLastname( user.getLastname());
 		previousUser.setOrganization( user.getOrganization() );
 		if ( (user.getPassword()!=null) && (!user.getPassword().equals(""))){//else will not change it
 			//previousUser.setPasswordUnencrypted( user.getPassword() ); 	//the unmarshaled object user has already called setPassword, so getPassword provides the encrypted password
-			previousUser.setPassword(  passwordEncoder.encode( user.getPassword() ) );
+			//previousUser.setPassword(  passwordEncoder.encode( user.getPassword() ) );
+			user.setPassword(  user.getPassword()  );
 		}
 		
 		previousUser.getRoles().clear();
@@ -360,7 +376,8 @@ public class PortalRepositoryAPIImpl {
 		
 		logger.info("principal 1=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue()  ) ));
 		logger.info("principal 2=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority(  UserRoleType.ROLE_TESTBED_PROVIDER.getValue() ) ));
-		logger.info("principal 2=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority(  UserRoleType.ROLE_MENTOR.getValue() ) ));
+		logger.info("principal 3=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority(  UserRoleType.ROLE_MENTOR.getValue() ) ));
+		logger.info("principal 4=  " + authentication.getAuthorities().contains( new SimpleGrantedAuthority("ROLE_admin") ));
 		
 
 		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue() ))){
@@ -377,7 +394,7 @@ public class PortalRepositoryAPIImpl {
 		return false;
 	}
 
-	@GetMapping( value =  "/admin/users/{userid}/vxfs", produces = "application/json", consumes = "application/json" )
+	@GetMapping( value =  "/admin/users/{userid}/vxfs", produces = "application/json" )
 	public ResponseEntity<?> getAllVxFsofUser(@PathVariable("userid") int userid) throws ForbiddenException {
 		logger.info("getAllVxFsofUser for userid: " + userid);
 		
@@ -402,7 +419,7 @@ public class PortalRepositoryAPIImpl {
 	}
 
 
-	@GetMapping( value =  "/admin/users/{userid}/experiments", produces = "application/json", consumes = "application/json" )
+	@GetMapping( value =  "/admin/users/{userid}/experiments", produces = "application/json" )
 	public ResponseEntity<?> getAllAppsofUser(@PathVariable("userid") int userid) throws ForbiddenException {
 		logger.info("getAllAppsofUser for userid: " + userid);
 		
@@ -427,7 +444,7 @@ public class PortalRepositoryAPIImpl {
 		}
 	}
 
-	@GetMapping( value =  "/admin/users/{userid}/vxfs/{vxfid}", produces = "application/json", consumes = "application/json" )
+	@GetMapping( value =  "/admin/users/{userid}/vxfs/{vxfid}", produces = "application/json" )
 	public ResponseEntity<?> getVxFofUser(@PathVariable("userid") int userid, @PathVariable("vxfid") int vxfid) throws ForbiddenException {
 		logger.info("getVxFofUser for userid: " + userid + ", vxfid=" + vxfid);
 
@@ -446,7 +463,7 @@ public class PortalRepositoryAPIImpl {
 		}
 	}
 
-	@GetMapping( value =  "/admin/users/{userid}/experiments/{appid}", produces = "application/json", consumes = "application/json" )
+	@GetMapping( value =  "/admin/users/{userid}/experiments/{appid}", produces = "application/json" )
 	public ResponseEntity<?> getAppofUser( @PathVariable("userid") int userid, @PathVariable("appid") int appid ) throws ForbiddenException {
 		logger.info("getAppofUser for userid: " + userid + ", appid=" + appid);
 		if ( !checkUserIDorIsAdmin( userid ) ){
@@ -491,7 +508,7 @@ public class PortalRepositoryAPIImpl {
 
 
 	@PostMapping( value =  "/sessions", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?> addUserSession( @Valid @RequestBody UserSession userSession, final HttpServletRequest request) {
+	public ResponseEntity<?> addUserSession(Principal principal, @Valid @RequestBody UserSession userSession, final HttpServletRequest request) {
 
 		logger.info("Received POST addUserSession usergetUsername: " + userSession.getUsername());
 		// logger.info("DANGER, REMOVE Received POST addUserSession password: "
@@ -516,20 +533,20 @@ public class PortalRepositoryAPIImpl {
 
 		
 			try {
-				 Authentication auth = authManager.authenticate(authReq);
-			        SecurityContext sc = SecurityContextHolder.getContext();
-			        sc.setAuthentication(auth);
-			        HttpSession session = request.getSession(true);
-			        session.setAttribute("SPRING_SECURITY_CONTEXT", sc);
+//				 Authentication auth = authManager.authenticate(authReq);
+//			        SecurityContext sc = SecurityContextHolder.getContext();
+//			        sc.setAuthentication(auth);
+//			        HttpSession session = request.getSession(true);
+//			        session.setAttribute("SPRING_SECURITY_CONTEXT", sc);
 			        
-				PortalUser portalUser =  usersService.findByUsername(userSession.getUsername());
+				PortalUser portalUser =  usersService.findByUsername( principal.getName() );
 				if (portalUser == null ) {
 					return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.NOT_FOUND ).body("user not found");
 				}
 				
 
 				logger.info(" securityContext.getPrincipal().toString() = "
-						+ sc.getAuthentication().getPrincipal().toString()  );
+						+ principal.toString()  );
 				
 				
 				if (!portalUser.getActive()) {
@@ -563,10 +580,11 @@ public class PortalRepositoryAPIImpl {
 	@GetMapping( value = "/sessions/logout", produces = "application/json" )
 	public ResponseEntity<?> logoutUser() {
 
-		logger.info("Received logoutUser ");
+		logger.info("Received logoutUser " + SecurityContextHolder.getContext().getAuthentication().getName());
+
+		usersService.logout( SecurityContextHolder.getContext().getAuthentication().getName() );
 		
 		SecurityContextHolder.getContext().getAuthentication().setAuthenticated(false);
-		
 //
 //		if (sc != null) {
 //			if (sc.getUserPrincipal() != null)

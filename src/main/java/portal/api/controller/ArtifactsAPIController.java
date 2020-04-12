@@ -154,8 +154,8 @@ public class ArtifactsAPIController {
 	private static final String METADATADIR = System.getProperty("user.home") + File.separator + ".portal"
 			+ File.separator + "metadata" + File.separator;
 	
-    @Resource(name="authenticationManager")
-    private AuthenticationManager authManager;
+//    @Resource(name="authenticationManager")
+//    private AuthenticationManager authManager;
     
 	@Autowired
 	PortalPropertiesService propsService;

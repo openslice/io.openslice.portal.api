@@ -54,7 +54,9 @@ public class UsersService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-
+    @Autowired
+    private KeyCloakService keyCloakService;
+    
 	private static final transient Log logger = LogFactory.getLog( UsersService.class.getName() );
 
 	
@@ -76,9 +78,9 @@ public class UsersService {
 
 		if (admin == null) {
 			PortalUser bu = new PortalUser();
-			bu.setName("Portal Administrator");
-			bu.setUsername("admin");			
-			bu.setPassword(  passwordEncoder.encode("changeme") );
+			bu.setFirstname("Portal Administrator");
+			bu.setUsername( "admin" );			
+			bu.setPassword( "changeme" );
 			bu.setApikey( UUID.randomUUID().toString() );		
 			
 			bu.setEmail("");
@@ -86,9 +88,8 @@ public class UsersService {
 			bu.addRole( UserRoleType.ROLE_ADMIN );
 			bu.addRole( UserRoleType.ROLE_MENTOR  );
 			bu.setActive(true);
-			usersRepo.save( bu );
-
-
+			addPortalUserToUsers( bu );
+			
 //			Category c = new Category();
 //			c.setName("None");
 //			saveCategory(c);
@@ -121,11 +122,33 @@ public class UsersService {
 	}
 
 	public PortalUser addPortalUserToUsers(PortalUser user) {
-		return usersRepo.save( user );
+		
+		String keycloakid = keyCloakService.createUserInKeyCloak(user);
+		if ( keycloakid!= null ) {
+			return usersRepo.save( user );			
+		}
+		
+		return null;
+	}
+	
+	public PortalUser addPortalUserToUsersFromAuthServer(String username) {
+
+		PortalUser user = keyCloakService.fetchUserDetails( username );
+		user.addRole( UserRoleType.ROLE_NFV_DEVELOPER); 
+		user.addRole( UserRoleType.ROLE_EXPERIMENTER);
+		user.setApikey( UUID.randomUUID().toString() );
+		usersRepo.save( user );			
+		return updateUserInfo( user );	
 	}
 
 	public PortalUser updateUserInfo(PortalUser user) {
-		return usersRepo.save( user );
+		
+		String keycloakid = keyCloakService.updateUserInKeyCloak(user);
+		if ( keycloakid!= null ) {
+			return usersRepo.save( user );			
+		}
+		
+		return null;
 	}
 
 	public void delete(PortalUser u) {
@@ -145,4 +168,9 @@ public class UsersService {
 		return "";
 	}
 
+	public void logout( String username ) {
+		keyCloakService.logoutUser(username);
+	}
+
+	
 }

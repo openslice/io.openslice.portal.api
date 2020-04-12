@@ -73,17 +73,20 @@ public class SwaggerConfig {
     @Bean
     public SecurityConfiguration security() {
         return SecurityConfigurationBuilder.builder()
-        		.clientId(CLIENT_ID)
-        		.clientSecret(CLIENT_SECRET)
-        		.useBasicAuthenticationWithAccessCodeGrant(true)
+        		
+        				    .realm("openslice")
+        				    .clientId(CLIENT_ID)
+        				    .clientSecret(CLIENT_SECRET)
+        				    .appName("oauthtoken")
+        				    .scopeSeparator(" ")
         		.build();
     }
 
     private SecurityScheme securityScheme() {
         GrantType grantType = new AuthorizationCodeGrantBuilder()
-        		.tokenEndpoint(new TokenEndpoint(AUTH_SERVER + "/oauth/token", "oauthtoken"))
+        		.tokenEndpoint(new TokenEndpoint(AUTH_SERVER + "/protocol/openid-connect/token", "oauthtoken"))
         		.tokenRequestEndpoint(
-        		  new TokenRequestEndpoint(AUTH_SERVER + "/oauth/authorize", CLIENT_ID, CLIENT_ID))
+        		  new TokenRequestEndpoint(AUTH_SERVER + "/protocol/openid-connect/auth", CLIENT_ID, CLIENT_SECRET))
         		.build();
 
         SecurityScheme oauth = new OAuthBuilder().name("spring_oauth")

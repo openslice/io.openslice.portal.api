@@ -8,7 +8,7 @@ spring:
     name: openslice-portal-api
   datasource:
     url: jdbc:mysql://localhost/osdb?createDatabaseIfNotExist=true
-    password: letmein0
+    password: letmein
     username: root
   jpa:
     database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
@@ -54,9 +54,22 @@ logging:
     console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
     file: "%d %p %c{1.} [%t] %m%n"
     
+keycloak:
+  realm: openslice
+  auth-server-url: http://localhost:28080/auth
+  ssl-required: none
+  resource: admin-cli
+  credentials:
+    secret: none
+  public-client: false
+  bearer-only: true
+  principal-attribute: preferred_username
+
+
+keycloak-admin-password: Pa55w0rd
     
 swagger:
-  authserver: "http://localhost:13081/osapi-oauth-server"
+  authserver: http://localhost:28080/auth/realms/openslice
   clientid: "osapiWebClientId"
   clientsecret: "secret"
   
