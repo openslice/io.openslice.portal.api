@@ -151,7 +151,7 @@ public class PortalRepositoryAPIImpl {
 	
 	@GetMapping( value =  "/admin/users/mentors", produces = "application/json" )	
 	public ResponseEntity<List<PortalUser>> getMentors() {
-		
+		logger.info("GEt mentors");
 		return ResponseEntity.ok( usersService.getUserMentorsValues());
 	}
 
