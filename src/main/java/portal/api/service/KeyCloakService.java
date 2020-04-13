@@ -121,7 +121,8 @@ public class KeyCloakService {
 		int attempts = 0;
 		while (attempts<10) {
 			try {
-				
+				logger.info(" Keycloak AUTHURL: "+AUTHURL);
+				logger.info(" Keycloak CLIENTID: "+CLIENTID);
 				Keycloak keycloak = Keycloak.getInstance( 
 						AUTHURL,
 						"master",
