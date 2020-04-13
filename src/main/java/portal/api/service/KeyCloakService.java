@@ -39,7 +39,7 @@ public class KeyCloakService {
 	@Value("${keycloak.resource}")
 	private String CLIENTID;
 
-	@Value("${keycloak.auth-server-url}")
+	@Value("${keycloak-internal-auth-server-url}")
 	private String AUTHURL;
 
 	@Value("${keycloak.realm}")
