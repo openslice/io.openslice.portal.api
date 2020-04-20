@@ -56,7 +56,7 @@ logging:
     
 keycloak:
   realm: openslice
-  auth-server-url: http://localhost:28080/auth
+  auth-server-url: http://localhost/auth
   ssl-required: none
   resource: admin-cli
   credentials:
@@ -65,7 +65,7 @@ keycloak:
   bearer-only: true
   principal-attribute: preferred_username
 
-keycloak-internal-auth-server-url: http://localhost:8080/auth
+keycloak-internal-auth-server-url: http://localhost:28080/auth
 keycloak-admin-password: Pa55w0rd
     
 swagger:
