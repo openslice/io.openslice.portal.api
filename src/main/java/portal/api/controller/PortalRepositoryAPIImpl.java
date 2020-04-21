@@ -175,6 +175,7 @@ public class PortalRepositoryAPIImpl {
 		if ( u == null ) {
 			logger.info("New user with username=" + SecurityContextHolder.getContext().getAuthentication().getName()  + " cannot be found but is logged in. Will try to fetch from auth server");
 			u = usersService.addPortalUserToUsersFromAuthServer( SecurityContextHolder.getContext().getAuthentication().getName() );
+			BusController.getInstance().newUserAdded( u );	//this will trigger also the user to be added in Bugzilla	
 		}
 		
 		
