@@ -382,6 +382,9 @@ public class DeploymentDescriptorService {
 		aDeployment.setConfigStatus(receivedDeployment.getConfigStatus());
 		aDeployment.setDetailedStatus(receivedDeployment.getDetailedStatus());
 		aDeployment.setOperationalStatus(receivedDeployment.getOperationalStatus());
+		aDeployment.setNsr(receivedDeployment.getNsr());
+		aDeployment.setNsLcmOpOccId(receivedDeployment.getNsLcmOpOccId());
+		aDeployment.setNs_nslcm_details(receivedDeployment.getNs_nslcm_details());
 		
 		if( receivedDeployment.getStatus() != aDeployment.getStatus() )
 		{

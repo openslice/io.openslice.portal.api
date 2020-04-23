@@ -134,7 +134,7 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to( "activemq:topic:vxf.onboard.success" );
 						
 		from("seda:nsd.onboard?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, ExperimentMetadata.class, true)
+		.marshal().json( JsonLibrary.Jackson, ExperimentOnBoardDescriptor.class, true)
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.onboard" );
 		
