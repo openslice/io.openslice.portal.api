@@ -108,6 +108,9 @@ public class PortalRepositoryVFImageAPI {
 	@Autowired
 	ObjectMapper objectMapper;
 	
+
+	@Autowired 
+	BusController busController;
 	
 	/**
 	 * 
@@ -193,7 +196,7 @@ public class PortalRepositoryVFImageAPI {
 
 		if (vfimg != null) {
 
-			BusController.getInstance().newVFImageAdded( vfimg );	
+			busController.newVFImageAdded( vfimg );	
 			return ResponseEntity.ok( vfimg  );
 		} else {
 			return  (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body( "Requested Image cannot be inserted" );
@@ -342,7 +345,7 @@ public class PortalRepositoryVFImageAPI {
 
 		if (vfimg != null) {
 
-			BusController.getInstance().aVFImageUpdated( vfimg );	
+			busController.aVFImageUpdated( vfimg );	
 			return ResponseEntity.ok( vfimg  );
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body( "Requested Image cannot be inserted" );

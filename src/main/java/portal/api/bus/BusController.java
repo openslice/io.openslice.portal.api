@@ -24,21 +24,33 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
+import javax.jms.BytesMessage;
+import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.Session;
 import javax.validation.Valid;
 
+import org.apache.activemq.BlobMessage;
 import org.apache.camel.CamelContext;
 import org.apache.camel.Exchange;
 import org.apache.camel.FluentProducerTemplate;
 import org.apache.camel.ProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.activemq.ActiveMQComponent;
 import org.apache.camel.model.ModelCamelContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -74,8 +86,7 @@ import portal.api.mano.MANOStatus;
 @Component
 public class BusController  {
 
-	/** */
-	private static BusController instance;
+	
 	
 	/** the Camel Context configure via Spring. See bean.xml*/	
 
@@ -86,18 +97,10 @@ public class BusController  {
 	ProducerTemplate producerTemplate;
 
 
+	
 	private static final transient Log logger = LogFactory.getLog( BusController.class.getName());
 
 
-	/**
-	 * @return
-	 */
-	public static synchronized BusController getInstance() {
-		if (instance == null) {
-			instance = new BusController();
-		}
-		return instance;
-	}
 
 	/**
 	 * @param actx
@@ -172,6 +175,42 @@ public class BusController  {
 	public void onBoardVxFAdded(VxFOnBoardedDescriptor obd) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard?multipleConsumers=true");
 		template.withBody( obd ).asyncSend();				
+	}
+	
+	
+
+	@Autowired(required = true)
+	JmsTemplate jmsTemplate;
+//
+//	@Autowired
+//	ActiveMQComponent activemq;
+	
+	/**
+	 * @param obd
+	 * @param packageFileName
+	 * @param resource
+	 */
+	public void onBoardVxFAdded(VxFOnBoardedDescriptor obd, File packageFile, ByteArrayResource resource) {
+		
+		 
+//		JmsTemplate jmsTemplate = new JmsTemplate();
+//		jmsTemplate.setConnectionFactory( activemq.getConnectionFactory() );
+		jmsTemplate.send("activemq:queue:onBoardVxFAdded", new MessageCreator() {
+
+			@Override
+			public Message createMessage(Session session) throws JMSException {
+				
+				BytesMessage bytesMessage = session.createBytesMessage();
+		        bytesMessage.setStringProperty( "fileName" ,  packageFile.getName() );
+		        bytesMessage.writeBytes( resource.getByteArray() );
+		        
+				
+				return bytesMessage;
+			}
+
+		});	
+		
+		
 	}
 
 	public void onBoardVxFFailed(VxFOnBoardedDescriptor vxfobds_final) {
@@ -601,6 +640,7 @@ public class BusController  {
 			
 		}		
 	}
+
 
 
 }

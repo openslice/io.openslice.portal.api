@@ -101,6 +101,13 @@ public class MANOController {
 	@Autowired
 	PortalPropertiesService propsService;
 	
+
+	@Autowired
+	BusController busController;
+	
+	@Autowired
+	MANOStatus aMANOStatus;
+	
 	public MANOController() {
 
 	}
@@ -191,14 +198,14 @@ public class MANOController {
 			OSM5Client osm5Client = null;
 			try {
 				osm5Client = new OSM5Client(vxfobds.getObMANOprovider().getApiEndpoint(), vxfobds.getObMANOprovider().getUsername(), vxfobds.getObMANOprovider().getPassword(), "admin");
-				MANOStatus.setOsm5CommunicationStatusActive(null);													
+				aMANOStatus.setOsm5CommunicationStatusActive(null);													
 			}
 		    catch(Exception e) 
 			{
 				logger.error("onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.");
 				
 				CentralLogger.log( CLevel.INFO, "onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.", compname);
-				MANOStatus.setOsm5CommunicationStatusFailed(" Aborting VxF OnBoarding action.");																	
+				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting VxF OnBoarding action.");																	
 				// Set the reason of the failure
 				vxfobds.setFeedbackMessage("OSM5 communication failed. Aborting VxF OnBoarding action.");
 				vxfobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
@@ -208,7 +215,7 @@ public class MANOController {
 				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
 				
 				// Uncertify if it failed OnBoarding.
-				BusController.getInstance().onBoardVxFFailed( vxfobds_final );				
+				busController.onBoardVxFFailed( vxfobds_final );				
 		        return ;
 			}						
 			
@@ -224,7 +231,7 @@ public class MANOController {
 				// Uncertify if it failed OnBoarding.
 				vxfobds.getVxf().setCertified(false);
 				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-				BusController.getInstance().onBoardVxFFailed( vxfobds_final );
+				busController.onBoardVxFFailed( vxfobds_final );
 				return;				
 			}
 			else
@@ -247,7 +254,7 @@ public class MANOController {
 					// Uncertify if it failed OnBoarding.
 					vxfobds.getVxf().setCertified(false);
 					VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-					BusController.getInstance().onBoardVxFFailed( vxfobds_final );
+					busController.onBoardVxFFailed( vxfobds_final );
 					return;
 				}
 
@@ -266,7 +273,7 @@ public class MANOController {
 				vxfobds.setLastOnboarding(new Date());
 				// Save the changes to vxfobds
 				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-				BusController.getInstance().onBoardVxFSucceded( vxfobds_final );
+				busController.onBoardVxFSucceded( vxfobds_final );
 				
 			}			
 		}		
@@ -281,7 +288,7 @@ public class MANOController {
 		for (DeploymentDescriptor d : DeploymentDescriptorsToDelete) {
 			// Launch the deployment
 			logger.info("Send to bus control to delete: " + d.getId());
-			BusController.getInstance().deleteExperiment(d);
+			busController.deleteExperiment(d);
 		}
 	}
 	
@@ -293,7 +300,7 @@ public class MANOController {
 		// Foreach deployment
 		for (DeploymentDescriptor d : DeploymentDescriptorsToRun) {
 			// Launch the deployment
-			BusController.getInstance().deployExperiment(d );
+			busController.deployExperiment(d );
 		}
 	}
 
@@ -306,7 +313,7 @@ public class MANOController {
 		for (DeploymentDescriptor deployment_descriptor_tmp : DeploymentDescriptorsToComplete) {
 			logger.debug("Deployment with id" + deployment_descriptor_tmp.getName() + " with status " + deployment_descriptor_tmp.getStatus() +" is going to be terminated");
 			// Terminate the deployment
-			BusController.getInstance().completeExperiment(deployment_descriptor_tmp );
+			busController.completeExperiment(deployment_descriptor_tmp );
 		}
 	}
 
@@ -329,13 +336,13 @@ public class MANOController {
 						try
 						{
 							osm5Client = new OSM5Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");							
-							MANOStatus.setOsm5CommunicationStatusActive(null);
+							aMANOStatus.setOsm5CommunicationStatusActive(null);
 						}
 						catch(Exception e)
 						{
 							logger.error("OSM5 fails authentication");
 							CentralLogger.log( CLevel.ERROR, "OSM5 fails authentication", compname);
-							MANOStatus.setOsm5CommunicationStatusFailed(null);
+							aMANOStatus.setOsm5CommunicationStatusFailed(null);
 							return;
 						}
 					}
@@ -349,7 +356,7 @@ public class MANOController {
 						deployment_tmp.setFeedback("NS instance not present in OSM. Marking as FAILED_OSM_REMOVED");				
 						DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
 						logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());						
-						//BusController.getInstance().deleteInstanceFailed(deploymentdescriptor_final);										
+						//busController.deleteInstanceFailed(deploymentdescriptor_final);										
 					}
 					else 
 					{
@@ -387,7 +394,7 @@ public class MANOController {
 										}									
 									}
 									deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-									BusController.getInstance().deploymentInstantiationSucceded(deployment_tmp );									
+									busController.deploymentInstantiationSucceded(deployment_tmp );									
 								}
 							}
 							
@@ -430,7 +437,7 @@ public class MANOController {
 									}									
 								}
 								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								BusController.getInstance().deploymentInstantiationSucceded(deployment_tmp);
+								busController.deploymentInstantiationSucceded(deployment_tmp);
 							}
 							// deployment_tmp.getStatus() == DeploymentDescriptorStatus.TERMINATING &&
 							if (deployment_tmp.getOperationalStatus().toLowerCase().equals("terminated")) {
@@ -443,7 +450,7 @@ public class MANOController {
 								logger.info("Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());
 								deployment_tmp.setConstituentVnfrIps("N/A");
 								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								BusController.getInstance().deploymentTerminationSucceded(deployment_tmp);
+								busController.deploymentTerminationSucceded(deployment_tmp);
 							}
 							// if(deployment_tmp.getStatus() != DeploymentDescriptorStatus.FAILED &&
 							// deployment_tmp.getOperationalStatus().equals("failed"))
@@ -455,7 +462,7 @@ public class MANOController {
 								deployment_tmp.setFeedback(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
 								deployment_tmp.setConstituentVnfrIps("N/A");
 								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								BusController.getInstance().deploymentInstantiationFailed(deployment_tmp);
+								busController.deploymentInstantiationFailed(deployment_tmp);
 							}
 							if (deployment_tmp.getStatus() == DeploymentDescriptorStatus.TERMINATING
 									&& deployment_tmp.getOperationalStatus().equals("failed")) {
@@ -464,7 +471,7 @@ public class MANOController {
 								logger.info("Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());
 								deployment_tmp.setFeedback(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
 								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								BusController.getInstance().deploymentTerminationFailed(deployment_tmp);
+								busController.deploymentTerminationFailed(deployment_tmp);
 							}
 							logger.info("NS status change is now "+deployment_tmp.getStatus());													
 						} catch (JSONException e) {
@@ -558,13 +565,13 @@ public class MANOController {
 			OSM5Client osm5Client = null;
 			try {
 				osm5Client = new OSM5Client(uexpobd.getObMANOprovider().getApiEndpoint(), uexpobd.getObMANOprovider().getUsername(), uexpobd.getObMANOprovider().getPassword(), "admin");
-				MANOStatus.setOsm5CommunicationStatusActive(null);								
+				aMANOStatus.setOsm5CommunicationStatusActive(null);								
 			}
 		    catch(Exception e) 
 			{
 				logger.error("onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.");
 				CentralLogger.log( CLevel.ERROR, "onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting NSD Onboarding action.", compname);
-				MANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD Onboarding action.");				
+				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD Onboarding action.");				
 				// Set the reason of the failure
 				uexpobds.setFeedbackMessage("OSM communication failed. Aborting NSD Onboarding action.");
 				uexpobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
@@ -572,7 +579,7 @@ public class MANOController {
 				// Set Valid to false if it fails OnBoarding
 				uexpobds.getExperiment().setValid(false);
 				ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-				BusController.getInstance().onBoardNSDFailed( uexpobds );
+				busController.onBoardNSDFailed( uexpobds );
 				return ;
 			}						
 			
@@ -587,7 +594,7 @@ public class MANOController {
 				// Set Valid to false if it fails OnBoarding
 				uexpobds.getExperiment().setValid(false);
 				ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-				BusController.getInstance().onBoardNSDFailed( uexpobds );
+				busController.onBoardNSDFailed( uexpobds );
 				return;				
 			}
 			else
@@ -608,7 +615,7 @@ public class MANOController {
 					// Set Valid to false if it fails OnBoarding
 					uexpobds.getExperiment().setValid(false);
 					ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-					BusController.getInstance().onBoardNSDFailed( uexpobds );
+					busController.onBoardNSDFailed( uexpobds );
 					return;
 				}
 				else
@@ -626,7 +633,7 @@ public class MANOController {
 					// uexpobds.getExperiment().setValid(true);
 					// Save the changes to vxfobds
 					ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-					BusController.getInstance().onBoardNSDSucceded( uexpobds );
+					busController.onBoardNSDSucceded( uexpobds );
 				}
 			}
 		}
@@ -648,13 +655,13 @@ public class MANOController {
 			OSM5Client osm5Client = null;			
 			try {
 				osm5Client = new OSM5Client(obd.getObMANOprovider().getApiEndpoint(), obd.getObMANOprovider().getUsername(), obd.getObMANOprovider().getPassword(), "admin");
-				MANOStatus.setOsm5CommunicationStatusActive(null);								
+				aMANOStatus.setOsm5CommunicationStatusActive(null);								
 			}
 		    catch(HttpStatusCodeException e) 
 			{
 				logger.error("offBoardVxFFromMANOProvider, OSM5 fails authentication. Aborting action.");
 				CentralLogger.log( CLevel.ERROR, "offBoardVxFFromMANOProvider, OSM5 fails authentication. Aborting VxF offboarding action.", compname);
-				MANOStatus.setOsm5CommunicationStatusFailed(" Aborting VxF offboarding action.");								
+				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting VxF offboarding action.");								
 		        return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
 		                .body(e.getResponseBodyAsString());
 			}						
@@ -701,13 +708,13 @@ public class MANOController {
 			OSM5Client osm5Client = null;			
 			try {
 				osm5Client = new OSM5Client(uexpobd.getObMANOprovider().getApiEndpoint(), uexpobd.getObMANOprovider().getUsername(), uexpobd.getObMANOprovider().getPassword(), "admin");
-				MANOStatus.setOsm5CommunicationStatusActive(null);								
+				aMANOStatus.setOsm5CommunicationStatusActive(null);								
 			}
 		    catch(HttpStatusCodeException e) 
 			{
 				logger.error("offBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.");
 				CentralLogger.log( CLevel.ERROR, "offBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.", compname);
-				MANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD offboarding action.");								
+				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD offboarding action.");								
 		        return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
 		                .body(e.getResponseBodyAsString());
 			}						
@@ -739,16 +746,16 @@ public class MANOController {
 						getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
 						getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
 						"admin");
-					MANOStatus.setOsm5CommunicationStatusActive(null);													
+					aMANOStatus.setOsm5CommunicationStatusActive(null);													
 			}
 			catch(Exception e)
 			{
 				logger.error("deployNSDToMANOProvider, OSM5 fails authentication! Aborting deployment of NSD.");
 				CentralLogger.log( CLevel.ERROR, "deployNSDToMANOProvider, OSM5 fails authentication! Aborting deployment of NSD.", compname);
-				MANOStatus.setOsm5CommunicationStatusFailed(" Aborting deployment of NSD.");								
+				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting deployment of NSD.");								
 				// NS instance creation failed
 				deploymentdescriptor.setFeedback("OSM5 communication failed. Aborting NSD deployment action.");
-				BusController.getInstance().deploymentInstantiationFailed(deploymentdescriptor);
+				busController.deploymentInstantiationFailed(deploymentdescriptor);
 				return;
 			}
 
@@ -769,7 +776,7 @@ public class MANOController {
 				deploymentdescriptor.setFeedback(ns_instance_creation_entity.getBody().toString());
 				DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService
 						.updateDeploymentDescriptor(deploymentdescriptor);
-				BusController.getInstance().deploymentInstantiationFailed(deploymentdescriptor_final);
+				busController.deploymentInstantiationFailed(deploymentdescriptor_final);
 				logger.info("NS Instance creation failed with response: "
 						+ ns_instance_creation_entity.getBody().toString());
 			} else {
@@ -798,7 +805,7 @@ public class MANOController {
 					// Save the changes to DeploymentDescriptor
 					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService
 							.updateDeploymentDescriptor(deploymentdescriptor);
-					BusController.getInstance().deploymentInstantiationFailed(deploymentdescriptor_final );
+					busController.deploymentInstantiationFailed(deploymentdescriptor_final );
 				} else {
 					// NS Instantiation starts
 					deploymentdescriptor.setStatus(DeploymentDescriptorStatus.INSTANTIATING);
@@ -809,7 +816,7 @@ public class MANOController {
 					// Save the changes to DeploymentDescriptor
 					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService
 							.updateDeploymentDescriptor(deploymentdescriptor);
-					BusController.getInstance().deploymentInstantiationSucceded(deploymentdescriptor_final );
+					busController.deploymentInstantiationSucceded(deploymentdescriptor_final );
 				}
 			}
 		}
@@ -835,7 +842,7 @@ public class MANOController {
 							getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
 							"admin");
 					
-					MANOStatus.setOsm5CommunicationStatusActive(null);				
+					aMANOStatus.setOsm5CommunicationStatusActive(null);				
 //					JSONObject ns_instance_info = osm5Client.getNSInstanceInfo(deploymentdescriptor.getInstanceId());
 //					if (ns_instance_info != null) 
 //					{
@@ -857,7 +864,7 @@ public class MANOController {
 								logger.error("Termination of NS instance " + deploymentdescriptor.getInstanceId() + " failed");				
 								DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
 								logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());																			
-								BusController.getInstance().terminateInstanceFailed(deploymentdescriptor_final );				
+								busController.terminateInstanceFailed(deploymentdescriptor_final );				
 							}
 							else
 							{
@@ -869,7 +876,7 @@ public class MANOController {
 								logger.info("Termination of NS " + deploymentdescriptor.getInstanceId() + " with name "+ deploymentdescriptor.getName() +" succeded");
 								DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
 								logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());																			
-								BusController.getInstance().terminateInstanceSucceded(deploymentdescriptor_final );				
+								busController.terminateInstanceSucceded(deploymentdescriptor_final );				
 							}
 //						}
 //					}
@@ -881,7 +888,7 @@ public class MANOController {
 				}
 				catch(Exception e)
 				{
-					MANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD termination action.");													
+					aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD termination action.");													
 					CentralLogger.log( CLevel.ERROR, "terminateNSFromMANOProvider, OSM5 fails authentication. Aborting action.", compname);
 				}
 			}
@@ -932,16 +939,16 @@ public class MANOController {
 						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
 						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
 						"admin");	
-					MANOStatus.setOsm5CommunicationStatusActive(null);													
+					aMANOStatus.setOsm5CommunicationStatusActive(null);													
 			}
 			catch(Exception e)
 			{
 				logger.error("OSM5 fails authentication");
-				MANOStatus.setOsm5CommunicationStatusFailed(" Aborting NS deletion action.");													
+				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NS deletion action.");													
 				CentralLogger.log( CLevel.ERROR, "OSM5 fails authentication", compname);
 				deploymentdescriptor.setFeedback("OSM5 communication failed. Aborting NS deletion action.");				
 				logger.error("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " failed");
-				BusController.getInstance().deleteInstanceFailed(deploymentdescriptor);				
+				busController.deleteInstanceFailed(deploymentdescriptor);				
 				return;
 			}
 			ResponseEntity<String> deletion_response = osm5Client.deleteNSInstanceNew(deploymentdescriptor.getInstanceId(),force); 
@@ -953,7 +960,7 @@ public class MANOController {
 				logger.error("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " failed");
 				DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
 				logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());															
-				BusController.getInstance().deleteInstanceFailed(deploymentdescriptor_final );				
+				busController.deleteInstanceFailed(deploymentdescriptor_final );				
 			}
 			else if (deletion_response.getStatusCode().is2xxSuccessful())
 			{
@@ -965,7 +972,7 @@ public class MANOController {
 					logger.info("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " succeded");					
 					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
 					logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());															
-					BusController.getInstance().deleteInstanceSucceded(deploymentdescriptor_final );				
+					busController.deleteInstanceSucceded(deploymentdescriptor_final );				
 				}
 				if(deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.FAILED || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATION_FAILED)
 				{
@@ -975,7 +982,7 @@ public class MANOController {
 					logger.info("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " succeded");					
 					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
 					logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());															
-					BusController.getInstance().deleteInstanceSucceded(deploymentdescriptor_final );				
+					busController.deleteInstanceSucceded(deploymentdescriptor_final );				
 				}
 			}
 			else 

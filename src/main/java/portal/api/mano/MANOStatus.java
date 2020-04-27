@@ -21,14 +21,23 @@
 
 package portal.api.mano;
 import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+
 import portal.api.bus.BusController;
 
 /**
  * @author ctranoris
  *
  */
+@Configuration
 public class MANOStatus
 {
+	@Autowired
+	BusController busController;
+	
+	
 	//1: Active, 0:Failed
 	private static Status osm4CommunicationStatus = Status.Active;
 	private static String osm4CommunicationStatusUUID = null;	
@@ -96,7 +105,7 @@ public class MANOStatus
 	
 
 	
-	public static void setOsm5CommunicationStatusFailed(String message) {
+	public void setOsm5CommunicationStatusFailed(String message) {
 		lock.writeLock().lock();
 		try {		
 			if(message == null)
@@ -109,7 +118,7 @@ public class MANOStatus
 				MANOStatus.setMessage("OSM5 communication failed." + message);
 				MANOStatus.setOsm5CommunicationStatusUUID(UUID.randomUUID().toString());
 				System.out.println("Inside setOSM5CommunicationStatusFailed. "+MANOStatus.getOsm5CommunicationStatusUUID().toString()+","+MANOStatus.getMessage().toString());
-				BusController.getInstance().osm5CommunicationFailed(MANOStatus.class);					
+				busController.osm5CommunicationFailed(MANOStatus.class);					
 			}
 	    } finally {
 	        lock.writeLock().unlock();
@@ -118,7 +127,7 @@ public class MANOStatus
 	
 	
 
-	public static void setOsm5CommunicationStatusActive(String message) {
+	public void setOsm5CommunicationStatusActive(String message) {
 		lock.writeLock().lock();
 		try {		
 			// TODO Auto-generated method stub
@@ -130,7 +139,7 @@ public class MANOStatus
 			{
 				MANOStatus.osm5CommunicationStatus = Status.Active ;
 				MANOStatus.setMessage("OSM5 communication restored." + message);
-				BusController.getInstance().osm5CommunicationRestored(MANOStatus.class);					
+				busController.osm5CommunicationRestored(MANOStatus.class);					
 			}		
 	    } finally {
 	        lock.writeLock().unlock();
