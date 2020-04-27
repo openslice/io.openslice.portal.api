@@ -530,8 +530,8 @@ public class MANOController {
 		 * 
 		 */
 
-		uexpobd.setVxfMANOProviderID(em.getName()); // Possible Error. This probably needs to be
-		// setExperimentMANOProviderID(em.getName())
+		//uexpobd.setVxfMANOProviderID(em.getName()); // Possible Error. This probably needs to be
+		uexpobd.setExperimentMANOProviderID(em.getName());
 
 		uexpobd.setLastOnboarding(new Date());
 

@@ -8,7 +8,7 @@ spring:
     name: openslice-portal-api
   datasource:
     url: jdbc:mysql://localhost/osdb?createDatabaseIfNotExist=true
-    password: letmein
+    password: letmein0
     username: root
   jpa:
     database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
@@ -56,7 +56,7 @@ logging:
     
 keycloak:
   realm: openslice
-  auth-server-url: http://localhost/auth
+  auth-server-url: http://localhost:28080/auth
   ssl-required: none
   resource: admin-cli
   credentials:

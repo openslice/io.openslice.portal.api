@@ -70,7 +70,7 @@ public class NSDOBDService {
 
 		aNSDOBD.setOnBoardingStatus(NSDOBD.getOnBoardingStatus()); 		
 		aNSDOBD.setDeployId(NSDOBD.getDeployId());
-		aNSDOBD.setVxfMANOProviderID(NSDOBD.getVxfMANOProviderID());
+		aNSDOBD.setExperimentMANOProviderID(NSDOBD.getExperimentMANOProviderID());
 		aNSDOBD.setLastOnboarding(NSDOBD.getLastOnboarding());
 		aNSDOBD.setFeedbackMessage(NSDOBD.getFeedbackMessage());
 		aNSDOBD.setOnBoardingStatus(NSDOBD.getOnBoardingStatus());

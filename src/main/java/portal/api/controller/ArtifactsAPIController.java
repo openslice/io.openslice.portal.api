@@ -1849,6 +1849,71 @@ public class ArtifactsAPIController {
 		}
 	}
 
+	/**
+	 * @return all User's Valid experiments as well as all Public and Valid experiments 
+	 */
+	@GetMapping( value = "/admin/experimentobds/deployable", produces = "application/json" )
+	public ResponseEntity<?>  getAllDeployableExperimentsOBDs() {
+		
+		//
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			List<ExperimentMetadata> userexpr;
+
+			if (u.getRoles().contains(UserRoleType.ROLE_ADMIN)) {
+				userexpr = nsdService.getdNSDsByCategory( (long) -1 );
+			} else {
+				userexpr = nsdService.gedNSDsByUserID((long) u.getId());
+			}
+
+			
+			List<ExperimentMetadata> deplExps = new ArrayList<ExperimentMetadata>( userexpr );
+			List<ExperimentMetadata> pubExps = new ArrayList<ExperimentMetadata>( nsdService.getPublishedNSDsByCategory( (long) -1 ) );
+			List<ExperimentOnBoardDescriptor> returnedExpOBDs = new ArrayList<ExperimentOnBoardDescriptor>();
+			for (ExperimentMetadata e : pubExps) {
+				
+				boolean found = false;
+				boolean onboarded = false;
+				for (ExperimentMetadata depl : deplExps) {
+					if (  depl.getId() == e.getId() ) {
+						found = true;					
+					}
+				}				
+				if ( !found ) {
+					deplExps.add(e);//add no duplicate public experiments
+				}				
+			}
+			for (ExperimentMetadata depl : deplExps) {
+				// If it is not already included and it has been onboarded
+				if( depl.getExperimentOnBoardDescriptors().size()>0 )
+				{
+					for(ExperimentOnBoardDescriptor eobd : depl.getExperimentOnBoardDescriptors())
+					{
+						if(eobd.getOnBoardingStatus() == OnBoardingStatus.ONBOARDED)
+						{
+							returnedExpOBDs.add(eobd);
+						}
+					}
+				}
+			}
+			
+//			for (Iterator<ExperimentMetadata> iter = deplExps.listIterator(); iter.hasNext(); ) { //filter only valid
+//				ExperimentMetadata a = iter.next();
+//			    if ( !a.isValid() ) {
+//			        iter.remove();
+//			    }
+//			}			
+			
+			return ResponseEntity.ok( returnedExpOBDs );		
+
+		} else {
+
+			return (ResponseEntity<?>) ResponseEntity.notFound();
+		}
+	}
+
+	
 	@GetMapping( value = "/experiments/{appid}", produces = "application/json" )
 	public ResponseEntity<?>  getExperimentMetadataByID(@PathVariable("appid") int appid) throws ForbiddenException {
 		logger.info("getAppMetadataByID  appid=" + appid);
@@ -2018,6 +2083,7 @@ public class ArtifactsAPIController {
 					//set proper scheme (http or https)
 					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
 					BusController.getInstance().onBoardNSD( obd );
+					//BusController.getInstance().onBoardNSDwithFile( obd, prodFile );
 				}				
 			}
 
