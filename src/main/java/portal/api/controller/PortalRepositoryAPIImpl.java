@@ -127,7 +127,9 @@ public class PortalRepositoryAPIImpl {
 	
 	@Autowired
 	PortalPropertiesService propsService;
-	
+
+	@Autowired
+	BusController busController;
 	
 //	@GetMapping
 //	public ResponseEntity<?>  getmain() {
@@ -175,7 +177,7 @@ public class PortalRepositoryAPIImpl {
 		if ( u == null ) {
 			logger.info("New user with username=" + SecurityContextHolder.getContext().getAuthentication().getName()  + " cannot be found but is logged in. Will try to fetch from auth server");
 			u = usersService.addPortalUserToUsersFromAuthServer( SecurityContextHolder.getContext().getAuthentication().getName() );
-			BusController.getInstance().newUserAdded( u );	//this will trigger also the user to be added in Bugzilla	
+			busController.newUserAdded( u );	//this will trigger also the user to be added in Bugzilla	
 		}
 		
 		
@@ -222,7 +224,7 @@ public class PortalRepositoryAPIImpl {
 		portaluser = usersService.addPortalUserToUsers(user);
 
 		if (portaluser != null) {
-			BusController.getInstance().newUserAdded( portaluser );		
+			busController.newUserAdded( portaluser );		
 			return ResponseEntity.ok( portaluser  );	
 		} else {
 			logger.info( "Requested user with username=" + user.getUsername() + " cannot be installed" );
@@ -288,7 +290,7 @@ public class PortalRepositoryAPIImpl {
 		if ( (u != null) && ( rid.equals( u.getApikey())) ) {			
 
 			u.setActive(true);
-			u = usersService.updateUserInfo(  u);
+			u = usersService.updateUserInfo(  u, true);
 			
 			return ResponseEntity.ok( u  );
 		} else {
@@ -335,7 +337,7 @@ public class PortalRepositoryAPIImpl {
 		}
 
 		
-		PortalUser u = usersService.updateUserInfo( previousUser );
+		PortalUser u = usersService.updateUserInfo( previousUser, true );
 		
 
 		if (u != null) {
@@ -562,7 +564,7 @@ public class PortalRepositoryAPIImpl {
 				;// so not tosend in response
 
 				logger.info("User [" + portalUser.getUsername() + "] logged in successfully.");
-				PortalUser u = usersService.updateUserInfo( portalUser );
+				PortalUser u = usersService.updateUserInfo( portalUser, false );
 				
 //				if ( currentUser.getPrincipal().toString().length()>2 ){
 //					CentralLogger.log( CLevel.INFO, "User [" + currentUser.getPrincipal().toString().substring(0, 3) + "xxx" + "] logged in");					

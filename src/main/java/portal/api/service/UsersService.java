@@ -138,15 +138,23 @@ public class UsersService {
 		user.addRole( UserRoleType.ROLE_EXPERIMENTER);
 		user.setApikey( UUID.randomUUID().toString() );
 		usersRepo.save( user );			
-		return updateUserInfo( user );	
+		return updateUserInfo( user, true );	
 	}
 
-	public PortalUser updateUserInfo(PortalUser user) {
+	/**
+	 * @param user
+	 * @param userInfoChanged make it true if needed so that the changes can be reflected to Auth Server (keycloak)
+	 * @return
+	 */
+	public PortalUser updateUserInfo(PortalUser user, Boolean userInfoChanged) {
 		
-		String keycloakid = keyCloakService.updateUserInKeyCloak(user);
-		if ( keycloakid!= null ) {
-			return usersRepo.save( user );			
-		}
+		if ( userInfoChanged ) {
+			String keycloakid = keyCloakService.updateUserInKeyCloak(user);
+			if ( keycloakid!= null ) {
+				return usersRepo.save( user );			
+			}
+		} else {
+			return usersRepo.save( user );		}
 		
 		return null;
 	}

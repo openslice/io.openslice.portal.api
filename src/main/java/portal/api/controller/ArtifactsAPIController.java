@@ -203,6 +203,9 @@ public class ArtifactsAPIController {
 	@Autowired
 	ObjectMapper objectMapper;
 
+	@Autowired
+	BusController busController;
+
 	@Value("${spring.application.name}")
 	private String compname;
 	
@@ -215,7 +218,7 @@ public class ArtifactsAPIController {
 			ObjectMapper mapper = new ObjectMapper(new YAMLFactory().disable(Feature.WRITE_DOC_START_MARKER));
 			String props;
 			props = mapper.writeValueAsString(propsService.getPropertiesAsMap());
-			BusController.getInstance().propertiesUpdate(props);
+			busController.propertiesUpdate(props);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
@@ -368,7 +371,7 @@ public class ArtifactsAPIController {
 		vxfOwner.addProduct(prod);
 		prod.setOwner(vxfOwner); // replace given owner with the one from our DB
 
-		PortalUser owner = usersService.updateUserInfo(  vxfOwner);
+		PortalUser owner = usersService.updateUserInfo(  vxfOwner, false);
 		
 		Product registeredProd = null;
 		if ( prod instanceof VxFMetadata ){
@@ -508,7 +511,7 @@ public class ArtifactsAPIController {
 
 	private void loadVxfMetadataFromOSMVxFDescriptorFile(VxFMetadata prod, AttachmentUtil attachmentInfo, String endpointUrl) throws IOException, NullPointerException
 	{
-		VxFMetadata tmp_prod = BusController.getInstance().getVNFDMetadataFromMANO(prod.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
+		VxFMetadata tmp_prod = busController.getVNFDMetadataFromMANO(prod.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
 		if (tmp_prod != null) {							
 			//*************LOAD THE Product Object from the VNFD Descriptor START************************************
 			// Check if a vnfd with this id already exists in the DB
@@ -573,7 +576,7 @@ public class ArtifactsAPIController {
 
 	private void loadNSMetadataFromOSMNSDescriptorFile(ExperimentMetadata prod, AttachmentUtil attachmentInfo, String endpointUrl) throws IOException,NullPointerException
 	{
-		ExperimentMetadata tmp_prod = BusController.getInstance().getNSDMetadataFromMANO(prod.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
+		ExperimentMetadata tmp_prod = busController.getNSDMetadataFromMANO(prod.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
 		if (tmp_prod != null) {							
 			//*************LOAD THE Product Object from the NSD Descriptor START************************************
 			// Check if a vnfd with this id already exists in the DB
@@ -620,7 +623,7 @@ public class ArtifactsAPIController {
 
 	private void updateVxfMetadataFromOSMVxFDescriptorFile(VxFMetadata prevProduct, AttachmentUtil attachmentInfo, String endpointUrl) throws IOException, NullPointerException
 	{
-		VxFMetadata tmp_prod = BusController.getInstance().getVNFDMetadataFromMANO(prevProduct.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
+		VxFMetadata tmp_prod = busController.getVNFDMetadataFromMANO(prevProduct.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
 		if (tmp_prod != null) {							
 			//on update we need to check if name and version are the same. Only then we will accept it
 			if ( !prevProduct.getName().equals( tmp_prod.getName()) ||  !prevProduct.getVersion().equals( tmp_prod.getVersion() )  ){
@@ -858,7 +861,7 @@ public class ArtifactsAPIController {
 
 	private void updateNSMetadataFromOSMNSDescriptorFile(ExperimentMetadata prevProduct, AttachmentUtil attachmentInfo, String endpointUrl) throws IOException,NullPointerException
 	{
-		ExperimentMetadata tmp_prod = BusController.getInstance().getNSDMetadataFromMANO(prevProduct.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
+		ExperimentMetadata tmp_prod = busController.getNSDMetadataFromMANO(prevProduct.getPackagingFormat().name(),attachmentInfo.getDescriptorYAMLfile());
 		if (tmp_prod != null) {							
 		
 //		// Create a nsExtractor Object for the OSMvFIVE file 		
@@ -1128,7 +1131,7 @@ public class ArtifactsAPIController {
 			
 			// Get the MANO providers which are set for automatic onboarding
 			
-			BusController.getInstance().newVxFUploadedToPortalRepo( vxf.getId() );
+			busController.newVxFUploadedToPortalRepo( vxf.getId() );
 			
 			List<MANOprovider> MANOprovidersEnabledForOnboarding =  manoProviderService.getMANOprovidersEnabledForOnboarding();
 			
@@ -1181,13 +1184,30 @@ public class ArtifactsAPIController {
 					//***************************************************************************************************************************
 										
 					// Send the message for automatic onboarding
-					BusController.getInstance().onBoardVxFAdded( obd );
+					busController.onBoardVxFAdded( obd );
+					
+					try {
+						String[] fpath = obd.getVxf().getPackageLocation().split("/");
+						logger.info("uuid: " + fpath[ fpath.length-2 ]);
+						logger.info("Package: " + fpath[ fpath.length-1 ]);
+						String vxfAbsfile = METADATADIR + fpath[ fpath.length-2 ] + File.separator + fpath[ fpath.length-1 ];
+						File afile = new File(vxfAbsfile);
+						Path path = Paths.get( afile.getAbsolutePath());
+						ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+						busController.onBoardVxFAdded( obd, afile, resource );
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+					
+					
 				}				
 			}
 			// AUTOMATIC ONBOARDING PROCESS -END
 			//======================================================
 			VxFMetadata vxfr =  ( VxFMetadata ) vxfService.getProductByID( vxfsaved.getId() );//rereading this, seems to keep the DB connection
-			BusController.getInstance().validateVxF(vxfr);	
+			busController.validateVxF(vxfr);	
 			return ResponseEntity.ok( vxfr  );	
 		} else {
 			return (ResponseEntity<String>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).body("{ \"message\" : \"Requested entity cannot be installed. " + emsg +"\"}");
@@ -1279,7 +1299,7 @@ public class ArtifactsAPIController {
 		if (vxfsaved != null) { 
 
 			
-			BusController.getInstance().updatedVxF( vxfsaved);
+			busController.updatedVxF( vxfsaved);
 			//notify only if validation changed
 
 			if ( prodFile!= null ) { //if the descriptor changed then we must re-trigger validation
@@ -1287,7 +1307,7 @@ public class ArtifactsAPIController {
 				String vxfFileNamePosted = prodFile.getName();
 				if ( !vxfFileNamePosted.equals("unknown") ){
 					
-					BusController.getInstance().validateVxF(vxf);
+					busController.validateVxF(vxf);
 				}
 			}
 
@@ -1566,7 +1586,7 @@ public class ArtifactsAPIController {
 				ResponseEntity<String> response = null;
 				try {
 					//response = aMANOController.offBoardVxFFromMANOProvider( vxfobd_tmp );
-					response=BusController.getInstance().offBoardVxF(vxfobd_tmp);									 
+					response=busController.offBoardVxF(vxfobd_tmp);									 
 				}
 				catch( HttpClientErrorException e)
 				{
@@ -1576,7 +1596,7 @@ public class ArtifactsAPIController {
 					u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
 					JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
 					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status(e.getRawStatusCode()).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));
-					//BusController.getInstance().offBoardVxFFailed( u );
+					//busController.offBoardVxFFailed( u );
 					return builder;
 				}        
 				
@@ -1614,10 +1634,10 @@ public class ArtifactsAPIController {
 					CentralLogger.log( CLevel.INFO, "No related VxF found for "+vxfobd_tmp.getId()+" in status  "+vxfobd_tmp.getOnBoardingStatus(), compname);					
 				}
 				u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
-				//BusController.getInstance().offBoardVxFSucceded( u );
+				//busController.offBoardVxFSucceded( u );
 			}
 		}
-		BusController.getInstance().deletedVxF( vxf );	
+		busController.deletedVxF( vxf );	
 		
 		//remove from categories
 		for (Category c : vxf.getCategories()) {
@@ -1640,7 +1660,7 @@ public class ArtifactsAPIController {
 		
 		PortalUser owner =  usersService.findById( vxf.getOwner().getId() );		
 		owner.getProducts().remove(vxf);
-		usersService.updateUserInfo(owner);
+		usersService.updateUserInfo(owner, false);
 		vxf.setOwner(null);
 		
 		//check also if deleted from consistuent VNFs		
@@ -2028,8 +2048,8 @@ public class ArtifactsAPIController {
 
 		if (experimentSaved != null) {
 
-			BusController.getInstance().newNSDAdded( experimentSaved );		
-			BusController.getInstance().validateNSD( experimentSaved );
+			busController.newNSDAdded( experimentSaved );		
+			busController.validateNSD( experimentSaved );
 
 			//======================================================
 			// AUTOMATIC ONBOARDING PROCESS -START
@@ -2078,12 +2098,16 @@ public class ArtifactsAPIController {
 										
 
 					// Send the message for automatic onboarding
-					//BusController.getInstance().newNSDAdded( vxf );
+					//busController.newNSDAdded( vxf );
 					
 					//set proper scheme (http or https)
 					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
+<<<<<<< HEAD
 					BusController.getInstance().onBoardNSD( obd );
 					//BusController.getInstance().onBoardNSDwithFile( obd, prodFile );
+=======
+					busController.onBoardNSD( obd );
+>>>>>>> branch 'develop' of https://github.com/openslice/io.openslice.portal.api.git
 				}				
 			}
 
@@ -2150,13 +2174,13 @@ public class ArtifactsAPIController {
 		
 		if ( expmetasaved != null) { 
 
-			BusController.getInstance().updateNSD(expmetasaved );	
+			busController.updateNSD(expmetasaved );	
 			
 
 			if ( prodFile!= null ) { //if the descriptor changed then we must re-trigger validation
 				String a = prodFile.getName();
 				if ( !a.equals("unknown") ){
-					BusController.getInstance().validationUpdateNSD( expmetasaved );
+					busController.validationUpdateNSD( expmetasaved );
 				}
 			}
 			
@@ -2205,7 +2229,7 @@ public class ArtifactsAPIController {
 				ResponseEntity<String> response = null;
 				try {
 					//response = aMANOController.offBoardNSDFromMANOProvider( expobd_tmp );
-					response=BusController.getInstance().offBoardNSD(expobd_tmp);					
+					response=busController.offBoardNSD(expobd_tmp);					
 				}
 				catch( HttpClientErrorException e)
 				{
@@ -2215,7 +2239,7 @@ public class ArtifactsAPIController {
 					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 					JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
 					ResponseEntity<?> builder = (ResponseEntity<?>) ResponseEntity.status(e.getRawStatusCode()).body("OffBoarding Failed! "+e.getStatusText()+", "+result.getString("detail"));			
-					//BusController.getInstance().offBoardNSDFailed( u );			
+					//busController.offBoardNSDFailed( u );			
 					return builder;
 				}        
 				
@@ -2267,11 +2291,11 @@ public class ArtifactsAPIController {
 				}
 				
 				u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
-				//BusController.getInstance().offBoardNSDSucceded( u );
+				//busController.offBoardNSDSucceded( u );
 				
 			}
 		}
-		BusController.getInstance().deletedExperiment( nsd );		
+		busController.deletedExperiment( nsd );		
 		
 		
 		for (Category c : nsd.getCategories()) {
@@ -2292,7 +2316,7 @@ public class ArtifactsAPIController {
 		
 		PortalUser owner =  usersService.findById( nsd.getOwner().getId() );		
 		owner.getProducts().remove( nsd );
-		usersService.updateUserInfo(owner);
+		usersService.updateUserInfo(owner, false);
 		nsd.setOwner(null);
 		
 		nsdService.deleteProduct(nsd);		
@@ -2551,7 +2575,7 @@ public class ArtifactsAPIController {
 
 			logger.info("update user owner to the DB model");
 			u.getDeployments().add(deploymentSaved);
-			usersService.updateUserInfo(u);
+			usersService.updateUserInfo(u, false);
 			
 			logger.info("NS status change is now "+deploymentSaved.getStatus());														
 
@@ -2559,7 +2583,7 @@ public class ArtifactsAPIController {
 			
 //			deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
 			
-			BusController.getInstance().newDeploymentRequest( deploymentSaved  );	
+			busController.newDeploymentRequest( deploymentSaved  );	
 
 //			String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
 //			if ((adminemail != null) && (!adminemail.equals(""))) {
@@ -2585,7 +2609,7 @@ public class ArtifactsAPIController {
 				
 				PortalUser owner = usersService.findById( dep.getOwner().getId() );
 				owner.getDeployments().remove(dep);				
-				usersService.updateUserInfo( owner );
+				usersService.updateUserInfo( owner, false );
 				
 				deploymentDescriptorService.deleteDeployment( dep );
 				return ResponseEntity.ok( "{}"  );
@@ -2682,7 +2706,7 @@ public class ArtifactsAPIController {
 							logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now "+aDeployment.getStatus());															
-							BusController.getInstance().scheduleExperiment( aDeployment );								
+							busController.scheduleExperiment( aDeployment );								
 						}
 					}
 					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING && aDeployment.getInstanceId() == null)
@@ -2695,7 +2719,7 @@ public class ArtifactsAPIController {
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now "+aDeployment.getStatus());															
 
-							BusController.getInstance().deployExperiment( aDeployment );	
+							busController.deployExperiment( aDeployment );	
 						}
 					}
 					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED && aDeployment.getInstanceId() != null)
@@ -2705,7 +2729,7 @@ public class ArtifactsAPIController {
 						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 						logger.info("NS status change is now "+aDeployment.getStatus());															
-						BusController.getInstance().completeExperiment( aDeployment );						
+						busController.completeExperiment( aDeployment );						
 					}
 					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED && aDeployment.getInstanceId() == null)
 					{
@@ -2714,7 +2738,7 @@ public class ArtifactsAPIController {
 						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 						logger.info("NS status change is now "+aDeployment.getStatus());															
-						BusController.getInstance().rejectExperiment( aDeployment );
+						busController.rejectExperiment( aDeployment );
 						logger.info("Deployment Rejected");				
 					}
 					else
@@ -2725,7 +2749,7 @@ public class ArtifactsAPIController {
 
 					logger.info( "Previous status is the same so just update deployment info");					
 					aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
-					BusController.getInstance().updateDeploymentRequest(aDeployment);
+					busController.updateDeploymentRequest(aDeployment);
 				}
 				return ResponseEntity.ok( aDeployment  );
 			}
@@ -3132,7 +3156,7 @@ public class ArtifactsAPIController {
 			}					
 			logger.info("PROPER VxF Package Location: " + pLocation);			
 			//***************************************************************************************************************************\			
-			BusController.getInstance().onBoardVxFAdded( vobd );
+			busController.onBoardVxFAdded( vobd );
 			//aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
 		} catch (Exception e) {				
 
@@ -3160,7 +3184,7 @@ public class ArtifactsAPIController {
 		ResponseEntity<String> response = null;
 		try {
 			//response = aMANOController.offBoardVxFFromMANOProvider( updatedObd );			
-			BusController.getInstance().offBoardVxF(updatedObd);									 			
+			busController.offBoardVxF(updatedObd);									 			
 		}
 		catch( HttpClientErrorException e)
 		{
@@ -3188,7 +3212,7 @@ public class ArtifactsAPIController {
 		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus(), compname);																																
 		updatedObd.setFeedbackMessage(response.getBody().toString());
 		updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor( updatedObd );
-		BusController.getInstance().offBoardVxF( updatedObd );
+		busController.offBoardVxF( updatedObd );
 		
 		return ResponseEntity.ok( updatedObd  );
 		
@@ -3393,7 +3417,7 @@ public class ArtifactsAPIController {
 		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus(), compname);																																			
 		uExper.setFeedbackMessage(response.getBody().toString());
 		uExper = nsdOBDService.updateExperimentOnBoardDescriptor( uExper );
-		BusController.getInstance().offBoardNSD( uExper );
+		busController.offBoardNSD( uExper );
 		
 		return ResponseEntity.ok( uExper  );
 	}
@@ -3570,8 +3594,8 @@ public class ArtifactsAPIController {
 		// save product
 		vxf = (VxFMetadata) productService.updateProductInfo( vxf );		
 		
-		BusController.getInstance().updatedVxF( vxf );		
-		BusController.getInstance().updatedValidationJob( vxf  );		
+		busController.updatedVxF( vxf );		
+		busController.updatedValidationJob( vxf  );		
 		
 		VxFMetadata vxfr = (VxFMetadata) productService.getProductByID( vxfid) ; //rereading this, seems to keep the DB connection
 		
@@ -3586,7 +3610,7 @@ public class ArtifactsAPIController {
 //		//// Get the vnfd object out of the file info
 //		//osm5.ns.yang.nfvo.vnfd.rev170228.vnfd.catalog.Vnfd vnfd = vnfExtract.extractVnfdDescriptor();
 //		
-//		VxFMetadata tmp_prod = BusController.getInstance().getVNFDMetadataFromMANO(prod);
+//		VxFMetadata tmp_prod = busController.getVNFDMetadataFromMANO(prod);
 //		if (tmp_prod != null) {							
 //			//*************LOAD THE Product Object from the VNFD Descriptor START************************************
 //			// Check if a vnfd with this id already exists in the DB

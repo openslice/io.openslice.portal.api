@@ -24,14 +24,27 @@ import javax.jms.ConnectionFactory;
 import org.apache.camel.component.activemq.ActiveMQComponent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.stereotype.Component;
 
 @Configuration
+@Component
 public class ActiveMQComponentConfig {
 
-    @Bean(name = "activemq")
+
+
+	@Bean(name = "activemq")
     public ActiveMQComponent createComponent(ConnectionFactory factory) {
         ActiveMQComponent activeMQComponent = new ActiveMQComponent();
         activeMQComponent.setConnectionFactory(factory);
         return activeMQComponent;
     }
+    
+    @Bean(name = "jmsTemplate")
+	public JmsTemplate jmsTemplate(ConnectionFactory factory){
+	    JmsTemplate template = new JmsTemplate();
+	    template.setConnectionFactory( factory );
+	    return template;
+	}
+   
 }
