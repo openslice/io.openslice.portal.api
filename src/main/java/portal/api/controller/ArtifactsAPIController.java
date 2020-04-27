@@ -2102,12 +2102,7 @@ public class ArtifactsAPIController {
 					
 					//set proper scheme (http or https)
 					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
-<<<<<<< HEAD
-					BusController.getInstance().onBoardNSD( obd );
-					//BusController.getInstance().onBoardNSDwithFile( obd, prodFile );
-=======
 					busController.onBoardNSD( obd );
->>>>>>> branch 'develop' of https://github.com/openslice/io.openslice.portal.api.git
 				}				
 			}
 
