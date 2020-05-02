@@ -30,13 +30,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import io.openslice.model.CompositeExperimentOnBoardDescriptor;
+import io.openslice.model.CompositeVxFOnBoardDescriptor;
 import io.openslice.model.DeploymentDescriptor;
-import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.PortalUser;
-import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.service.DeploymentDescriptorService;
 import portal.api.service.ManoProviderService;
@@ -115,6 +113,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log( "Send to activemq:topic:vxf.onboard the payload ${body} !" )
 		.to( "activemq:topic:vxf.onboard" );
 
+		from("seda:vxf.onBoardByCompositeObj?multipleConsumers=true")
+		.marshal().json( JsonLibrary.Jackson, CompositeVxFOnBoardDescriptor.class, true)
+		.convertBodyTo( String.class )
+		.log( "Send to activemq:topic:vxf.onBoardByCompositeObj the payload ${body} !" )
+		.to( "activemq:topic:vxf.onBoardByCompositeObj" );
+
 		from("seda:vxf.offboard?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, VxFOnBoardedDescriptor.class, true)
 		.convertBodyTo( String.class )
@@ -138,12 +142,17 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.onboard" );
 		
+		from("seda:nsd.onBoardByCompositeObj?multipleConsumers=true")
+		.marshal().json( JsonLibrary.Jackson, CompositeExperimentOnBoardDescriptor.class, true)
+		.convertBodyTo( String.class )
+		.log( "Send to activemq:topic:nsd.onBoardByCompositeObj the payload ${body} !" )
+		.to( "activemq:topic:nsd.onBoardByCompositeObj" );		
+		
 		from("seda:nsd.onboard.success?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, ExperimentOnBoardDescriptor.class, true)
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.onboard.success" );
 
-		
 		from("seda:nsd.offboard?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, ExperimentOnBoardDescriptor.class, true)
 		.convertBodyTo( String.class )

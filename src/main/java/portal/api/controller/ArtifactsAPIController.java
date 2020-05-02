@@ -96,6 +96,8 @@ import OSM7Util.OSM7VNFReq.OSM7VNFRequirements;
 import io.openslice.centrallog.client.CLevel;
 import io.openslice.centrallog.client.CentralLogger;
 import io.openslice.model.Category;
+import io.openslice.model.CompositeExperimentOnBoardDescriptor;
+import io.openslice.model.CompositeVxFOnBoardDescriptor;
 import io.openslice.model.ConstituentVxF;
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorStatus;
@@ -1184,7 +1186,7 @@ public class ArtifactsAPIController {
 					//***************************************************************************************************************************
 										
 					// Send the message for automatic onboarding
-					busController.onBoardVxFAdded( obd );
+					//busController.onBoardVxFAdded( obd );
 					
 					try {
 						String[] fpath = obd.getVxf().getPackageLocation().split("/");
@@ -1193,15 +1195,19 @@ public class ArtifactsAPIController {
 						String vxfAbsfile = METADATADIR + fpath[ fpath.length-2 ] + File.separator + fpath[ fpath.length-1 ];
 						File afile = new File(vxfAbsfile);
 						Path path = Paths.get( afile.getAbsolutePath());
-						ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
-						busController.onBoardVxFAdded( obd, afile, resource );
+						//ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+						//busController.onBoardVxFAdded( obd, afile, resource );
+						
+						CompositeVxFOnBoardDescriptor compositeobdobj = new CompositeVxFOnBoardDescriptor(); 
+						compositeobdobj.setFilename(afile.getName());
+						compositeobdobj.setAllBytes(Files.readAllBytes(path));
+						compositeobdobj.setObd(obd);
+						busController.onBoardVxFAddedByCompositeObj(compositeobdobj);
+
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
-					}
-
-					
-					
+					}										
 				}				
 			}
 			// AUTOMATIC ONBOARDING PROCESS -END
@@ -2102,7 +2108,28 @@ public class ArtifactsAPIController {
 					
 					//set proper scheme (http or https)
 					//MANOController.setHTTPSCHEME( request.getRequestURL().toString()  );
-					busController.onBoardNSD( obd );
+					//busController.onBoardNSD( obd );
+					try {
+						String[] fpath = obd.getExperiment().getPackageLocation().split("/");
+						logger.info("uuid: " + fpath[ fpath.length-2 ]);
+						logger.info("Package: " + fpath[ fpath.length-1 ]);
+						String vxfAbsfile = METADATADIR + fpath[ fpath.length-2 ] + File.separator + fpath[ fpath.length-1 ];
+						File afile = new File(vxfAbsfile);
+						Path path = Paths.get( afile.getAbsolutePath());
+//						ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+//						busController.onBoardVxFAdded( vobd, afile, resource );
+
+						CompositeExperimentOnBoardDescriptor compositeobdobj = new CompositeExperimentOnBoardDescriptor(); 
+						compositeobdobj.setFilename(afile.getName());
+						compositeobdobj.setAllBytes(Files.readAllBytes(path));
+						compositeobdobj.setObd(obd);
+						busController.onBoardNSDAddedByCompositeObj(compositeobdobj);				
+						
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
 				}				
 			}
 
@@ -3151,8 +3178,26 @@ public class ArtifactsAPIController {
 			}					
 			logger.info("PROPER VxF Package Location: " + pLocation);			
 			//***************************************************************************************************************************\			
-			busController.onBoardVxFAdded( vobd );
+			//busController.onBoardVxFAdded( vobd );
 			//aMANOController.onBoardVxFToMANOProvider( vxfobd.getId() );
+			try {
+				String[] fpath = vobd.getVxf().getPackageLocation().split("/");
+				logger.info("uuid: " + fpath[ fpath.length-2 ]);
+				logger.info("Package: " + fpath[ fpath.length-1 ]);
+				String vxfAbsfile = METADATADIR + fpath[ fpath.length-2 ] + File.separator + fpath[ fpath.length-1 ];
+				File afile = new File(vxfAbsfile);
+				Path path = Paths.get( afile.getAbsolutePath());
+				CompositeVxFOnBoardDescriptor compositeobdobj = new CompositeVxFOnBoardDescriptor(); 
+				compositeobdobj.setFilename(afile.getName());
+				compositeobdobj.setAllBytes(Files.readAllBytes(path));
+				compositeobdobj.setObd(vobd);
+				busController.onBoardVxFAddedByCompositeObj(compositeobdobj);
+				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 		} catch (Exception e) {				
 
 			return (ResponseEntity<?>) ResponseEntity.badRequest().body("{ \"message\" : \"" + e.getStackTrace() +"\"}");
@@ -3358,7 +3403,23 @@ public class ArtifactsAPIController {
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		try {
-			aMANOController.onBoardNSDToMANOProvider( experimentonboarddescriptor.getId() );
+			//aMANOController.onBoardNSDToMANOProvider( experimentonboarddescriptor.getId() );
+			try {
+				String[] fpath = experimentonboarddescriptor.getExperiment().getPackageLocation().split("/");
+				logger.info("uuid: " + fpath[ fpath.length-2 ]);
+				logger.info("Package: " + fpath[ fpath.length-1 ]);
+				String vxfAbsfile = METADATADIR + fpath[ fpath.length-2 ] + File.separator + fpath[ fpath.length-1 ];
+				File afile = new File(vxfAbsfile);
+				Path path = Paths.get( afile.getAbsolutePath());
+				CompositeExperimentOnBoardDescriptor compositeobdobj = new CompositeExperimentOnBoardDescriptor(); 
+				compositeobdobj.setFilename(afile.getName());
+				compositeobdobj.setAllBytes(Files.readAllBytes(path));
+				compositeobdobj.setObd(experimentonboarddescriptor);
+				busController.onBoardNSDAddedByCompositeObj(compositeobdobj);				
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}			
 		} catch (Exception e) {				
 			e.printStackTrace();
 	    	logger.error("onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.");

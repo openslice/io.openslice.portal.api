@@ -59,6 +59,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.openslice.model.CompositeExperimentOnBoardDescriptor;
+import io.openslice.model.CompositeVxFOnBoardDescriptor;
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
@@ -176,42 +178,52 @@ public class BusController  {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard?multipleConsumers=true");
 		template.withBody( obd ).asyncSend();				
 	}
-	
-	
 
+	/**
+	 * Asynchronously sends to the routing bus (seda:vxf.onboard?multipleConsumers=true) to upload a new vxf
+	 * @param deployment a {@link VxFMetadata}
+	 */
+	public void onBoardVxFAddedByCompositeObj(CompositeVxFOnBoardDescriptor compobdobj) {
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onBoardByCompositeObj?multipleConsumers=true");
+		template.withBody( compobdobj ).asyncSend();				
+	}
+	
 	@Autowired(required = true)
 	JmsTemplate jmsTemplate;
 //
 //	@Autowired
 //	ActiveMQComponent activemq;
 	
-	/**
-	 * @param obd
-	 * @param packageFileName
-	 * @param resource
-	 */
-	public void onBoardVxFAdded(VxFOnBoardedDescriptor obd, File packageFile, ByteArrayResource resource) {
-		
-		 
-//		JmsTemplate jmsTemplate = new JmsTemplate();
-//		jmsTemplate.setConnectionFactory( activemq.getConnectionFactory() );
-		jmsTemplate.send("activemq:queue:onBoardVxFAdded", new MessageCreator() {
-
-			@Override
-			public Message createMessage(Session session) throws JMSException {
-				
-				BytesMessage bytesMessage = session.createBytesMessage();
-		        bytesMessage.setStringProperty( "fileName" ,  packageFile.getName() );
-		        bytesMessage.writeBytes( resource.getByteArray() );
-		        
-				
-				return bytesMessage;
-			}
-
-		});	
-		
-		
-	}
+//	/**
+//	 * @param obd
+//	 * @param packageFileName
+//	 * @param resource
+//	 */
+//	public void onBoardVxFAdded(VxFOnBoardedDescriptor obd, File packageFile, ByteArrayResource resource) { 
+////		JmsTemplate jmsTemplate = new JmsTemplate();
+////		jmsTemplate.setConnectionFactory( activemq.getConnectionFactory() );
+//		jmsTemplate.send("activemq:queue:onBoardVxFAdded", new MessageCreator() {
+//
+//			@Override
+//			public Message createMessage(Session session) throws JMSException {
+//				
+//				// Serialize the received object
+//				ObjectMapper mapper = new ObjectMapper();
+//				String vxfobd_serialized = null;
+//				try {
+//					vxfobd_serialized = mapper.writeValueAsString( obd );
+//				} catch (JsonProcessingException e2) {
+//					// TODO Auto-generated catch block
+//					logger.error(e2.getMessage());
+//				}				
+//				BytesMessage bytesMessage = session.createBytesMessage();
+//				bytesMessage.setStringProperty("obd", vxfobd_serialized);
+//		        bytesMessage.setStringProperty( "fileName" ,  packageFile.getName() );
+//		        bytesMessage.writeBytes( resource.getByteArray() );		        				
+//				return bytesMessage;
+//			}
+//		});	
+//	}
 
 	public void onBoardVxFFailed(VxFOnBoardedDescriptor vxfobds_final) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:vxf.onboard.fail?multipleConsumers=true");
@@ -269,6 +281,11 @@ public class BusController  {
 		template.withBody( experimentSaved ).asyncSend();		
 	}
 
+	public void onBoardNSDAddedByCompositeObj(CompositeExperimentOnBoardDescriptor compobdobj) {
+		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onBoardByCompositeObj?multipleConsumers=true");
+		template.withBody( compobdobj ).asyncSend();				
+	}
+	
 	public void onBoardNSDFailed( ExperimentOnBoardDescriptor uexpobds) {
 		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:nsd.onboard.fail?multipleConsumers=true");
 		template.withBody( uexpobds ).asyncSend();			
