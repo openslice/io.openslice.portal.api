@@ -54,7 +54,7 @@ public class UsersService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired
+    @Autowired(required = false)
     private KeyCloakService keyCloakService;
     
 	private static final transient Log logger = LogFactory.getLog( UsersService.class.getName() );
@@ -123,11 +123,15 @@ public class UsersService {
 
 	public PortalUser addPortalUserToUsers(PortalUser user) {
 		
-		String keycloakid = keyCloakService.createUserInKeyCloak(user);
-		if ( keycloakid!= null ) {
-			return usersRepo.save( user );			
+		if ( keyCloakService!=null ) {
+
+			String keycloakid = keyCloakService.createUserInKeyCloak(user);
+			if ( keycloakid!= null ) {
+				return usersRepo.save( user );			
+			}			
+		} else {
+			return usersRepo.save( user );				
 		}
-		
 		return null;
 	}
 	

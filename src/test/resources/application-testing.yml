@@ -42,6 +42,21 @@ logging:
     console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
     file: "%d %p %c{1.} [%t] %m%n"
     
+
+keycloak:
+  realm: openslice
+  auth-server-url: http://localhost:28080/auth
+  ssl-required: none
+  resource: admin-cli
+  credentials:
+    secret: none
+  public-client: false
+  bearer-only: true
+  principal-attribute: preferred_username
+
+keycloak-internal-auth-server-url: http://localhost:28080/auth
+keycloak-admin-password: Pa55w0rd
+    
  
 oauthsign:
    key: "EK97Y7Y9WPGG1MEG"

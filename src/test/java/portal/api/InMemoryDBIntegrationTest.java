@@ -147,6 +147,8 @@ public class InMemoryDBIntegrationTest {
 	@Autowired
 	DeploymentDescriptorService deploymentDescriptorService;
 	
+	
+	
 	@Test
 	public void whenFindByName_thenReturnVxF() {
 	    // given
