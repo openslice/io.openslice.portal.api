@@ -53,6 +53,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -172,7 +174,7 @@ public class InMemoryDBIntegrationTest {
 		assertThat( usersService.findAll().size() )
 		.isEqualTo( 1 );
 	}
-	
+
 	@Test
 	public void loginAdmin() throws Exception {
 
@@ -180,6 +182,7 @@ public class InMemoryDBIntegrationTest {
 		 * no auth session
 		 */
 		mvc.perform(get("/admin/users")
+	            .with( SecurityMockMvcRequestPostProcessors.csrf())
 				.contentType(MediaType.APPLICATION_JSON)				
 				)
 	    	.andExpect(status().is(401) );
@@ -188,21 +191,24 @@ public class InMemoryDBIntegrationTest {
 		pu.setUsername("admin");
 		pu.setPassword("changeme");
 		
-		/**
-		 * auth
-		 */
-		 HttpSession session = mvc.perform(post("/sessions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content( toJson( pu ) ))
-			    .andExpect(status().isOk())
-			    .andExpect(content()
-			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    .andExpect(jsonPath("username", is("admin")))
-			    .andReturn().getRequest().getSession();
+//		/**
+//		 * auth
+//		 */
+//		 HttpSession session = mvc.perform(post("/sessions")
+//		            .with( SecurityMockMvcRequestPostProcessors.csrf())
+//				.contentType(MediaType.APPLICATION_JSON)
+//				.content( toJson( pu ) ))
+//			    .andExpect(status().isOk())
+//			    .andExpect(content()
+//			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+//			    .andExpect(jsonPath("username", is("admin")))
+//			    .andReturn().getRequest().getSession();
 		 
 		 
 
 		mvc.perform(get("/categories")
+		        .with( SecurityMockMvcRequestPostProcessors.csrf())
+	            .with( SecurityMockMvcRequestPostProcessors.user("osadmin").roles("ADMIN") )
 				.contentType(MediaType.APPLICATION_JSON))
 	    	.andExpect(status().isOk())
 	    	.andExpect(content()
@@ -214,7 +220,9 @@ public class InMemoryDBIntegrationTest {
 		/**
 		 * with auth session
 		 */
-		mvc.perform(get("/admin/categories").session( (MockHttpSession) session )
+		mvc.perform(get("/admin/categories")
+	            .with( SecurityMockMvcRequestPostProcessors.csrf())
+	            .with( SecurityMockMvcRequestPostProcessors.user("osadmin").roles("ADMIN") )
 				.contentType(MediaType.APPLICATION_JSON)				
 				)
 	    	.andExpect(status().isOk())
@@ -235,7 +243,8 @@ public class InMemoryDBIntegrationTest {
 	        return mapper.readValue( content, valueType);
 	    }
 	 
-	 
+
+	@WithMockUser(username="admin", roles = {"ADMIN","USER"})
 	@Test
 	public void addVxF() throws Exception {
 		
@@ -243,17 +252,18 @@ public class InMemoryDBIntegrationTest {
 		pu.setUsername("admin");
 		pu.setPassword("changeme");
 		
-		/**
-		 * auth
-		 */
-		 HttpSession session = mvc.perform(post("/sessions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content( toJson( pu ) ))
-			    .andExpect(status().isOk())
-			    .andExpect(content()
-			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    .andExpect(jsonPath("username", is("admin")))
-			    .andReturn().getRequest().getSession();
+//		/**
+//		 * auth
+//		 */
+//		 HttpSession session = mvc.perform(post("/sessions")
+//		            .with( SecurityMockMvcRequestPostProcessors.csrf())
+//				.contentType(MediaType.APPLICATION_JSON)
+//				.content( toJson( pu ) ))
+//			    .andExpect(status().isOk())
+//			    .andExpect(content()
+//			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+//			    .andExpect(jsonPath("username", is("admin")))
+//			    .andReturn().getRequest().getSession();
 		 			 
 		 
 
@@ -268,20 +278,22 @@ public class InMemoryDBIntegrationTest {
 		MockMultipartFile prodFile = new MockMultipartFile("prodFile", "cirros_vnf.tar.gz", "application/x-gzip", IOUtils.toByteArray(ing));
 		     
         
-        Map<String, Object> sessionAttributes = new HashMap<>();
-        Enumeration<String> attr = session.getAttributeNames();
-        while ( attr.hasMoreElements()) {
-        	String aname = attr.nextElement();
-        	System.out.println("aname is: " + aname);
-        	System.out.println("Value is: " + session.getAttribute(aname));
-        	sessionAttributes.put(aname, session.getAttribute(aname));
-        }
+//        Map<String, Object> sessionAttributes = new HashMap<>();
+//        Enumeration<String> attr = session.getAttributeNames();
+//        while ( attr.hasMoreElements()) {
+//        	String aname = attr.nextElement();
+//        	System.out.println("aname is: " + aname);
+//        	System.out.println("Value is: " + session.getAttribute(aname));
+//        	sessionAttributes.put(aname, session.getAttribute(aname));
+//        }
              
         
       
         
 		MockMultipartHttpServletRequestBuilder mockMultipartHttpServletRequestBuilder = 
-        		(MockMultipartHttpServletRequestBuilder) multipart("/admin/vxfs").sessionAttrs(sessionAttributes) ;
+        		(MockMultipartHttpServletRequestBuilder) multipart("/admin/vxfs")
+        		 .with( SecurityMockMvcRequestPostProcessors.csrf())
+ 	            .with( SecurityMockMvcRequestPostProcessors.user("admin").roles("ADMIN") ) ;
         
         mockMultipartHttpServletRequestBuilder.file( prodFile );
         mockMultipartHttpServletRequestBuilder.param("vxf", resvxf);
@@ -299,6 +311,7 @@ public class InMemoryDBIntegrationTest {
 			.isEqualTo( 1 );
 		 
 		 mvc.perform(get("/categories")
+        		 .with( SecurityMockMvcRequestPostProcessors.csrf())
 					.contentType(MediaType.APPLICATION_JSON))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
@@ -309,6 +322,8 @@ public class InMemoryDBIntegrationTest {
 
 	}
 	
+
+	@WithMockUser(username="osadmin", roles = {"ADMIN","USER"})
 	@Test
 	public void deleteVxF() throws Exception {
 		
@@ -318,22 +333,24 @@ public class InMemoryDBIntegrationTest {
 		pu.setUsername("admin");
 		pu.setPassword("changeme");
 		
-		/**
-		 * auth
-		 */
-		 HttpSession session = mvc.perform(post("/sessions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content( toJson( pu ) ))
-			    .andExpect(status().isOk())
-			    .andExpect(content()
-			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    .andExpect(jsonPath("username", is("admin")))
-			    .andReturn().getRequest().getSession();
+//		/**
+//		 * auth
+//		 */
+//		 HttpSession session = mvc.perform(post("/sessions")
+//		            .with( SecurityMockMvcRequestPostProcessors.csrf())
+//				.contentType(MediaType.APPLICATION_JSON)
+//				.content( toJson( pu ) ))
+//			    .andExpect(status().isOk())
+//			    .andExpect(content()
+//			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+//			    .andExpect(jsonPath("username", is("admin")))
+//			    .andReturn().getRequest().getSession();
 		 
 		 assertThat( vxfService.getVxFsByCategory((long) -1) .size() )
 			.isEqualTo( 1 );
 
 		 mvc.perform(get("/categories")
+				 .with( SecurityMockMvcRequestPostProcessors.csrf())
 					.contentType(MediaType.APPLICATION_JSON))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
@@ -345,7 +362,8 @@ public class InMemoryDBIntegrationTest {
 		    	.andExpect( jsonPath("$[2].vxFscount", is( 1 )));
 		 
 		 String content =  mvc.perform(get("/admin/vxfs")
-					.contentType(MediaType.APPLICATION_JSON).session( (MockHttpSession) session ))
+					.contentType(MediaType.APPLICATION_JSON)
+					 .with( SecurityMockMvcRequestPostProcessors.csrf()))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
 		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -355,7 +373,7 @@ public class InMemoryDBIntegrationTest {
 		 VxFMetadata[] v =  toJsonObj( content, VxFMetadata[].class);
 		 
 		 mvc.perform(delete("/admin/vxfs/" + v[0].getId())
-					 .session( (MockHttpSession) session ))
+				 .with( SecurityMockMvcRequestPostProcessors.csrf()))		 
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
 		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
@@ -366,7 +384,8 @@ public class InMemoryDBIntegrationTest {
 	}
 	
 	
-	 
+
+	@WithMockUser(username="admin", roles = {"ADMIN","USER"})
 	@Test
 	public void addNSD() throws Exception {
 		
@@ -374,17 +393,18 @@ public class InMemoryDBIntegrationTest {
 		pu.setUsername("admin");
 		pu.setPassword("changeme");
 		
-		/**
-		 * auth
-		 */
-		 HttpSession session = mvc.perform(post("/sessions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content( toJson( pu ) ))
-			    .andExpect(status().isOk())
-			    .andExpect(content()
-			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    .andExpect(jsonPath("username", is("admin")))
-			    .andReturn().getRequest().getSession();
+//		/**
+//		 * auth
+//		 */
+//		 HttpSession session = mvc.perform(post("/sessions")
+//		            .with( SecurityMockMvcRequestPostProcessors.csrf())
+//				.contentType(MediaType.APPLICATION_JSON)
+//				.content( toJson( pu ) ))
+//			    .andExpect(status().isOk())
+//			    .andExpect(content()
+//			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+//			    .andExpect(jsonPath("username", is("admin")))
+//			    .andReturn().getRequest().getSession();
 		 			 
 		 
 
@@ -397,17 +417,19 @@ public class InMemoryDBIntegrationTest {
 			InputStream inggzvxf = new FileInputStream( gzvxf );
 			MockMultipartFile prodFilevxf = new MockMultipartFile("prodFile", "cirros_vnf.tar.gz", "application/x-gzip", IOUtils.toByteArray( inggzvxf ));
 			     
-	        Map<String, Object> sessionAttributes = new HashMap<>();
-	        Enumeration<String> attr = session.getAttributeNames();
-	        while ( attr.hasMoreElements()) {
-	        	String aname = attr.nextElement();
-	        	System.out.println("aname is: " + aname);
-	        	System.out.println("Value is: " + session.getAttribute(aname));
-	        	sessionAttributes.put(aname, session.getAttribute(aname));
-	        }
+//	        Map<String, Object> sessionAttributes = new HashMap<>();
+//	        Enumeration<String> attr = session.getAttributeNames();
+//	        while ( attr.hasMoreElements()) {
+//	        	String aname = attr.nextElement();
+//	        	System.out.println("aname is: " + aname);
+//	        	System.out.println("Value is: " + session.getAttribute(aname));
+//	        	sessionAttributes.put(aname, session.getAttribute(aname));
+//	        }
 	        
 			MockMultipartHttpServletRequestBuilder mockMultipartHttpServletRequestBuilder = 
-	        		(MockMultipartHttpServletRequestBuilder) multipart("/admin/vxfs").sessionAttrs(sessionAttributes) ;
+	        		(MockMultipartHttpServletRequestBuilder) multipart("/admin/vxfs")
+		            .with( SecurityMockMvcRequestPostProcessors.csrf())
+		            .with( SecurityMockMvcRequestPostProcessors.user("osadmin").roles("ADMIN") ) ;
 	        
 	        mockMultipartHttpServletRequestBuilder.file( prodFilevxf );
 	        mockMultipartHttpServletRequestBuilder.param("vxf", resvxf);
@@ -428,8 +450,7 @@ public class InMemoryDBIntegrationTest {
 		 
 		 mvc.perform(MockMvcRequestBuilders.multipart("/admin/experiments")
 				 .file(prodFile)
-				 .param("exprm", resnsd)
-				 .session( (MockHttpSession) session ))
+				 .param("exprm", resnsd))
 	    	.andExpect(status().isOk());
 		 
 		 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
@@ -444,6 +465,7 @@ public class InMemoryDBIntegrationTest {
 		 
 		 
 		 mvc.perform(get("/categories")
+		            .with( SecurityMockMvcRequestPostProcessors.csrf())
 					.contentType(MediaType.APPLICATION_JSON))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
@@ -457,19 +479,21 @@ public class InMemoryDBIntegrationTest {
 			
 		 //https://patras5g.eu/apiportal/services/api/repo/admin/deployments/
 
-		 session = mvc.perform(post("/sessions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content( toJson( pu ) ))
-			    .andExpect(status().isOk())
-			    .andExpect(content()
-			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    .andExpect(jsonPath("username", is("admin")))
-			    .andReturn().getRequest().getSession();
+//		 session = mvc.perform(post("/sessions")
+//		            .with( SecurityMockMvcRequestPostProcessors.csrf())
+//				.contentType(MediaType.APPLICATION_JSON)
+//				.content( toJson( pu ) ))
+//			    .andExpect(status().isOk())
+//			    .andExpect(content()
+//			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+//			    .andExpect(jsonPath("username", is("admin")))
+//			    .andReturn().getRequest().getSession();
 		 
 			Infrastructure infr = new Infrastructure();
 			infr.setName( "Cloudville" );
 
-			 mvc.perform(post("/admin/infrastructures").session( (MockHttpSession) session ) 
+			 mvc.perform(post("/admin/infrastructures")
+			            .with( SecurityMockMvcRequestPostProcessors.csrf())
 					.contentType(MediaType.APPLICATION_JSON)
 					.content( toJson( infr ) )
 					 )				
@@ -483,7 +507,8 @@ public class InMemoryDBIntegrationTest {
 		resnsd = IOUtils.toString( ing, "UTF-8");
 		DeploymentDescriptor ddesc =  toJsonObj( resnsd, DeploymentDescriptor.class );
 				     
-		 String strddescResponse = mvc.perform(post("/admin/deployments").session( (MockHttpSession) session ) 
+		 String strddescResponse = mvc.perform(post("/admin/deployments")
+		            .with( SecurityMockMvcRequestPostProcessors.csrf())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content( toJson( ddesc ) )
 				 )				
@@ -505,6 +530,8 @@ public class InMemoryDBIntegrationTest {
 
 	}
 
+
+	@WithMockUser(username="admin", roles = {"ADMIN","USER"})
 	@Test
 	public void deleteNSD() throws Exception {
 		
@@ -513,17 +540,18 @@ public class InMemoryDBIntegrationTest {
 		pu.setUsername("admin");
 		pu.setPassword("changeme");
 		
-		/**
-		 * auth
-		 */
-		 HttpSession session = mvc.perform(post("/sessions")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content( toJson( pu ) ))
-			    .andExpect(status().isOk())
-			    .andExpect(content()
-			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-			    .andExpect(jsonPath("username", is("admin")))
-			    .andReturn().getRequest().getSession();
+//		/**
+//		 * auth
+//		 */
+//		 HttpSession session = mvc.perform(post("/sessions")
+//		            .with( SecurityMockMvcRequestPostProcessors.csrf())
+//				.contentType(MediaType.APPLICATION_JSON)
+//				.content( toJson( pu ) ))
+//			    .andExpect(status().isOk())
+//			    .andExpect(content()
+//			    .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+//			    .andExpect(jsonPath("username", is("admin")))
+//			    .andReturn().getRequest().getSession();
 		 
 		 File nsdFile = new File( "src/test/resources/testnsd.txt" );
 			InputStream in = new FileInputStream( nsdFile );
@@ -537,14 +565,15 @@ public class InMemoryDBIntegrationTest {
 			 
 			 mvc.perform(MockMvcRequestBuilders.multipart("/admin/experiments")
 					 .file(prodFile)
-					 .param("exprm", resnsd)
-					 .session( (MockHttpSession) session ))
+					 .param("exprm", resnsd) 
+					 .with( SecurityMockMvcRequestPostProcessors.csrf()))
 		    	.andExpect(status().isOk());
 		 
 		 assertThat( nsdService.getdNSDsByCategory((long) -1) .size() )
 			.isEqualTo( 1 );
 
-		 mvc.perform(get("/categories")
+		 mvc.perform(get("/categories") 
+				 .with( SecurityMockMvcRequestPostProcessors.csrf())
 					.contentType(MediaType.APPLICATION_JSON))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
@@ -556,7 +585,8 @@ public class InMemoryDBIntegrationTest {
 		    	.andExpect( jsonPath("$[2].appscount", is( 1 )));
 		 
 		 String content =  mvc.perform(get("/admin/experiments")
-					.contentType(MediaType.APPLICATION_JSON).session( (MockHttpSession) session ))
+				 .with( SecurityMockMvcRequestPostProcessors.csrf())
+					.contentType(MediaType.APPLICATION_JSON))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
 		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -567,7 +597,7 @@ public class InMemoryDBIntegrationTest {
 		 ExperimentMetadata[] n =  toJsonObj( content, ExperimentMetadata[].class );
 		 
 		 mvc.perform(delete("/admin/experiments/" + n[0].getId() )
-					 .session( (MockHttpSession) session ))
+				 .with( SecurityMockMvcRequestPostProcessors.csrf()))
 		    	.andExpect(status().isOk())
 		    	.andExpect(content()
 		    			.contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
