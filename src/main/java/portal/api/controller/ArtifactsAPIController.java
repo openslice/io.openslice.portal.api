@@ -3439,10 +3439,13 @@ public class ArtifactsAPIController {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
-		OnBoardingStatus previous_status = c.getOnBoardingStatus();
-		c.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+c.getExperiment().getName()+" to "+c.getOnBoardingStatus(), compname);																																
-		ExperimentOnBoardDescriptor uExper = nsdOBDService.updateExperimentOnBoardDescriptor(c);
+
+		ExperimentOnBoardDescriptor u = nsdOBDService.getExperimentOnBoardDescriptorByID( c.getId());
+		
+		OnBoardingStatus previous_status = u.getOnBoardingStatus();
+		u.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
+		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+u.getExperiment().getName()+" to "+u.getOnBoardingStatus(), compname);																																
+		ExperimentOnBoardDescriptor uExper = nsdOBDService.updateExperimentOnBoardDescriptor( u );
 
 		ResponseEntity<String> response = null;
 		try {
