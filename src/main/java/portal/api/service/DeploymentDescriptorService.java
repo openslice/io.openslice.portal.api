@@ -267,6 +267,11 @@ public class DeploymentDescriptorService {
 		return RunningDeploymentDescriptor_list;
 	}
 
+	public List<DeploymentDescriptor> getDeploymentsByExperimentId(long id) {
+		List<DeploymentDescriptor> DeploymentDescriptor_list = this.ddRepo.readDeploymentsByExperimentID(id);
+		return DeploymentDescriptor_list;
+	}
+
 	public String getRunningInstantiatingAndTerminatingDeploymentsEagerDataJson() throws JsonProcessingException {
 
 		List<DeploymentDescriptor> dds = this.getRunningInstantiatingAndTerminatingDeployments();

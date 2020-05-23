@@ -47,7 +47,7 @@ import org.springframework.context.annotation.ComponentScan;
 		"io.openslice.centrallog.client"
 		})
 @SpringBootApplication()
-public class PortalApplication{
+public class PortalApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(PortalApplication.class, args);

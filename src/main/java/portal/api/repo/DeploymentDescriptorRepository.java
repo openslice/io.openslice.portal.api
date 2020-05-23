@@ -170,6 +170,7 @@ public interface DeploymentDescriptorRepository extends PagingAndSortingReposito
 			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.TERMINATING")
 	List<DeploymentDescriptor> readRunningInstantiatingAndTerminatingDeployments();
 
-	
+	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.experiment.id = ?1")
+	List<DeploymentDescriptor> readDeploymentsByExperimentID(long id);	
 
 }
