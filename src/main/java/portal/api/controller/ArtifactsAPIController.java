@@ -1659,6 +1659,9 @@ public class ArtifactsAPIController {
 		
 			for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
 			{
+				logger.info("check for ONBOARDING on " + mp.getName());
+				logger.info("experimentSaved.getPackagingFormat().toString() = " + experimentSaved.getPackagingFormat().toString());
+				logger.info("mp.getSupportedMANOplatform().getVersion()) " + mp.getSupportedMANOplatform().getVersion() );
 				if(experimentSaved.getPackagingFormat().toString().equals(mp.getSupportedMANOplatform().getVersion()))					
 				{				
 					//Create NSDOnboardDescriptor
