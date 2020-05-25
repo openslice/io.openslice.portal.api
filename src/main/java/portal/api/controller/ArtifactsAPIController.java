@@ -735,6 +735,7 @@ public class ArtifactsAPIController {
 			
 			for(MANOprovider mp : MANOprovidersEnabledForOnboarding)
 			{
+				logger.error( " ========> vxfsaved.getPackagingFormat() = " + vxfsaved.getPackagingFormat() );
 				if(vxfsaved.getPackagingFormat().toString().equals(mp.getSupportedMANOplatform().getVersion()))
 				{
 					//Create VxfOnboardedDescriptor
@@ -3004,14 +3005,15 @@ public class ArtifactsAPIController {
 	}
 
 	@PutMapping( value =  "/admin/experimentobds/{mpid}/onboard", produces = "application/json", consumes = "application/json" )
-	public ResponseEntity<?>  onExperimentBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor experimentonboarddescriptor) throws ForbiddenException {
+	public ResponseEntity<?>  onExperimentBoardDescriptor(@PathVariable("mpid") int mpid, @Valid @RequestBody final ExperimentOnBoardDescriptor ed) throws ForbiddenException {
 
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		try {
-			//aMANOController.onBoardNSDToMANOProvider( experimentonboarddescriptor.getId() );
+			ExperimentOnBoardDescriptor experimentonboarddescriptor = nsdOBDService.getExperimentOnBoardDescriptorByID( ed.getId() ); 
 			try {
+
 				String[] fpath = experimentonboarddescriptor.getExperiment().getPackageLocation().split("/");
 				logger.info("uuid: " + fpath[ fpath.length-2 ]);
 				logger.info("Package: " + fpath[ fpath.length-1 ]);
@@ -3022,7 +3024,9 @@ public class ArtifactsAPIController {
 				compositeobdobj.setFilename(afile.getName());
 				compositeobdobj.setAllBytes(Files.readAllBytes(path));
 				compositeobdobj.setObd(experimentonboarddescriptor);
-				busController.onBoardNSDAddedByCompositeObj(compositeobdobj);				
+				busController.onBoardNSDAddedByCompositeObj(compositeobdobj);	
+
+				return ResponseEntity.ok( experimentonboarddescriptor  );
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -3032,10 +3036,10 @@ public class ArtifactsAPIController {
 	    	logger.error("onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.");
 			CentralLogger.log( CLevel.ERROR, "onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.", compname);																	
 
-			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body("Requested Experiment Descriptor with ID=" + experimentonboarddescriptor.getId() + " cannot be onboarded")   ;
+			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body("Requested Experiment Descriptor with ID=" + ed.getId() + " cannot be onboarded")   ;
 		}	
-		
-		return ResponseEntity.ok( experimentonboarddescriptor  );
+
+		return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body("Requested Experiment Descriptor with ID=" + ed.getId() + " cannot be onboarded")   ;
 	}
 
 

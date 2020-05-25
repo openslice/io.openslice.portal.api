@@ -387,7 +387,7 @@ public class BusController  {
 	}
 	
 	public ExperimentMetadata getNSDMetadataFromMANO(String osmType, String yamlFile) {
-		logger.info("Sending Object to get ExperimentMetadata from AMQ:");		
+		logger.info("Sending Object to get ExperimentMetadata from AMQ: osmType = " + osmType);		
 		// Send it to activemq endpoint
 		String ret = contxt.createProducerTemplate().requestBodyAndHeader("activemq:topic:ns.metadata.retrieve", yamlFile, "OSMType", osmType, String.class);
 
