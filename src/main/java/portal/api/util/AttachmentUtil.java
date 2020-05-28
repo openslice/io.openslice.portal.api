@@ -189,7 +189,7 @@ public class AttachmentUtil {
             // Iterate through the files in the archive
             while ((entry = tarIn.getNextTarEntry()) != null) {              
                 // If the file ends in .yaml
-                if (entry.getName().endsWith(".yaml")) {
+                if ( entry.getName().endsWith(".yaml") || entry.getName().endsWith(".yml")) {
 
 					logger.info("INFO: Examining " + entry.getName() + " for vnfd tag..." );
 					// Create a new file
