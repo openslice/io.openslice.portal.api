@@ -59,6 +59,7 @@ public interface NSDsRepository extends PagingAndSortingRepository<ExperimentMet
 
 	@Query( value ="SELECT e FROM ExperimentMetadata e JOIN FETCH e.experimentOnBoardDescriptors "
 			+ "JOIN FETCH e.experimentOnBoardDescriptors obd  "
+			+ "JOIN FETCH e.constituentVxF cvxf  "
 			+ "JOIN FETCH obd.obMANOprovider  "
 			+ "WHERE e.id = ?1" )
 	Optional<ExperimentMetadata> findByIdEager(long id);

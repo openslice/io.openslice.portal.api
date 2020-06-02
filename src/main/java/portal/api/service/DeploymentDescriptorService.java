@@ -214,10 +214,14 @@ public class DeploymentDescriptorService {
 		    try {
 		        dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
 		        Hibernate.initialize( dd.getExperimentFullDetails() );
-		        Hibernate.initialize( dd.getExperimentFullDetails().getExperimentOnBoardDescriptors() );
+		        if ( dd.getExperimentFullDetails()!=null ) {
+			        Hibernate.initialize( dd.getExperimentFullDetails().getExperimentOnBoardDescriptors() );		        	
+		        }
 		        Hibernate.initialize( dd.getVxfPlacements() );		        
 		        tx.commit();
-		        dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();
+		        if ( dd.getExperimentFullDetails()!=null ) {
+		        	dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();
+		        }
 		    } finally {
 		        session.close();
 		    }

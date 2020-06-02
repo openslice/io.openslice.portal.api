@@ -1398,9 +1398,19 @@ public class ArtifactsAPIController {
 
 	@GetMapping( value = "/experiments", produces = "application/json" )
 	public ResponseEntity<?>  getAllApps(@RequestParam( name="categoryid", required = false) Long categoryid) {
-		logger.info("getexperiments categoryid=" + categoryid);
-		List<ExperimentMetadata> nsds = nsdService.getPublishedNSDsByCategory(categoryid); 
-		return ResponseEntity.ok( nsds );		
+		
+			
+			//
+		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+
+		if (u != null) {
+			return getAllDeployableExperiments();
+		} else {	
+		
+			logger.info("getexperiments categoryid=" + categoryid);
+			List<ExperimentMetadata> nsds = nsdService.getPublishedNSDsByCategory(categoryid); 
+			return ResponseEntity.ok( nsds );
+		}
 	}
 	
 	
