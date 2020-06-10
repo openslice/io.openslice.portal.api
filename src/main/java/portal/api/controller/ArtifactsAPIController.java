@@ -3160,7 +3160,7 @@ public class ArtifactsAPIController {
 	}
 
 	
-	@DeleteMapping( value =  "/admin/infrastructures/{infraid}", produces = "application/json", consumes = "application/json" )
+	@DeleteMapping( value =  "/admin/infrastructures/{infraid}", produces = "application/json" )
 	public ResponseEntity<?>  deleteInfrastructure(@PathVariable("infraid") int infraid) throws ForbiddenException {
 		if ( !checkUserIDorIsAdmin( -1 ) ){
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
