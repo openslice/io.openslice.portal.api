@@ -68,12 +68,13 @@ public class NSDOBDService {
 		ExperimentOnBoardDescriptor aNSDOBD = getExperimentOnBoardDescriptorByID( NSDOBD.getId() );														
 		logger.info("Previous Status is :"+aNSDOBD.getOnBoardingStatus()+",New Status is:"+NSDOBD.getOnBoardingStatus()+" and Instance Id is "+NSDOBD.getId());
 
+		aNSDOBD.setExperimentMANOProviderID(NSDOBD.getExperimentMANOProviderID());
 		aNSDOBD.setOnBoardingStatus(NSDOBD.getOnBoardingStatus()); 		
 		aNSDOBD.setDeployId(NSDOBD.getDeployId());
-		aNSDOBD.setExperimentMANOProviderID(NSDOBD.getExperimentMANOProviderID());
 		aNSDOBD.setLastOnboarding(NSDOBD.getLastOnboarding());
 		aNSDOBD.setFeedbackMessage(NSDOBD.getFeedbackMessage());
 		aNSDOBD.setOnBoardingStatus(NSDOBD.getOnBoardingStatus());
+		aNSDOBD.setObMANOprovider(NSDOBD.getObMANOprovider());
 		//aNSDOBD.getExperiment().setCertified(NSDOBD.getExperiment().isCertified());
 
 		logger.info("updateExperimentODB for id: " + aNSDOBD.getId());				

@@ -382,7 +382,7 @@ public class ArtifactsAPIController {
 			registeredProd = nsdService.getdNSDByUUID(uuid);
 		}
 
-//		// now fix category references
+		// now fix category references
 		for (Category c : prod.getCategories()) {
 			Category catToUpdate = categoryService.findById(c.getId());
 			catToUpdate.addProduct(registeredProd);
@@ -3024,7 +3024,10 @@ public class ArtifactsAPIController {
 			throw new ForbiddenException("The requested page is forbidden");//return (ResponseEntity<?>) ResponseEntity.status(HttpStatus.FORBIDDEN) ;
 		}
 		try {
-			ExperimentOnBoardDescriptor experimentonboarddescriptor = nsdOBDService.getExperimentOnBoardDescriptorByID( ed.getId() ); 
+			ExperimentOnBoardDescriptor experimentonboarddescriptor = nsdOBDService.getExperimentOnBoardDescriptorByID( ed.getId() );
+			MANOprovider mp = manoProviderService.getMANOproviderByID( ed.getObMANOprovider().getId() );
+			experimentonboarddescriptor.setObMANOprovider( mp );	
+			experimentonboarddescriptor.getObMANOprovider().setId(ed.getObMANOprovider().getId());
 			try {
 
 				String[] fpath = experimentonboarddescriptor.getExperiment().getPackageLocation().split("/");
