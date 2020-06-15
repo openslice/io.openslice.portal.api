@@ -173,4 +173,7 @@ public interface DeploymentDescriptorRepository extends PagingAndSortingReposito
 	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.experiment.id = ?1")
 	List<DeploymentDescriptor> readDeploymentsByExperimentID(long id);	
 
+	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.instanceId = ?1")
+	DeploymentDescriptor readDeploymentByInstanceID(String id);	
+	
 }

@@ -291,6 +291,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log( "activemq:queue:getDeploymentByIdEager !" )		
 		.bean( deploymentDescriptorService, "getDeploymentByIdEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+
+		from("activemq:queue:getDeploymentByInstanceIdEager")
+		.log( "activemq:queue:getDeploymentByInstanceIdEager !" )		
+		.bean( deploymentDescriptorService, "getDeploymentByInstanceIdEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:updateDeploymentDescriptor")
 		.log( "activemq:queue:updateDeploymentDescriptor !" )
@@ -314,6 +319,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log( "activemq:queue:getMANOproviderByID !" )		
 		.bean( manoProviderService, "getMANOproviderByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+
+		from( "activemq:queue:putActionOnNS" )
+		.log(LoggingLevel.INFO, log, "activemq:queue:putActionOnNS message received!")
+		.to("log:DEBUG?showBody=true&showHeaders=true")
+		.bean( nsdService, "getProductByIDEagerDataJson")
+		.convertBodyTo( String.class );
 		
 		from( NFV_CATALOG_GET_NSD_BY_ID )
 		.log(LoggingLevel.INFO, log, NFV_CATALOG_GET_NSD_BY_ID + " message received!")

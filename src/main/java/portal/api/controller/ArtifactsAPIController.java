@@ -40,6 +40,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
+import org.apache.camel.ProducerTemplate;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.logging.Log;
@@ -208,6 +209,9 @@ public class ArtifactsAPIController {
 	@Autowired
 	BusController busController;
 
+	@Autowired
+	ProducerTemplate template;
+	
 	@Value("${spring.application.name}")
 	private String compname;
 	
@@ -1478,6 +1482,23 @@ public class ArtifactsAPIController {
 		}
 	}
 
+	
+	@PostMapping( value = "/admin/experimentobds/action", produces = "application/json" )
+	public ResponseEntity<?>  postExperimentsOBDAction(@Valid @RequestBody String payload)	{
+
+		String ret = template.requestBody( "activemq:topic:ns.action.run", payload, String.class);
+		logger.info("Message Received from AMQ:"+ret);
+		// Get the response and Map object to ExperimentMetadata
+		ResponseEntity<String> response = null;
+		logger.info("From ActiveMQ:"+ret.toString());
+		// Map object to VxFOnBoardedDescriptor
+		JSONObject obj = new JSONObject(ret);
+		logger.info("Status Code of response:"+obj.get("statusCode"));
+		response = new ResponseEntity<String>(obj.get("body").toString(),HttpStatus.valueOf(obj.get("statusCode").toString()));
+		logger.info("Response from action "+response);
+		return response;		
+	}
+	
 	/**
 	 * @return all User's Valid experiments as well as all Public and Valid experiments 
 	 */

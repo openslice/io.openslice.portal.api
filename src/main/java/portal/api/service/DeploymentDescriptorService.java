@@ -229,6 +229,16 @@ public class DeploymentDescriptorService {
 	}
 
 	/**
+	 * @param id
+	 * @return
+	 */
+	public DeploymentDescriptor getDeploymentByInstanceIdEager(String id) {
+	    DeploymentDescriptor dd = null;
+        dd = (DeploymentDescriptor) this.ddRepo.readDeploymentByInstanceID(id);
+        return this.getDeploymentByID(dd.getId());
+	}
+	
+	/**
 	 * @param d
 	 * @return as json
 	 * @throws JsonProcessingException
@@ -245,6 +255,24 @@ public class DeploymentDescriptorService {
 		return res;
 	}
 
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getDeploymentByInstanceIdEagerDataJson( String id ) throws JsonProcessingException {
+
+		logger.info("****************************"+id+"****************************");
+		DeploymentDescriptor dd = this.getDeploymentByInstanceIdEager( id );
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dd );
+		
+		return res;
+	}
+	
 	/**
 	 * @param d
 	 * @return as json
