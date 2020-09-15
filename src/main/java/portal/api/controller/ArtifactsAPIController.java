@@ -1486,7 +1486,7 @@ public class ArtifactsAPIController {
 	@PostMapping( value = "/admin/experimentobds/action", produces = "application/json" )
 	public ResponseEntity<?>  postExperimentsOBDAction(@Valid @RequestBody String payload)	{
 
-		String ret = template.requestBody( "activemq:topic:ns.action.run", payload, String.class);
+		String ret = template.requestBody( "jms:queue:ns.action.run", payload, String.class);
 		logger.info("Message Received from AMQ:"+ret);
 		// Get the response and Map object to ExperimentMetadata
 		ResponseEntity<String> response = null;

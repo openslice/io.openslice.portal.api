@@ -145,8 +145,12 @@ public class AttachmentUtil {
 						// Write in a separate file.
 					    file.write(data, 0, count);
 					}
+
 					// Set the file as the yaml file
-					descriptorYAMLfile = new String(file.toByteArray());
+					String afile = new String(file.toByteArray());
+					if ( afile.contains( "vnfd:") || afile.contains( "nsd:") ) {
+						descriptorYAMLfile = afile;
+					}
 						
 			    }
 			}
@@ -203,7 +207,11 @@ public class AttachmentUtil {
 					    file.write(data, 0, count);
 					}
 					// Set the file as the yaml file
-					this.setDescriptorYAMLfile(new String(file.toByteArray()));					
+					String afile = new String(file.toByteArray());
+					if ( afile.contains( "vnfd:") || afile.contains( "nsd:") ) {
+						this.setDescriptorYAMLfile( afile );
+					}
+											
 			    }
                 // If the file is a png or a jpg
                 if  ( entry.getName().endsWith(".png") || entry.getName().endsWith(".jpg")) {                    	
