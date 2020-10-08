@@ -44,7 +44,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 
-import OSM5NBIClient.OSM5Client;
 import portal.api.bus.BusController;
 //import portal.api.centrallog.CLevel;
 //import portal.api.centrallog.CentralLogger;
@@ -193,93 +192,7 @@ public class MANOController {
 		logger.info("PROPER VxF Package Location: " + pLocation);
 
 		
-		// OSM5 START
-		if (vxfobds.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
-			OSM5Client osm5Client = null;
-			try {
-				osm5Client = new OSM5Client(vxfobds.getObMANOprovider().getApiEndpoint(), vxfobds.getObMANOprovider().getUsername(), vxfobds.getObMANOprovider().getPassword(), "admin");
-				aMANOStatus.setOsm5CommunicationStatusActive(null);													
-			}
-		    catch(Exception e) 
-			{
-				logger.error("onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.");
-				
-				CentralLogger.log( CLevel.INFO, "onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.", compname);
-				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting VxF OnBoarding action.");																	
-				// Set the reason of the failure
-				vxfobds.setFeedbackMessage("OSM5 communication failed. Aborting VxF OnBoarding action.");
-				vxfobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
-				CentralLogger.log( CLevel.INFO, "Onboarding status change of VxF "+vxfobds.getVxf().getName()+" to "+vxfobds.getOnBoardingStatus(), compname);										
-				// Uncertify if it failed OnBoarding.
-				vxfobds.getVxf().setCertified(false);
-				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-				
-				// Uncertify if it failed OnBoarding.
-				busController.onBoardVxFFailed( vxfobds_final );				
-		        return ;
-			}						
-			
-			ResponseEntity<String> response = null;
-			response = osm5Client.createVNFDPackage();
-			if (response == null || response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError()) {
-				logger.error("VNFD Package Creation failed.");
-				// Set status
-				vxfobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
-				CentralLogger.log( CLevel.INFO, "Onboarding status change of VxF "+vxfobds.getVxf().getName()+" to "+vxfobds.getOnBoardingStatus(), compname);										
-				// Set the reason of the failure
-				vxfobds.setFeedbackMessage(response.getBody().toString());
-				// Uncertify if it failed OnBoarding.
-				vxfobds.getVxf().setCertified(false);
-				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-				busController.onBoardVxFFailed( vxfobds_final );
-				return;				
-			}
-			else
-			{
-				JSONObject obj = new JSONObject(response.getBody());
-				String vnfd_id = obj.getString("id");
-				logger.info(response.getStatusCode()+" replied. The new VNFD Package id is :" + vnfd_id);
-				
-				response = osm5Client.uploadVNFDPackageContent(vnfd_id, pLocation);
-				if (response == null || response.getStatusCode().is4xxClientError()
-						|| response.getStatusCode().is5xxServerError()) {
-					logger.error("Upload of VNFD Package Content failed. Deleting VNFD Package.");
-					// Delete the package from the OSM
-					osm5Client.deleteVNFDPackage(vnfd_id);
-					// Set status
-					vxfobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
-					CentralLogger.log( CLevel.INFO, "Onboarding status change of VxF "+vxfobds.getVxf().getName()+" to "+vxfobds.getOnBoardingStatus(), compname);											
-					// Set the reason of the failure
-					vxfobds.setFeedbackMessage(response.getBody().toString());
-					// Uncertify if it failed OnBoarding.
-					vxfobds.getVxf().setCertified(false);
-					VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-					busController.onBoardVxFFailed( vxfobds_final );
-					return;
-				}
-
-				vxfobds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
-				CentralLogger.log( CLevel.INFO, "Onboarding status change of VxF "+vxfobds.getVxf().getName()+" to "+vxfobds.getOnBoardingStatus(), compname);											
-				
-				vxfobds.setFeedbackMessage("OnBoarding Succeeded");
-				// We select by design not to Certify upon OnBoarding but only on final version
-				// is determined.
-				// vxfobds.getVxf().setCertified(true);
-				// The Deploy ID is set as the VNFD Package id in OSMANO4Provider
-				vxfobds.setDeployId(vnfd_id);
-				// What should be the vxf Name. Something like cirros_vnfd.
-				vxfobds.setVxfMANOProviderID( vxfobd.getVxf().getName() );
-				// Set Onboarding date
-				vxfobds.setLastOnboarding(new Date());
-				// Save the changes to vxfobds
-				VxFOnBoardedDescriptor vxfobds_final = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobds);
-				busController.onBoardVxFSucceded( vxfobds_final );
-				
-			}			
-		}		
-		// OSM5 END
-		// OSM4 START		
-		// OSM4 END
+		
 	}
 
 	public void checkAndDeleteTerminatedOrFailedDeployments() {
@@ -321,7 +234,7 @@ public class MANOController {
 		logger.info("Update Deployment Descriptors");
 		List<DeploymentDescriptor> runningDeploymentDescriptors = deploymentDescriptorService.getRunningInstantiatingAndTerminatingDeployments();
 		
-		OSM5Client osm5Client = null;
+
 		// For each deployment get the status info and the IPs
 		for (int i = 0; i < runningDeploymentDescriptors.size(); i++) {
 			DeploymentDescriptor deployment_tmp = deploymentDescriptorService.getDeploymentByIdEager(runningDeploymentDescriptors.get(i).getId());
@@ -329,157 +242,6 @@ public class MANOController {
 				// Get the MANO Provider for each deployment
 				
 				MANOprovider sm = manoProviderService.getMANOproviderByID( getExperimOBD( deployment_tmp ).getObMANOprovider().getId() );
-				
-				//OSM5 - START
-				if (sm.getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
-					if (osm5Client == null || !osm5Client.getMANOApiEndpoint().equals(sm.getApiEndpoint())) {
-						try
-						{
-							osm5Client = new OSM5Client(sm.getApiEndpoint(), sm.getUsername(), sm.getPassword(), "admin");							
-							aMANOStatus.setOsm5CommunicationStatusActive(null);
-						}
-						catch(Exception e)
-						{
-							logger.error("OSM5 fails authentication");
-							CentralLogger.log( CLevel.ERROR, "OSM5 fails authentication", compname);
-							aMANOStatus.setOsm5CommunicationStatusFailed(null);
-							return;
-						}
-					}
-					JSONObject ns_instance_info = osm5Client.getNSInstanceInfo(runningDeploymentDescriptors.get(i).getInstanceId());
-					// If the no nsd with the specific id is found, mark the instance as faile to delete.
-					if(ns_instance_info == null)
-					{
-						deployment_tmp.setStatus(DeploymentDescriptorStatus.FAILED_OSM_REMOVED);
-						CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus(), compname);
-						logger.info("NS not found in OSM. Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());						
-						deployment_tmp.setFeedback("NS instance not present in OSM. Marking as FAILED_OSM_REMOVED");				
-						DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-						logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());						
-						//busController.deleteInstanceFailed(deploymentdescriptor_final);										
-					}
-					else 
-					{
-						try {
-							logger.info(ns_instance_info.toString());
-							if (deployment_tmp.getStatus() == DeploymentDescriptorStatus.RUNNING)
-							{
-								if(!deployment_tmp.getOperationalStatus().equals(ns_instance_info.getString("operational-status"))||!deployment_tmp.getConfigStatus().equals(ns_instance_info.getString("config-status"))||!deployment_tmp.getDetailedStatus().equals(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", "")))
-								{
-									logger.info("Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());
-									CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus(), compname);
-									deployment_tmp.setFeedback(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
-									deployment_tmp.setConstituentVnfrIps("");
-									for (int j = 0; j < ns_instance_info.getJSONArray("constituent-vnfr-ref")
-											.length(); j++) 
-									{
-										if (j > 0) {
-											deployment_tmp.setConstituentVnfrIps(deployment_tmp.getConstituentVnfrIps() + ", ");
-										}
-										ResponseEntity<String> vnf_instance_id_info_response = osm5Client.getVNFInstanceInfoNew(ns_instance_info.getJSONArray("constituent-vnfr-ref").get(j).toString());
-										if(!vnf_instance_id_info_response.getStatusCode().is4xxClientError() && !vnf_instance_id_info_response.getStatusCode().is5xxServerError() )
-										{
-											JSONObject vnf_instance_info = new JSONObject(vnf_instance_id_info_response.getBody());
-											try {
-												deployment_tmp.setConstituentVnfrIps(deployment_tmp.getConstituentVnfrIps()
-														+ vnf_instance_info.getString("ip-address"));
-											} catch (JSONException e) {
-												logger.error(e.getMessage());
-											}																				
-										}
-										else
-										{
-											deployment_tmp.setConstituentVnfrIps(deployment_tmp.getConstituentVnfrIps()	+ "Ν/Α");
-											logger.error("ERROR gettin constituent-vnfr-ref info. Response:"+vnf_instance_id_info_response.getBody().toString());
-										}									
-									}
-									deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-									busController.deploymentInstantiationSucceded(deployment_tmp );									
-								}
-							}
-							
-							deployment_tmp.setOperationalStatus(ns_instance_info.getString("operational-status"));
-							deployment_tmp.setConfigStatus(ns_instance_info.getString("config-status"));
-							deployment_tmp.setDetailedStatus(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
-							// Depending on the current OSM status, change the portal status.
-							if (deployment_tmp.getStatus() == DeploymentDescriptorStatus.INSTANTIATING
-									&& deployment_tmp.getOperationalStatus().toLowerCase().equals("running")
-//									&& deployment_tmp.getConfigStatus().toLowerCase().equals("configured")
-//									&& deployment_tmp.getDetailedStatus().toLowerCase().equals("done")
-									) {
-								deployment_tmp.setStatus(DeploymentDescriptorStatus.RUNNING);
-								logger.info("Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());
-								CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus(), compname);
-								deployment_tmp.setFeedback(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
-								deployment_tmp.setConstituentVnfrIps("");
-								for (int j = 0; j < ns_instance_info.getJSONArray("constituent-vnfr-ref")
-										.length(); j++) 
-								{
-									if (j > 0) {
-										deployment_tmp.setConstituentVnfrIps(deployment_tmp.getConstituentVnfrIps() + ", ");
-									}
-									ResponseEntity<String> vnf_instance_id_info_response = osm5Client.getVNFInstanceInfoNew(ns_instance_info.getJSONArray("constituent-vnfr-ref").get(j).toString());
-									if(!vnf_instance_id_info_response.getStatusCode().is4xxClientError() && !vnf_instance_id_info_response.getStatusCode().is5xxServerError() )
-									{
-										JSONObject vnf_instance_info = new JSONObject(vnf_instance_id_info_response.getBody());
-										try {
-											deployment_tmp.setConstituentVnfrIps(deployment_tmp.getConstituentVnfrIps()
-													+ vnf_instance_info.getString("ip-address"));
-										} catch (JSONException e) {
-											logger.error(e.getMessage());
-										}																				
-									}
-									else
-									{
-										deployment_tmp.setConstituentVnfrIps(deployment_tmp.getConstituentVnfrIps()	+ "Ν/Α");
-										logger.error("ERROR gettin constituent-vnfr-ref info. Response:"+vnf_instance_id_info_response.getBody().toString());
-										//break;
-									}									
-								}
-								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								busController.deploymentInstantiationSucceded(deployment_tmp);
-							}
-							// deployment_tmp.getStatus() == DeploymentDescriptorStatus.TERMINATING &&
-							if (deployment_tmp.getOperationalStatus().toLowerCase().equals("terminated")) {
-								// This message changes in OSM5 from "terminating" to "terminated"
-								//&& deployment_tmp.getConfigStatus().toLowerCase().equals("terminated")
-								//&& deployment_tmp.getDetailedStatus().toLowerCase().equals("done")) {
-								deployment_tmp.setFeedback(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
-								deployment_tmp.setStatus(DeploymentDescriptorStatus.TERMINATED);
-								CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus(), compname);								
-								logger.info("Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());
-								deployment_tmp.setConstituentVnfrIps("N/A");
-								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								busController.deploymentTerminationSucceded(deployment_tmp);
-							}
-							// if(deployment_tmp.getStatus() != DeploymentDescriptorStatus.FAILED &&
-							// deployment_tmp.getOperationalStatus().equals("failed"))
-							if (deployment_tmp.getStatus() == DeploymentDescriptorStatus.INSTANTIATING
-									&& deployment_tmp.getOperationalStatus().equals("failed")) {
-								deployment_tmp.setStatus(DeploymentDescriptorStatus.FAILED);
-								CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus(), compname);								
-								logger.info("Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());
-								deployment_tmp.setFeedback(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
-								deployment_tmp.setConstituentVnfrIps("N/A");
-								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								busController.deploymentInstantiationFailed(deployment_tmp);
-							}
-							if (deployment_tmp.getStatus() == DeploymentDescriptorStatus.TERMINATING
-									&& deployment_tmp.getOperationalStatus().equals("failed")) {
-								deployment_tmp.setStatus(DeploymentDescriptorStatus.TERMINATION_FAILED);
-								CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus(), compname);								
-								logger.info("Status change of deployment "+deployment_tmp.getName()+" to "+deployment_tmp.getStatus());
-								deployment_tmp.setFeedback(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
-								deployment_tmp = deploymentDescriptorService.updateDeploymentDescriptor(deployment_tmp);
-								busController.deploymentTerminationFailed(deployment_tmp);
-							}
-							logger.info("NS status change is now "+deployment_tmp.getStatus());													
-						} catch (JSONException e) {
-							logger.error(e.getMessage());
-						}
-					}
-				}
-				//OSM5 - END
 				
 				
 				
@@ -558,86 +320,6 @@ public class MANOController {
 //		}				
 
 	
-		
-		// OSM5 - START
-		if (uexpobds.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
-			ResponseEntity<String> response = null;
-			OSM5Client osm5Client = null;
-			try {
-				osm5Client = new OSM5Client(uexpobd.getObMANOprovider().getApiEndpoint(), uexpobd.getObMANOprovider().getUsername(), uexpobd.getObMANOprovider().getPassword(), "admin");
-				aMANOStatus.setOsm5CommunicationStatusActive(null);								
-			}
-		    catch(Exception e) 
-			{
-				logger.error("onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.");
-				CentralLogger.log( CLevel.ERROR, "onBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting NSD Onboarding action.", compname);
-				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD Onboarding action.");				
-				// Set the reason of the failure
-				uexpobds.setFeedbackMessage("OSM communication failed. Aborting NSD Onboarding action.");
-				uexpobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
-				CentralLogger.log( CLevel.INFO, "Onboarding Status change of Experiment "+uexpobds.getExperiment().getName()+" to "+uexpobds.getOnBoardingStatus(), compname);																	
-				// Set Valid to false if it fails OnBoarding
-				uexpobds.getExperiment().setValid(false);
-				ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-				busController.onBoardNSDFailed( uexpobds );
-				return ;
-			}						
-			
-			response = osm5Client.createNSDPackage();
-			if (response == null || response.getStatusCode().is4xxClientError()
-					|| response.getStatusCode().is5xxServerError()) {
-				logger.error("Upload of NSD Package Content failed. Deleting NSD Package.");
-				uexpobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
-				CentralLogger.log( CLevel.INFO, "Onboarding Status change of Experiment "+uexpobds.getExperiment().getName()+" to "+uexpobds.getOnBoardingStatus(), compname);																	
-				// Set the reason of the failure
-				uexpobds.setFeedbackMessage(response.getBody().toString());
-				// Set Valid to false if it fails OnBoarding
-				uexpobds.getExperiment().setValid(false);
-				ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-				busController.onBoardNSDFailed( uexpobds );
-				return;				
-			}
-			else
-			{
-				JSONObject obj = new JSONObject(response.getBody());
-				String nsd_id = obj.getString("id");
-				logger.info(response.getStatusCode()+" replied. The new NSD Package id is :" + nsd_id);
-				logger.error("Uploading NSD Archive from URL " + pLocation);
-				logger.error("************************");
-				response = osm5Client.uploadNSDPackageContent(nsd_id, pLocation);
-				if (response == null || response.getStatusCode().is4xxClientError()
-						|| response.getStatusCode().is5xxServerError()) {
-					logger.error("Upload of NSD Package Content failed. Deleting NSD Package.");
-					osm5Client.deleteNSDPackage(nsd_id);
-					uexpobds.setOnBoardingStatus(OnBoardingStatus.FAILED);
-					CentralLogger.log( CLevel.INFO, "Onboarding Status change of Experiment "+uexpobds.getExperiment().getName()+" to "+uexpobds.getOnBoardingStatus(), compname);																						
-					uexpobds.setFeedbackMessage(response.getBody().toString());
-					// Set Valid to false if it fails OnBoarding
-					uexpobds.getExperiment().setValid(false);
-					ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-					busController.onBoardNSDFailed( uexpobds );
-					return;
-				}
-				else
-				{
-					uexpobds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
-					CentralLogger.log( CLevel.INFO, "Onboarding Status change of Experiment "+uexpobds.getExperiment().getName()+" to "+uexpobds.getOnBoardingStatus(), compname);																						
-					uexpobds.setFeedbackMessage("NSD Onboarded Successfully");
-					// The Deploy ID is set as the VNFD Package id in OSMANO4Provider
-					uexpobds.setDeployId(nsd_id);
-					// What should be the NSD Name. Something like cirros_nsd.
-					uexpobds.setExperimentMANOProviderID(em.getName());
-					// Set Onboarding date
-					uexpobds.setLastOnboarding(new Date());
-					// We decide to set valid when we have the final version. Thus we comment this.
-					// uexpobds.getExperiment().setValid(true);
-					// Save the changes to vxfobds
-					ExperimentOnBoardDescriptor uexpobd_final = nsdOBDService.updateExperimentOnBoardDescriptor(uexpobds);
-					busController.onBoardNSDSucceded( uexpobds );
-				}
-			}
-		}
-		// OSM5 - END
 	}
 
 	/**
@@ -649,29 +331,8 @@ public class MANOController {
 			throws HttpClientErrorException {
 		// TODO Auto-generated method stub
 		ResponseEntity<String> response = null;
-		// OSM5 START
-		if (obd.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
-			String vnfd_id = obd.getDeployId();
-			OSM5Client osm5Client = null;			
-			try {
-				osm5Client = new OSM5Client(obd.getObMANOprovider().getApiEndpoint(), obd.getObMANOprovider().getUsername(), obd.getObMANOprovider().getPassword(), "admin");
-				aMANOStatus.setOsm5CommunicationStatusActive(null);								
-			}
-		    catch(HttpStatusCodeException e) 
-			{
-				logger.error("offBoardVxFFromMANOProvider, OSM5 fails authentication. Aborting action.");
-				CentralLogger.log( CLevel.ERROR, "offBoardVxFFromMANOProvider, OSM5 fails authentication. Aborting VxF offboarding action.", compname);
-				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting VxF offboarding action.");								
-		        return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
-		                .body(e.getResponseBodyAsString());
-			}						
-			
-			response = osm5Client.deleteVNFDPackage(vnfd_id);
-		}
-		// OSM5 END
-		if (obd.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSM TWO")) {
-			response = new ResponseEntity<>("Not implemented for OSMvTWO", HttpStatus.CREATED);
-		}
+	
+	
 		return response;
 	}
 
@@ -702,25 +363,6 @@ public class MANOController {
 		// TODO Auto-generated method stub
 		ResponseEntity<String> response = null;
 		
-		// OSM5 START
-		if (uexpobd.getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
-			String nsd_id = uexpobd.getDeployId();
-			OSM5Client osm5Client = null;			
-			try {
-				osm5Client = new OSM5Client(uexpobd.getObMANOprovider().getApiEndpoint(), uexpobd.getObMANOprovider().getUsername(), uexpobd.getObMANOprovider().getPassword(), "admin");
-				aMANOStatus.setOsm5CommunicationStatusActive(null);								
-			}
-		    catch(HttpStatusCodeException e) 
-			{
-				logger.error("offBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.");
-				CentralLogger.log( CLevel.ERROR, "offBoardNSDFromMANOProvider, OSM5 fails authentication. Aborting action.", compname);
-				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD offboarding action.");								
-		        return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
-		                .body(e.getResponseBodyAsString());
-			}						
-			response = osm5Client.deleteNSDPackage(nsd_id);
-		}
-		// OSM5 END
 		
 		// return new ResponseEntity<>("Not found", HttpStatus.NOT_FOUND);
 		return response;
@@ -736,91 +378,6 @@ public class MANOController {
 		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + getExperimOBD(deploymentdescriptor) ); 
 		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + getExperimOBD(deploymentdescriptor).getObMANOprovider());
 		
-		// OSM5 - START
-		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
-			// There can be multiple MANOs for the Experiment. We need to handle that also.
-			OSM5Client osm5Client = null;
-			try {
-				 osm5Client = new OSM5Client(
-						getExperimOBD(deploymentdescriptor).getObMANOprovider().getApiEndpoint(),
-						getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
-						getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
-						"admin");
-					aMANOStatus.setOsm5CommunicationStatusActive(null);													
-			}
-			catch(Exception e)
-			{
-				logger.error("deployNSDToMANOProvider, OSM5 fails authentication! Aborting deployment of NSD.");
-				CentralLogger.log( CLevel.ERROR, "deployNSDToMANOProvider, OSM5 fails authentication! Aborting deployment of NSD.", compname);
-				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting deployment of NSD.");								
-				// NS instance creation failed
-				deploymentdescriptor.setFeedback("OSM5 communication failed. Aborting NSD deployment action.");
-				busController.deploymentInstantiationFailed(deploymentdescriptor);
-				return;
-			}
-
-			NSCreateInstanceRequestPayload nscreateinstancerequestpayload = new NSCreateInstanceRequestPayload(deploymentdescriptor);
-			// Get Experiment ID and VIM ID and create NS Instance.
-			logger.info("NS Instance creation payload : " + nscreateinstancerequestpayload.toJSON());
-			ResponseEntity<String> ns_instance_creation_entity = osm5Client
-					.createNSInstance(nscreateinstancerequestpayload.toJSON());
-			// The NS Instance ID is set
-
-			// NS instance creation
-			if (ns_instance_creation_entity == null || ns_instance_creation_entity.getStatusCode().is4xxClientError()
-					|| ns_instance_creation_entity.getStatusCode().is5xxServerError()) {
-				// NS instance creation failed
-				deploymentdescriptor.setStatus(DeploymentDescriptorStatus.FAILED);
-				CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-				logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());								
-				deploymentdescriptor.setFeedback(ns_instance_creation_entity.getBody().toString());
-				DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService
-						.updateDeploymentDescriptor(deploymentdescriptor);
-				busController.deploymentInstantiationFailed(deploymentdescriptor_final);
-				logger.info("NS Instance creation failed with response: "
-						+ ns_instance_creation_entity.getBody().toString());
-			} else {
-				// String nsr_id =
-				// osm5Client.instantiateNSInstance(nsd_instance_id,deploymentdescriptor.getName(),deploymentdescriptor.getInfrastructureForAll().getVIMid(),
-				// deploymentdescriptor.getExperimentFullDetails().getExperimentOnBoardDescriptors().get(0).getDeployId());
-				JSONObject ns_instance_creation_entity_json_obj = new JSONObject(ns_instance_creation_entity.getBody());
-				String nsd_instance_id = ns_instance_creation_entity_json_obj.getString("id");
-				deploymentdescriptor.setInstanceId(nsd_instance_id);
-				// Instantiate NS Instance
-				NSInstantiateInstanceRequestPayload nsrequestpayload = new NSInstantiateInstanceRequestPayload(deploymentdescriptor);
-				logger.info("NS Instantiation payload : " + nsrequestpayload.toJSON());
-				// Here we need the feedback
-				// String nsr_id = osm5Client.instantiateNSInstance(nsd_instance_id,
-				// nsrequestpayload.toJSON());
-				ResponseEntity<String> instantiate_ns_instance_entity = osm5Client.instantiateNSInstance(nsd_instance_id, nsrequestpayload.toJSON());
-				if (instantiate_ns_instance_entity == null || instantiate_ns_instance_entity.getStatusCode().is4xxClientError() || instantiate_ns_instance_entity.getStatusCode().is5xxServerError()) {
-					// NS Instantiation failed
-					deploymentdescriptor.setStatus(DeploymentDescriptorStatus.FAILED);
-					CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-					logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());										
-					deploymentdescriptor.setFeedback(instantiate_ns_instance_entity.getBody().toString());
-					logger.info("NS Instantiation failed. Status Code:"
-							+ instantiate_ns_instance_entity.getStatusCode().toString() + ", Payload:"
-							+ ns_instance_creation_entity.getBody().toString());
-					// Save the changes to DeploymentDescriptor
-					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService
-							.updateDeploymentDescriptor(deploymentdescriptor);
-					busController.deploymentInstantiationFailed(deploymentdescriptor_final );
-				} else {
-					// NS Instantiation starts
-					deploymentdescriptor.setStatus(DeploymentDescriptorStatus.INSTANTIATING);
-					CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-					logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());					
-					deploymentdescriptor.setFeedback(instantiate_ns_instance_entity.getBody().toString());
-					logger.info("NS Instantiation of NS with id" + nsd_instance_id + " started.");
-					// Save the changes to DeploymentDescriptor
-					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService
-							.updateDeploymentDescriptor(deploymentdescriptor);
-					busController.deploymentInstantiationSucceded(deploymentdescriptor_final );
-				}
-			}
-		}
-		// OSM5 - END		
 		return;
 	}
 
@@ -828,72 +385,6 @@ public class MANOController {
 		DeploymentDescriptor deploymentdescriptor = deploymentDescriptorService.getDeploymentByIdEager(deploymentdescriptorid);
 		
 		
-		// OSM5 START
-		if ( getExperimOBD(deploymentdescriptor).getObMANOprovider().getSupportedMANOplatform().getName().equals("OSMvFIVE")) {
-			 //deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATING ||			
-			logger.info("Current status change before termination is :"+deploymentdescriptor.getStatus());
-			if( deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.INSTANTIATING || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.RUNNING || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.FAILED )
-			{
-				try
-				{
-					OSM5Client osm5Client = new OSM5Client(
-							getExperimOBD(deploymentdescriptor).getObMANOprovider().getApiEndpoint(),
-							getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
-							getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
-							"admin");
-					
-					aMANOStatus.setOsm5CommunicationStatusActive(null);				
-//					JSONObject ns_instance_info = osm5Client.getNSInstanceInfo(deploymentdescriptor.getInstanceId());
-//					if (ns_instance_info != null) 
-//					{
-//						logger.info(ns_instance_info.toString());
-//						logger.info("Status change of deployment " + deploymentdescriptor.getName() + " with status " + deploymentdescriptor.getStatus());						
-//						CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());						
-//						deploymentdescriptor.setOperationalStatus(ns_instance_info.getString("operational-status"));
-//						deploymentdescriptor.setConfigStatus(ns_instance_info.getString("config-status"));
-//						deploymentdescriptor.setDetailedStatus(ns_instance_info.getString("detailed-status").replaceAll("\\n", " ").replaceAll("\'", "'").replaceAll("\\\\", ""));
-//						if( deploymentdescriptor.getOperationalStatus() != "terminating" && deploymentdescriptor.getOperationalStatus() != "terminated" )
-//						{
-							ResponseEntity<String> response = osm5Client.terminateNSInstanceNew(deploymentdescriptor.getInstanceId()); 
-							if (response == null || response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError()) 
-							{
-								deploymentdescriptor.setStatus(DeploymentDescriptorStatus.TERMINATION_FAILED);
-								CentralLogger.log( CLevel.ERROR, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-								logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());								
-								deploymentdescriptor.setFeedback(response.getBody().toString());				
-								logger.error("Termination of NS instance " + deploymentdescriptor.getInstanceId() + " failed");				
-								DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
-								logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());																			
-								busController.terminateInstanceFailed(deploymentdescriptor_final );				
-							}
-							else
-							{
-								// NS Termination succeeded
-								deploymentdescriptor.setStatus(DeploymentDescriptorStatus.TERMINATING);
-								CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-								logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());
-								deploymentdescriptor.setConstituentVnfrIps("N/A");
-								logger.info("Termination of NS " + deploymentdescriptor.getInstanceId() + " with name "+ deploymentdescriptor.getName() +" succeded");
-								DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
-								logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());																			
-								busController.terminateInstanceSucceded(deploymentdescriptor_final );				
-							}
-//						}
-//					}
-//					else
-//					{
-//						CentralLogger.log( CLevel.INFO, "Deployment "+deploymentdescriptor.getName()+" not found in OSM. Deletion skipped.");
-//						logger.error("Deployment "+deploymentdescriptor.getName()+" not found in OSM. Deletion skipped.");							
-//					}
-				}
-				catch(Exception e)
-				{
-					aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NSD termination action.");													
-					CentralLogger.log( CLevel.ERROR, "terminateNSFromMANOProvider, OSM5 fails authentication. Aborting action.", compname);
-				}
-			}
-		}
-		// OSM5 END
 	}
 
 	public void deleteNSFromMANOProvider(int deploymentdescriptorid) {
@@ -910,102 +401,14 @@ public class MANOController {
 		
 		
 		
-		// OSM5 START
-		if ( aMANOplatform.equals("OSMvFIVE")) {
-			logger.info("Descriptor targets an OSMvFIVE deploymentdescriptorid: " + deploymentdescriptorid);		
-			// There can be multiple MANOs for the Experiment. We need to handle that also.
-			// After TERMINATION
-			boolean force;
-			if(deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATED)
-			{
-				force=false;
-			}
-			else if(deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.FAILED || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATION_FAILED ) //for FAILED OR TERMINATION_FAILED instances
-			{
-				CentralLogger.log(CLevel.INFO, "Following forcefull deletion. Status of " + deploymentdescriptor.getId() +" is "+ deploymentdescriptor.getStatus(), compname);
-				logger.info("Following forcefull deletion. Status of " + deploymentdescriptor.getId() +" is "+ deploymentdescriptor.getStatus());
-				force=true;
-			}
-			else
-			{
-				logger.info("Skipping deletion. Status of " + deploymentdescriptor.getId() +" is "+ deploymentdescriptor.getStatus());
-				return;
-			}
-			OSM5Client osm5Client = null;
-			try
-			{
-				 osm5Client = new OSM5Client(
-						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getApiEndpoint(),
-						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getUsername(),
-						 getExperimOBD(deploymentdescriptor).getObMANOprovider().getPassword(),
-						"admin");	
-					aMANOStatus.setOsm5CommunicationStatusActive(null);													
-			}
-			catch(Exception e)
-			{
-				logger.error("OSM5 fails authentication");
-				aMANOStatus.setOsm5CommunicationStatusFailed(" Aborting NS deletion action.");													
-				CentralLogger.log( CLevel.ERROR, "OSM5 fails authentication", compname);
-				deploymentdescriptor.setFeedback("OSM5 communication failed. Aborting NS deletion action.");				
-				logger.error("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " failed");
-				busController.deleteInstanceFailed(deploymentdescriptor);				
-				return;
-			}
-			ResponseEntity<String> deletion_response = osm5Client.deleteNSInstanceNew(deploymentdescriptor.getInstanceId(),force); 
-			if (deletion_response.getStatusCode().is4xxClientError() || deletion_response.getStatusCode().is5xxServerError()) {
-				deploymentdescriptor.setStatus(DeploymentDescriptorStatus.DELETION_FAILED);
-				CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-				logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());				
-				deploymentdescriptor.setFeedback(deletion_response.getBody().toString());				
-				logger.error("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " failed");
-				DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
-				logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());															
-				busController.deleteInstanceFailed(deploymentdescriptor_final );				
-			}
-			else if (deletion_response.getStatusCode().is2xxSuccessful())
-			{
-				if(deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATED)
-				{
-					deploymentdescriptor.setStatus(DeploymentDescriptorStatus.COMPLETED);
-					CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-					logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());					
-					logger.info("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " succeded");					
-					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
-					logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());															
-					busController.deleteInstanceSucceded(deploymentdescriptor_final );				
-				}
-				if(deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.FAILED || deploymentdescriptor.getStatus() == DeploymentDescriptorStatus.TERMINATION_FAILED)
-				{
-					deploymentdescriptor.setStatus(DeploymentDescriptorStatus.FAILED_OSM_REMOVED);				
-					CentralLogger.log( CLevel.INFO, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus(), compname);
-					logger.info( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());					
-					logger.info("Deletion of NS instance " + deploymentdescriptor.getInstanceId() + " succeded");					
-					DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
-					logger.info("NS status change is now "+deploymentdescriptor_final.getStatus());															
-					busController.deleteInstanceSucceded(deploymentdescriptor_final );				
-				}
-			}
-			else 
-			{
-				try
-				{
-					CentralLogger.log( CLevel.ERROR, "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus() +" replied with false code "+ deletion_response.getStatusCodeValue() + "and body" + deletion_response.getBody(), compname);
-					logger.error( "Status change of deployment "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus() +" replied with false code "+ deletion_response.getStatusCodeValue() + "and body" + deletion_response.getBody());
-				}
-				catch(Exception e)
-				{
-					CentralLogger.log( CLevel.ERROR, "Deletion failed with message" + e.getMessage(), compname);
-					logger.error("Deletion failed with message" + e.getMessage());
-				}
-			}
-		} else {
+		
 			//if this is not a suported OSM then just complete
 			logger.info("Descriptor targets an older not supported OSM deploymentdescriptorid: " + deploymentdescriptorid);		
 			deploymentdescriptor.setStatus(DeploymentDescriptorStatus.FAILED_OSM_REMOVED);	
 			logger.info( "Status change of deployment " + deploymentdescriptor.getId()+", "+deploymentdescriptor.getName()+" to "+deploymentdescriptor.getStatus());					
 			DeploymentDescriptor deploymentdescriptor_final = deploymentDescriptorService.updateDeploymentDescriptor(deploymentdescriptor);
 			logger.info("NS status changed is now :" + deploymentdescriptor_final.getStatus());															
-		}
+		
 	}
 	// OSM5 END
 	
