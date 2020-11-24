@@ -192,8 +192,14 @@ public class KeyCloakService {
 			user.setLastName(userDTO.getLastname());
 			user.setEnabled( false );
 
+			
+
+			RealmResource realmResource = getRealmResource();
+			
 			// Create user
-			Response result = userRessource.create(user);
+			//Response result = userRessource.create(user);
+			Response result = realmResource.users().create( user );
+			
 			logger.info("Keycloak create user response code>>>>" + result.getStatus());
 
 			statusId = result.getStatus();
@@ -213,7 +219,7 @@ public class KeyCloakService {
 				// Set password credential
 				userRessource.get(userId).resetPassword(passwordCred);
 
-				RealmResource realmResource = getRealmResource();
+				//RealmResource realmResource = getRealmResource();
 				
 				
 				for (UserRoleType role : userDTO.getRoles()) {
