@@ -305,8 +305,52 @@ public class KeyCloakService {
 
 			logger.info("Username==" + userDTO.getUsername() + " updated in keycloak successfully");
 			
-			return user.getId();
+			return user.getId();			
 			
+		}
+		
+		
+		/**
+		 * @param user
+		 * @return
+		 */
+		public PortalUser updateUserFromKeyCloak( PortalUser userDTO ) {
+			
+			UserRepresentation user = findFirstByUsername( userDTO.getUsername());
+			if ( user == null ) {
+				return null;
+			}
+			
+			
+			
+			userDTO.setUsername(user.getUsername());
+			userDTO.setEmail(user.getEmail());
+			userDTO.setFirstname(user.getFirstName());
+			userDTO.setLastname(user.getLastName());
+			userDTO.setActive( user.isEnabled() );
+			
+
+			
+			getKeycloakUserResource().get( user.getId()  ).update( user );
+			RealmResource realmResource = getRealmResource();
+			
+			
+			//remove roles
+			userDTO.getRoles().clear();
+			for (RoleRepresentation arole : realmResource.users().get(user.getId() ).roles().realmLevel().listAll() ) {
+				try {
+					UserRoleType e = UserRoleType.getEnum("ROLE_" + arole.getName()) ;	
+					userDTO.getRoles().add(e );				
+				}catch (Exception e) {
+
+				}
+			}
+			
+			
+
+			logger.info("Username==" + userDTO.getUsername() + " updated FROM keycloak successfully");
+			
+			return userDTO;			
 			
 		}
 

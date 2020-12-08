@@ -178,6 +178,10 @@ public class PortalRepositoryAPIImpl {
 			logger.info("New user with username=" + SecurityContextHolder.getContext().getAuthentication().getName()  + " cannot be found but is logged in. Will try to fetch from auth server");
 			u = usersService.addPortalUserToUsersFromAuthServer( SecurityContextHolder.getContext().getAuthentication().getName() );
 			busController.newUserAdded( u );	//this will trigger also the user to be added in Bugzilla	
+		} else {
+			//we need to properly add the roles from the auth server to the local repo
+			
+			u = usersService.updateUserInfoFromKeycloak( u );
 		}
 		
 		

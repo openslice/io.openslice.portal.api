@@ -162,10 +162,17 @@ public class UsersService {
 		
 		return null;
 	}
+	
+	public PortalUser updateUserInfoFromKeycloak(PortalUser user) {
+		
+		PortalUser auser = keyCloakService.updateUserFromKeyCloak(user);
+		return usersRepo.save( auser );			
+			
+		
+	}
 
 	public void delete(PortalUser u) {
-		usersRepo.delete(u);
-		
+		usersRepo.delete(u);		
 	}
 
 	@Transactional
