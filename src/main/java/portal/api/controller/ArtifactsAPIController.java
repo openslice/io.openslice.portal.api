@@ -36,28 +36,20 @@ import java.util.Set;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 import org.apache.camel.ProducerTemplate;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
-import org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.project.nsd.rev170228.nsd.constituent.vnfd.ConstituentVnfd;
-import org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.vnfd.base.rev170228.vnfd.descriptor.Vdu;
-import org.opendaylight.yang.gen.v1.urn.etsi.osm.yang.vnfd.rev170228.vnfd.catalog.Vnfd;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -70,7 +62,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
@@ -84,11 +75,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 
-import OSM7NBIClient.OSM7Client;
-import OSM7Util.OSM7ArchiveExtractor.OSM7NSExtractor;
-import OSM7Util.OSM7ArchiveExtractor.OSM7VNFDExtractor;
-import OSM7Util.OSM7NSReq.OSM7NSRequirements;
-import OSM7Util.OSM7VNFReq.OSM7VNFRequirements;
 import io.openslice.centrallog.client.CLevel;
 import io.openslice.centrallog.client.CentralLogger;
 import io.openslice.model.Category;
@@ -104,7 +90,6 @@ import io.openslice.model.Infrastructure;
 import io.openslice.model.MANOplatform;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.OnBoardingStatus;
-import io.openslice.model.PackagingFormat;
 import io.openslice.model.PortalProperty;
 import io.openslice.model.PortalUser;
 import io.openslice.model.Product;
@@ -1749,8 +1734,7 @@ public class ArtifactsAPIController {
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
-					}
-					
+					}					
 				}				
 			}
 

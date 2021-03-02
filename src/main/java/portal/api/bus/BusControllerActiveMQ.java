@@ -250,6 +250,8 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.instance.deletion.fail" );
 		
+		from("seda:nsd.scalealert?multipleConsumers=true")
+		.to("activemq:topic:nsd.scalealert");
 		
 		/**
 		 * Response message queues
