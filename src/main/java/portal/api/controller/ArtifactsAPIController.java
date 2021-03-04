@@ -23,6 +23,7 @@ package portal.api.controller;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -47,6 +48,8 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -1073,23 +1076,32 @@ public class ArtifactsAPIController {
 	
 
 	@GetMapping( value = "/images/{uuid}/{imgfile:.+}", produces = { "image/jpeg",  "image/png" } )
-	public @ResponseBody byte[] getEntityImage( @PathVariable("uuid") String uuid, @PathVariable("imgfile") String imgfile) throws IOException {
+	public @ResponseBody ResponseEntity<byte[]> getEntityImage( @PathVariable("uuid") String uuid, @PathVariable("imgfile") String imgfile) {
 		logger.info("getEntityImage of uuid: " + uuid);
 		String imgAbsfile = METADATADIR + uuid + File.separator + imgfile;
 		logger.info("Image RESOURCE FILE: " + imgAbsfile);
 		File file = new File(imgAbsfile);
+		try {
+			Path path = Paths.get(file.getAbsolutePath());
+			// ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+			HttpHeaders headers = new HttpHeaders();
+			InputStream in = new FileInputStream(file);
 
-		InputStream in = new FileInputStream( file );
+			byte[] media = IOUtils.toByteArray(in);
+			headers.setCacheControl(CacheControl.noCache().getHeaderValue());
+			headers.setContentType(MediaType.parseMediaType("image/jpeg;image/png"));
+
 	
-		return IOUtils.toByteArray(in);
+
+			ResponseEntity<byte[]> responseEntity = new ResponseEntity<>(media, headers, HttpStatus.OK);
+			return responseEntity;
+
+
+		} catch (Exception e) {
+			logger.error("Couldn't serialize response ByteArrayResource", e);
+			return new ResponseEntity<byte[]>(HttpStatus.NOT_FOUND);	
+		}
 		
-		// ResponseBuilder response = Response.ok((Object) file );
-		// logger.info( "attachment; filename=" + file.getName() );
-		// response.header("Content-Disposition", "attachment; filename=" +
-		// file.getName());
-		// return response.build();
-		// String mediaType = SomeContentTypeMapHere(file)
-		//return Response.ok(file).build();
 	}
 
 	@GetMapping( value = "/packages/{uuid}/{vxffile:.+}"  )
