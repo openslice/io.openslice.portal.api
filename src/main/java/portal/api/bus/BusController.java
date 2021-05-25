@@ -332,18 +332,18 @@ public class BusController  {
 			// TODO Auto-generated catch block
 			logger.error(e2.getMessage());
 		}
-		logger.info("Sending Object to get VxFMetadata from AMQ:");		
+		logger.info("getVNFDMetadataFromMANO(VxFMetadata prod). Sending Object to get VxFMetadata from AMQ:");		
 		// Send it to activemq endpoint
 		String ret = contxt.createProducerTemplate().requestBody("activemq:topic:vxf.metadata.retrieve", prod_serialized, String.class) ;
 
-		logger.info("From ActiveMQ:"+ret.toString());
+		logger.info("getVNFDMetadataFromMANO: From ActiveMQ:"+ret.toString());
 		// Map object to VxFMetadata
 		// Get the response and Map object to ExperimentMetadata
 		VxFMetadata vxfmetadata = null;
 		try {
 			// Map object to VxFOnBoardedDescriptor
 			//ObjectMapper mapper = new ObjectMapper();
-			logger.info("From ActiveMQ:"+ret.toString());
+			logger.info("getVNFDMetadataFromMANO: From ActiveMQ:"+ret.toString());
 			vxfmetadata = mapper.readValue(ret, VxFMetadata.class);
 		} catch (JsonParseException e) {
 			// TODO Auto-generated catch block
@@ -363,7 +363,7 @@ public class BusController  {
 		// Send it to activemq endpoint
 		String ret = contxt.createProducerTemplate().requestBodyAndHeader("activemq:topic:vxf.metadata.retrieve", yamlFile, "OSMType", osmType, String.class);
 
-		logger.info("From ActiveMQ:"+ret.toString());
+		logger.info("getVNFDMetadataFromMANO(String "+osmType+", String yamlFile). From ActiveMQ:"+ret.toString());
 		ObjectMapper mapper = new ObjectMapper();
 		// Map object to VxFMetadata
 		// Get the response and Map object to ExperimentMetadata
