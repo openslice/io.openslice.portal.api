@@ -314,26 +314,30 @@ public class ArtifactsAPIController {
 		}
 		// screenshots are provided during the call of the function
 		
-		String screenshotsFilenames = "";
-		int i = 1;
-		for (MultipartFile shot : screenshots) {
-			String shotFileNamePosted = shot.getOriginalFilename();// AttachmentUtil.getFileName(shot.getHeaders());
-			logger.info("Found screenshot image shotFileNamePosted = " + shotFileNamePosted);
-			logger.info("shotFileNamePosted = " + shotFileNamePosted);
-			if (!shotFileNamePosted.equals("")) {
-				shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
-				String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
-				logger.info("shotfilepath saved to = " + shotfilepath);
-				shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + uuid + "/"
-						+ shotFileNamePosted;
-				screenshotsFilenames += shotfilepath + ",";
-				i++;
+		if ( screenshots != null ) {
+			String screenshotsFilenames = "";
+			int i = 1;
+			for (MultipartFile shot : screenshots) {
+				String shotFileNamePosted = shot.getOriginalFilename();// AttachmentUtil.getFileName(shot.getHeaders());
+				logger.info("Found screenshot image shotFileNamePosted = " + shotFileNamePosted);
+				logger.info("shotFileNamePosted = " + shotFileNamePosted);
+				if (!shotFileNamePosted.equals("")) {
+					shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
+					String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
+					logger.info("shotfilepath saved to = " + shotfilepath);
+					shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + uuid + "/"
+							+ shotFileNamePosted;
+					screenshotsFilenames += shotfilepath + ",";
+					i++;
+				}
 			}
+			if (screenshotsFilenames.length() > 0)
+				screenshotsFilenames = screenshotsFilenames.substring(0, screenshotsFilenames.length() - 1);
+	
+			prod.setScreenshots(screenshotsFilenames);
+			
 		}
-		if (screenshotsFilenames.length() > 0)
-			screenshotsFilenames = screenshotsFilenames.substring(0, screenshotsFilenames.length() - 1);
-
-		prod.setScreenshots(screenshotsFilenames);
+			
 
 //		// we must replace given product categories with the ones from our DB
 //		for (Category c : prod.getCategories()) {
