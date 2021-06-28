@@ -24,6 +24,8 @@ spring:
     pool:
       enabled: true
       max-connections: 100
+    packages:
+      trust-all: true
   servlet:
     multipart.max-file-size: 10MB
     multipart.max-request-size: 10MB
