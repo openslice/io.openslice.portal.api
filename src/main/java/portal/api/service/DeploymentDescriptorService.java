@@ -538,7 +538,13 @@ public class DeploymentDescriptorService {
 		depl.setExperiment(baseNSD); // reattach from the DB model
 		
 		logger.info("reattach InfrastructureForAll from the DB model");
-		Infrastructure infrDefault = infrastructureService.getInfrastructures().get(0);
+		Infrastructure infrDefault = null;
+		if ( infrastructureService.getInfrastructures().size()>0 ) {
+			infrDefault = infrastructureService.getInfrastructures().get(0);			
+		} else  {
+			infrDefault = new Infrastructure();
+			infrDefault.setVIMid("UNDEFINED-INFRASTRUCTUREID-INOPENSLICE");
+		}
 		depl.setInfrastructureForAll(  
 				infrDefault
 				);
