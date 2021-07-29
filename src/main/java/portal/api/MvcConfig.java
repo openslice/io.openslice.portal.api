@@ -32,7 +32,7 @@ import org.springframework.web.servlet.resource.EncodedResourceResolver;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
 @Configuration
-@EnableWebMvc
+//@EnableWebMvc - removed 30/7/2021
 public class MvcConfig implements WebMvcConfigurer {
 	@Autowired
 	Environment env;
