@@ -196,6 +196,9 @@ public class ArtifactsAPIController {
 	
 	@Value("${spring.application.name}")
 	private String compname;
+
+	@Autowired
+	private CentralLogger centralLogger;
 	
 	/**
 	 * update the properties to Bus
@@ -1180,7 +1183,7 @@ public class ArtifactsAPIController {
 				}
 				OnBoardingStatus previous_status = vxfobd_tmp.getOnBoardingStatus();
 				vxfobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+vxfobd_tmp.getVxf().getName()+" to "+vxfobd_tmp.getOnBoardingStatus(), compname);																						
+				centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+vxfobd_tmp.getVxf().getName()+" to "+vxfobd_tmp.getOnBoardingStatus(), compname);																						
 				
 				VxFOnBoardedDescriptor u = vxfOBDService.updateVxFOnBoardedDescriptor( vxfobd_tmp );
 
@@ -1193,7 +1196,7 @@ public class ArtifactsAPIController {
 				catch( HttpClientErrorException e)
 				{
 					vxfobd_tmp.setOnBoardingStatus(previous_status);
-					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+vxfobd_tmp.getVxf().getName()+" to "+vxfobd_tmp.getOnBoardingStatus(), compname);																											
+					centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+vxfobd_tmp.getVxf().getName()+" to "+vxfobd_tmp.getOnBoardingStatus(), compname);																											
 					vxfobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
 					u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
 					logger.info("offBoard VxF exception:"+e.toString());
@@ -1221,11 +1224,11 @@ public class ArtifactsAPIController {
 				vxfobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 				try
 				{
-					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+vxfobd_tmp.getVxf().getName()+" to "+vxfobd_tmp.getOnBoardingStatus(), compname);
+					centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+vxfobd_tmp.getVxf().getName()+" to "+vxfobd_tmp.getOnBoardingStatus(), compname);
 				}
 				catch(Exception e)
 				{
-					CentralLogger.log( CLevel.INFO, "No related VxF found for "+vxfobd_tmp.getId()+" in status  "+vxfobd_tmp.getOnBoardingStatus(), compname);					
+					centralLogger.log( CLevel.INFO, "No related VxF found for "+vxfobd_tmp.getId()+" in status  "+vxfobd_tmp.getOnBoardingStatus(), compname);					
 				}
 				u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
 				//busController.offBoardVxFSucceded( u );
@@ -1866,7 +1869,7 @@ public class ArtifactsAPIController {
 				}
 				OnBoardingStatus previous_status = expobd_tmp.getOnBoardingStatus();
 				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-				CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus(), compname);																										
+				centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus(), compname);																										
 				ExperimentOnBoardDescriptor u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 
 				ResponseEntity<String> response = null;
@@ -1877,7 +1880,7 @@ public class ArtifactsAPIController {
 					logger.info("offBoard NSD response:"+response.toString());
 				} catch(HttpStatusCodeException e) {
 					expobd_tmp.setOnBoardingStatus(previous_status);
-					CentralLogger.log( CLevel.INFO, "Boarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus(), compname);																											
+					centralLogger.log( CLevel.INFO, "Boarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus(), compname);																											
 					expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());					
 					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 					logger.info("offBoard NSD exception:"+e.toString());
@@ -1904,11 +1907,11 @@ public class ArtifactsAPIController {
 				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 				try
 				{
-					CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus(), compname);
+					centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+expobd_tmp.getExperiment().getName()+" to "+expobd_tmp.getOnBoardingStatus(), compname);
 				}
 				catch(Exception e)
 				{
-					CentralLogger.log( CLevel.INFO, "No related VxF found for "+expobd_tmp.getId()+" in status  "+expobd_tmp.getOnBoardingStatus(), compname);					
+					centralLogger.log( CLevel.INFO, "No related VxF found for "+expobd_tmp.getId()+" in status  "+expobd_tmp.getOnBoardingStatus(), compname);					
 				}
 				
 				u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
@@ -2170,7 +2173,7 @@ public class ArtifactsAPIController {
 			deployment.setUuid(uuid);
 			deployment.setDateCreated(new Date());
 			deployment.setStatus(DeploymentDescriptorStatus.UNDER_REVIEW);
-			CentralLogger.log( CLevel.INFO, "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus(), compname);
+			centralLogger.log( CLevel.INFO, "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus(), compname);
 			logger.info( "Status change of deployment "+deployment.getName()+" to "+deployment.getStatus());			
 
 			logger.info("reattach user from the DB model");
@@ -2336,7 +2339,7 @@ public class ArtifactsAPIController {
 				if( receivedDeployment.getStatus() != aDeployment.getStatus() )
 				{
 					aDeployment.setStatus( receivedDeployment.getStatus() );
-					CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+					centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 					logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());			
 					aDeployment.getExperimentFullDetails();
 					aDeployment.getInfrastructureForAll();
@@ -2360,7 +2363,7 @@ public class ArtifactsAPIController {
 						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails().getExperimentOnBoardDescriptors())
 						{
 							aDeployment.setStatus( receivedDeployment.getStatus() );
-							CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+							centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 							logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now "+aDeployment.getStatus());															
@@ -2372,7 +2375,7 @@ public class ArtifactsAPIController {
 						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails().getExperimentOnBoardDescriptors())
 						{
 							aDeployment.setStatus( receivedDeployment.getStatus() );
-							CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+							centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 							logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now "+aDeployment.getStatus());															
@@ -2383,7 +2386,7 @@ public class ArtifactsAPIController {
 					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED && aDeployment.getInstanceId() != null)
 					{
 						aDeployment.setStatus( receivedDeployment.getStatus() );
-						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+						centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 						logger.info("NS status change is now "+aDeployment.getStatus());															
@@ -2392,7 +2395,7 @@ public class ArtifactsAPIController {
 					else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED && aDeployment.getInstanceId() == null)
 					{
 						aDeployment.setStatus( receivedDeployment.getStatus() );
-						CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+						centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 						logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 						logger.info("NS status change is now "+aDeployment.getStatus());															
@@ -2854,7 +2857,7 @@ public class ArtifactsAPIController {
 		
 		VxFOnBoardedDescriptor obd = vxfOBDService.getVxFOnBoardedDescriptorByID(clobd.getId());
 		obd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+obd.getVxf().getName()+" to "+obd.getOnBoardingStatus(), compname);																													
+		centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+obd.getVxf().getName()+" to "+obd.getOnBoardingStatus(), compname);																													
 		VxFOnBoardedDescriptor updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor(obd);
 
 		ResponseEntity<String> response = null;
@@ -2865,7 +2868,7 @@ public class ArtifactsAPIController {
 		catch( HttpClientErrorException e)
 		{
 			updatedObd.setOnBoardingStatus(previous_status);
-			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus(), compname);																														
+			centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus(), compname);																														
 			updatedObd.setFeedbackMessage(e.getResponseBodyAsString());
 			updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor( updatedObd );
 			JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
@@ -2885,7 +2888,7 @@ public class ArtifactsAPIController {
 		
 		
 		updatedObd.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
-		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus(), compname);																																
+		centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+updatedObd.getVxf().getName()+" to "+updatedObd.getOnBoardingStatus(), compname);																																
 		updatedObd.setFeedbackMessage(response.getBody().toString());
 		updatedObd = vxfOBDService.updateVxFOnBoardedDescriptor( updatedObd );
 		busController.offBoardVxF( updatedObd );
@@ -3065,7 +3068,7 @@ public class ArtifactsAPIController {
 		} catch (Exception e) {				
 			e.printStackTrace();
 	    	logger.error("onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.");
-			CentralLogger.log( CLevel.ERROR, "onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.", compname);																	
+			centralLogger.log( CLevel.ERROR, "onExperimentBoardDescriptor, OSM4 fails authentication. Aborting Onboarding action.", compname);																	
 
 			return (ResponseEntity<?>) ResponseEntity.status( HttpStatus.INTERNAL_SERVER_ERROR ).contentType(MediaType.TEXT_PLAIN).body("Requested Experiment Descriptor with ID=" + ed.getId() + " cannot be onboarded")   ;
 		}	
@@ -3086,7 +3089,7 @@ public class ArtifactsAPIController {
 		
 		OnBoardingStatus previous_status = u.getOnBoardingStatus();
 		u.setOnBoardingStatus(OnBoardingStatus.OFFBOARDING);
-		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+u.getExperiment().getName()+" to "+u.getOnBoardingStatus(), compname);																																
+		centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+u.getExperiment().getName()+" to "+u.getOnBoardingStatus(), compname);																																
 		ExperimentOnBoardDescriptor uExper = nsdOBDService.updateExperimentOnBoardDescriptor( u );
 
 		ResponseEntity<String> response = null;
@@ -3097,7 +3100,7 @@ public class ArtifactsAPIController {
 		catch( HttpClientErrorException e)
 		{
 			uExper.setOnBoardingStatus(previous_status);
-			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus(), compname);																																	
+			centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus(), compname);																																	
 			uExper.setFeedbackMessage(e.getResponseBodyAsString());
 			uExper = nsdOBDService.updateExperimentOnBoardDescriptor(uExper);
 			JSONObject result = new JSONObject(e.getResponseBodyAsString()); //Convert String to JSON Object
@@ -3107,7 +3110,7 @@ public class ArtifactsAPIController {
 		
 		if (response == null) {
 			uExper.setOnBoardingStatus(previous_status);
-			CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus(), compname);																																	
+			centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus(), compname);																																	
 			uExper.setFeedbackMessage("Null response on OffBoarding request.Requested NSOnBoardedDescriptor with ID=\" + c.getId() + \" cannot be offboarded.");			
 			uExper = nsdOBDService.updateExperimentOnBoardDescriptor( uExper );
 			
@@ -3116,7 +3119,7 @@ public class ArtifactsAPIController {
 		// Set Valid to false if it is OffBoarded
 		uExper.getExperiment().setValid(false);
 		uExper.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
-		CentralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus(), compname);																																			
+		centralLogger.log( CLevel.INFO, "Onboarding Status change of VxF "+uExper.getExperiment().getName()+" to "+uExper.getOnBoardingStatus(), compname);																																			
 		uExper.setFeedbackMessage(response.getBody().toString());
 		uExper = nsdOBDService.updateExperimentOnBoardDescriptor( uExper );
 		busController.offBoardNSD( uExper );
@@ -3264,14 +3267,14 @@ public class ArtifactsAPIController {
 		if ( prod == null )
 		{
 			logger.info("updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
-			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND", compname);																						
+			centralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND", compname);																						
 
 			return (ResponseEntity<?>) ResponseEntity.notFound();
 		}
 		if ( !(prod instanceof VxFMetadata) )
 		{
 			logger.info("updateUvalidationjob: prod not instance of VxFMetadata for VXF with id=" + vxfid + ". Return Status NOT_FOUND");		
-			CentralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND", compname);																						
+			centralLogger.log( CLevel.INFO, "updateUvalidationjob: prod == null for VXF with id=" + vxfid + ". Return Status NOT_FOUND", compname);																						
 
 			return (ResponseEntity<?>) ResponseEntity.notFound();
 		}

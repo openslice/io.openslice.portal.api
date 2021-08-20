@@ -115,6 +115,10 @@ public class MANOController {
 	@Value("${spring.application.name}")
 	private String compname;
 
+
+	@Autowired
+	private CentralLogger centralLogger;
+
 	
 	@Bean("aMANOController")
 	public MANOController aMANOControllerBean() {
@@ -167,7 +171,7 @@ public class MANOController {
 //		if (vxf == null) {
 //			vxf = (VxFMetadata) vxfService.getProductByID(vxfobd.getVxfid());
 //		}
-		CentralLogger.log( CLevel.INFO, "Onboarding status change of VxF "+vxfobd.getVxf().getName()+" to "+vxfobd.getOnBoardingStatus(), compname);						
+		centralLogger.log( CLevel.INFO, "Onboarding status change of VxF "+vxfobd.getVxf().getName()+" to "+vxfobd.getOnBoardingStatus(), compname);						
 		// Set MANO Provider VxF ID
 		vxfobd.setVxfMANOProviderID( vxfobd.getVxf().getName());
 		// Set onBoarding Date
@@ -273,7 +277,7 @@ public class MANOController {
 		
 		
 		uexpobd.setOnBoardingStatus(OnBoardingStatus.ONBOARDING);
-		CentralLogger.log( CLevel.INFO, "Onboarding status change of Experiment "+uexpobd.getExperiment().getName()+" to "+uexpobd.getOnBoardingStatus(), compname);													
+		centralLogger.log( CLevel.INFO, "Onboarding status change of Experiment "+uexpobd.getExperiment().getName()+" to "+uexpobd.getOnBoardingStatus(), compname);													
 		// This is the Deployment ID for the portal
 		uexpobd.setDeployId(UUID.randomUUID().toString());
 		ExperimentMetadata em = uexpobd.getExperiment();
