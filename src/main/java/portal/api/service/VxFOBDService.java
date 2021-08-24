@@ -39,6 +39,7 @@ import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorStatus;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.OnBoardingStatus;
+import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 //import portal.api.centrallog.CLevel;
 //import portal.api.centrallog.CentralLogger;
@@ -50,6 +51,8 @@ public class VxFOBDService {
 	
 	@Autowired
 	VxFOBDRepository vxfOBDRepository;
+	@Autowired
+	VxFService vxfService;
 	
 	private static final transient Log logger = LogFactory.getLog( VxFOBDService.class.getName());	
 
@@ -84,7 +87,6 @@ public class VxFOBDService {
 		aVxFOBD.setFeedbackMessage(vxfOBD.getFeedbackMessage());
 		aVxFOBD.setOnBoardingStatus(vxfOBD.getOnBoardingStatus());
 		//aVxFOBD.getVxf().setCertified(vxfOBD.getVxf().isCertified());
-		
 		logger.info("updateVxFODB for id: " + aVxFOBD.getId());				
 		aVxFOBD = updateVxFOnBoardedDescriptor(aVxFOBD);
 			
@@ -104,5 +106,27 @@ public class VxFOBDService {
 		
 		return res;
 	}
-	
+
+	public VxFOnBoardedDescriptor addVxFOnBoardedDescriptor(VxFOnBoardedDescriptor aVxFOnBoardedDescriptor) {
+		
+		return this.vxfOBDRepository.save(aVxFOnBoardedDescriptor);
+	}	
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String addVxFOnBoardedDescriptorEagerDataJson(VxFOnBoardedDescriptor receivedVxFOBD) throws JsonProcessingException {
+
+		receivedVxFOBD.setVxf(vxfService.getVxFById(receivedVxFOBD.getVxfid()));
+		VxFOnBoardedDescriptor vxfobd = this.addVxFOnBoardedDescriptor(receivedVxFOBD);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( vxfobd );
+		
+		return res;	
+	}		
 }

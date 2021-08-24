@@ -40,7 +40,9 @@ public class NSDOBDService {
 	
 	@Autowired
 	NSDOBDRepository nsdOBDRepository;
-
+	@Autowired
+	NSDService nsdService;
+	
 	private static final transient Log logger = LogFactory.getLog( VxFOBDService.class.getName());	
 	
 	public ExperimentOnBoardDescriptor updateExperimentOnBoardDescriptor(ExperimentOnBoardDescriptor obd) {
@@ -84,9 +86,9 @@ public class NSDOBDService {
 	}
 
 
-	public String updateNSDOBDEagerDataJson(ExperimentOnBoardDescriptor receivedVxFOBD) throws JsonProcessingException {
+	public String updateNSDOBDEagerDataJson(ExperimentOnBoardDescriptor receivedExperimentOBD) throws JsonProcessingException {
 
-		ExperimentOnBoardDescriptor vxfobd = this.updateNSDOBDByJSON(receivedVxFOBD);
+		ExperimentOnBoardDescriptor vxfobd = this.updateNSDOBDByJSON(receivedExperimentOBD);
 		ObjectMapper mapper = new ObjectMapper();
 
         //Registering Hibernate4Module to support lazy objects
@@ -97,4 +99,27 @@ public class NSDOBDService {
 		return res;
 	}	
 
+
+	public ExperimentOnBoardDescriptor addExperimentOnBoardedDescriptor(ExperimentOnBoardDescriptor aNSDOnBoardedDescriptor) {
+		
+		return this.nsdOBDRepository.save(aNSDOnBoardedDescriptor);
+	}	
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String addExperimentOnBoardedDescriptorEagerDataJson(ExperimentOnBoardDescriptor receivedNSDOBD) throws JsonProcessingException {
+
+		receivedNSDOBD.setExperiment(nsdService.getProductByID(receivedNSDOBD.getExperimentid()));
+		ExperimentOnBoardDescriptor nsdobd = this.addExperimentOnBoardedDescriptor(receivedNSDOBD);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( nsdobd );
+		
+		return res;	
+	}		
 }

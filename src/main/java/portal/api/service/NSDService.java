@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.ExperimentMetadata;
+import io.openslice.model.Infrastructure;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.VxFMetadata;
 import portal.api.repo.ManoProvidersRepository;
@@ -41,11 +42,25 @@ public class NSDService {
 	@Autowired
 	NSDsRepository nsdRepo;
 
-	public ExperimentMetadata getProductByID(long id) {
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getExperimentsEagerDataJson() throws JsonProcessingException {
 
-		Optional<ExperimentMetadata> o = this.nsdRepo.findById(id);
-
-		return o.orElse(null);
+		List<ExperimentMetadata> il = this.getExperiments();
+		ObjectMapper mapper = new ObjectMapper();
+        // Registering Hibernate5Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( il );
+		
+		return res;
+	}
+	
+	public List<ExperimentMetadata> getExperiments() {
+		return (List<ExperimentMetadata>) this.nsdRepo.findAll();
 	}
 	
 	/**
@@ -65,14 +80,38 @@ public class NSDService {
 
 		return res;
 	}
-	
+
 	public ExperimentMetadata getProductByIDEagerData(long id) {
 		Optional<ExperimentMetadata> o = this.nsdRepo.findByIdEager(id);
 
 		return o.orElse(null);
 	}
 
+	/**
+	 * @param id
+	 * @return a Json containing all data
+	 * @throws JsonProcessingException
+	 */
+	public String getProductByIDDataJson(long id) throws JsonProcessingException {
+		
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+        mapper.registerModule(new Hibernate5Module());
+		
+        ExperimentMetadata o = this.getProductByID(id);
+        
+		String res = mapper.writeValueAsString( o );
 
+		return res;
+	}
+	
+	public ExperimentMetadata getProductByID(long id) {
+
+		Optional<ExperimentMetadata> o = this.nsdRepo.findById(id);
+
+		return o.orElse(null);
+	}
+	
 	public ExperimentMetadata updateProductInfo( ExperimentMetadata  refNSD) {
 		return this.nsdRepo.save(refNSD);
 	}
@@ -112,5 +151,25 @@ public class NSDService {
 		return o.orElse(null);
 	}
 
+	public ExperimentMetadata addExperimentMetadata(ExperimentMetadata c) {
+		return this.nsdRepo.save(c);
+	}
 	
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String addNSDMetadataEagerDataJson(ExperimentMetadata receivedVxFMetadata) throws JsonProcessingException {
+
+		ExperimentMetadata vxfmetadata = this.addExperimentMetadata(receivedVxFMetadata);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( vxfmetadata );
+		
+		return res;		
+	}		
 }

@@ -371,10 +371,6 @@ public class MANOController {
 	public void deployNSDToMANOProvider(int deploymentdescriptorid) {
 		DeploymentDescriptor deploymentdescriptor = deploymentDescriptorService.getDeploymentByIdEager(deploymentdescriptorid);
 		
-		//ExperimentMetadata expm = nsdService.getProductByIDEagerData( deploymentdescriptor.getExperimentFullDetails().getId() );
-		
-//		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + expm);		
-//		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + expm.getExperimentOnBoardDescriptors());
 		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + getExperimOBD(deploymentdescriptor) ); 
 		logger.info("deploymentdescriptor.getExperimentFullDetails() = " + getExperimOBD(deploymentdescriptor).getObMANOprovider());
 		

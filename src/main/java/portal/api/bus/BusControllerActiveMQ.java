@@ -37,6 +37,7 @@ import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.PortalUser;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.service.DeploymentDescriptorService;
+import portal.api.service.InfrastructureService;
 import portal.api.service.ManoProviderService;
 import portal.api.service.NSDOBDService;
 import portal.api.service.NSDService;
@@ -72,6 +73,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 	@Autowired
 	ManoProviderService manoProviderService;
 
+	@Autowired
+	InfrastructureService infraStructureService;
+
+	@Autowired
+	NSDService experimentService;
+	
 	@Autowired
 	PortalPropertiesService portalPropertyService;
 	
@@ -259,7 +266,7 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		
 		from("activemq:queue:getVxFByID")
 		.log( "activemq:queue:getVxFByID for ${body} !" )		
-		.bean( vxfService, "getProductByIDEagerDataJson" )
+		.bean( vxfService, "getProductByIDDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:getVxFByName")
@@ -269,7 +276,7 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		
 		from("activemq:queue:getNSDByID")
 		.log( "activemq:queue:getNSDByID for ${body} !" )		
-		.bean( nsdService, "getProductByIDEagerDataJson" )
+		.bean( nsdService, "getProductByIDDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:getRunningInstantiatingAndTerminatingDeployments")
@@ -277,6 +284,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.bean( deploymentDescriptorService, "getRunningInstantiatingAndTerminatingDeploymentsEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
+		from("activemq:queue:getAllDeployments")
+		.log( "activemq:queue:getAllDeployments !" )		
+		.bean( deploymentDescriptorService, "getAllDeploymentsEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+				
 		from("activemq:queue:getDeploymentsToInstantiate")
 		.log( "activemq:queue:getDeploymentsToInstantiate !" )		
 		.bean( deploymentDescriptorService, "getDeploymentsToInstantiateEagerDataJson")
@@ -314,6 +326,36 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.bean( vxfObdService , "updateVxFOBDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 
+		from("activemq:queue:addInfrastructure")
+		.log( "activemq:queue:addInfrastructure for ${body} !" )		
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.Infrastructure.class, true)		
+		.bean( infraStructureService , "addInfrastructureEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:addVxFMetadata")
+		.log( "activemq:queue:addVxFMetadata for ${body} !" )		
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.VxFMetadata.class, true)		
+		.bean( vxfService , "addVxFMetadataEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:addExperimentMetadata")
+		.log( "activemq:queue:addExperimentMetadata for ${body} !" )		
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.ExperimentMetadata.class, true)		
+		.bean( nsdService , "addNSDMetadataEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:addVxFOnBoardedDescriptor")
+		.log( "activemq:queue:addVxFOnBoardedDescriptor for ${body} !" )		
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.VxFOnBoardedDescriptor.class, true)		
+		.bean( vxfObdService , "addVxFOnBoardedDescriptorEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:addExperimentOnBoardedDescriptor")
+		.log( "activemq:queue:addExperimentOnBoardedDescriptor for ${body} !" )		
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.ExperimentOnBoardDescriptor.class, true)		
+		.bean( nsdObdService , "addExperimentOnBoardedDescriptorEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
 		from("activemq:queue:updateExperimentOnBoardDescriptor")
 		.log( "activemq:queue:updateExperimentOnBoardDescriptor for ${body} !" )		
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.ExperimentOnBoardDescriptor.class, true)		
@@ -325,6 +367,27 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.bean( manoProviderService, "getMANOproviderByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 
+
+		from("activemq:queue:getMANOProviders")
+		.log( "activemq:queue:getMANOproviders !" )		
+		.bean( manoProviderService, "getMANOprovidersEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getInfrastructures")
+		.log( "activemq:queue:getInfrastructures !" )		
+		.bean( infraStructureService, "getInfrastructuresEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getExperiments")
+		.log( "activemq:queue:getExperiments !" )		
+		.bean( experimentService, "getExperimentsEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getVnfds")
+		.log( "activemq:queue:getVnfds !" )		
+		.bean( vxfService, "getVnfdsEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
 		from( "activemq:queue:putActionOnNS" )
 		.log(LoggingLevel.INFO, log, "activemq:queue:putActionOnNS message received!")
 		.to("log:DEBUG?showBody=true&showHeaders=true")
@@ -359,13 +422,17 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.DeploymentDescriptor.class, false)
 		.bean( deploymentDescriptorService, "updateDeploymentEagerDataJson" )
 		.convertBodyTo( String.class );
-		
-		
+				
 		from( GET_USER_BY_USERNAME )
 		.log(LoggingLevel.INFO, log, GET_USER_BY_USERNAME + " message received!")
 		.to("log:DEBUG?showBody=true&showHeaders=true")	
 		.bean( usersService, "getPortalUserByUserNameDataJson" )
 		.convertBodyTo( String.class );
+		
+		from("activemq:queue:getPortalUserByUsername")
+		.log( "activemq:queue:getPortalUserByUsername for ${body} !" )					
+		.bean( usersService , "getPortalUserByUserNameDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");		
 		
 	}
 

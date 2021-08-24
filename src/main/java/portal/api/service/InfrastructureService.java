@@ -25,11 +25,17 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.Infrastructure;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.Product;
 import io.openslice.model.VxFMetadata;
+import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.repo.InfrastructureRepository;
 import portal.api.repo.ManoProvidersRepository;
 import portal.api.repo.ProductRepository;
@@ -65,6 +71,39 @@ public class InfrastructureService {
 		
 	}
 
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getInfrastructuresEagerDataJson() throws JsonProcessingException {
 
+		List<Infrastructure> il = this.getInfrastructures();
+		ObjectMapper mapper = new ObjectMapper();
+        // Registering Hibernate5Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( il );
+		
+		return res;
+	}
+	
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String addInfrastructureEagerDataJson(Infrastructure receivedInfrastructure) throws JsonProcessingException {
 
+		Infrastructure infrastructure = this.addInfrastructure(receivedInfrastructure);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( infrastructure );
+		
+		return res;		
+	}
+	
 }

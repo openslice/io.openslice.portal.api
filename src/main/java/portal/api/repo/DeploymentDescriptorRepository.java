@@ -157,6 +157,9 @@ public interface DeploymentDescriptorRepository extends PagingAndSortingReposito
 			+ "OR m.status = io.openslice.model.DeploymentDescriptorStatus.TERMINATION_FAILED")
 	List<DeploymentDescriptor> readDeploymentsToBeDeleted();
 
+	@Query( value = "SELECT m FROM DeploymentDescriptor m")
+	List<DeploymentDescriptor> readAllDeployments();
+
 	@Query( value = "SELECT m FROM DeploymentDescriptor m WHERE m.status = io.openslice.model.DeploymentDescriptorStatus.SCHEDULED")
 	List<DeploymentDescriptor> readScheduledDeployments();
 
