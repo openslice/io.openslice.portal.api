@@ -91,6 +91,9 @@ public class DeploymentDescriptorService {
 	
 	private SessionFactory  sessionFactory;
 
+	@Autowired
+	private CentralLogger centralLogger;
+
 
 
 	private static final transient Log logger = LogFactory.getLog( DeploymentDescriptorService.class.getName());
@@ -451,13 +454,13 @@ public class DeploymentDescriptorService {
 		if( receivedDeployment.getStatus() != aDeployment.getStatus() )
 		{
 			aDeployment.setStatus( receivedDeployment.getStatus() );
-			CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname );
+			centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname );
 			logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus() );			
 			aDeployment.setInstanceId( receivedDeployment.getInstanceId() );
-			CentralLogger.log( CLevel.INFO, "Instance Id of deployment set to"+aDeployment.getInstanceId(), compname );
+			centralLogger.log( CLevel.INFO, "Instance Id of deployment set to"+aDeployment.getInstanceId(), compname );
 			logger.info( "Instance Id of deployment set to"+aDeployment.getInstanceId() );			
 			aDeployment.setFeedback( receivedDeployment.getFeedback() );
-			CentralLogger.log( CLevel.INFO, "Feedback of deployment set to "+aDeployment.getFeedback(), compname );
+			centralLogger.log( CLevel.INFO, "Feedback of deployment set to "+aDeployment.getFeedback(), compname );
 			logger.info( "Feedback of deployment set to "+aDeployment.getFeedback() );			
 			aDeployment.getExperimentFullDetails();
 			aDeployment.getInfrastructureForAll();
@@ -469,7 +472,7 @@ public class DeploymentDescriptorService {
 				for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails().getExperimentOnBoardDescriptors())
 				{
 					aDeployment.setStatus( receivedDeployment.getStatus() );
-					CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+					centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 					logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 					aDeployment = updateDeploymentDescriptor(aDeployment);
 					logger.info("NS status change is now "+aDeployment.getStatus());															
@@ -481,7 +484,7 @@ public class DeploymentDescriptorService {
 				for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails().getExperimentOnBoardDescriptors())
 				{
 					aDeployment.setStatus( receivedDeployment.getStatus() );
-					CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+					centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 					logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 					aDeployment = updateDeploymentDescriptor(aDeployment);
 					logger.info("NS status change is now "+aDeployment.getStatus());															
@@ -491,7 +494,7 @@ public class DeploymentDescriptorService {
 			else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED && aDeployment.getInstanceId() != null)
 			{
 				aDeployment.setStatus( receivedDeployment.getStatus() );
-				CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+				centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 				logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 				aDeployment = updateDeploymentDescriptor(aDeployment);
 				logger.info("NS status change is now "+aDeployment.getStatus());															
@@ -500,7 +503,7 @@ public class DeploymentDescriptorService {
 			else if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED && aDeployment.getInstanceId() == null)
 			{
 				aDeployment.setStatus( receivedDeployment.getStatus() );
-				CentralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
+				centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname);
 				logger.info( "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus());							
 				aDeployment = updateDeploymentDescriptor(aDeployment);
 				logger.info("NS status change is now "+aDeployment.getStatus());															
