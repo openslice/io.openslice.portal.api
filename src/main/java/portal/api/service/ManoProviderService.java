@@ -60,10 +60,22 @@ public class ManoProviderService {
 
 		MANOprovider dd = this.getMANOproviderByID( id );
 		ObjectMapper mapper = new ObjectMapper();
-        //Registering Hibernate4Module to support lazy objects
+        // Registering Hibernate5Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
         mapper.registerModule(new Hibernate5Module()); 
 		String res = mapper.writeValueAsString( dd );
+		
+		return res;
+	}
+	
+	public String getMANOprovidersEagerDataJson() throws JsonProcessingException {
+
+		List<MANOprovider> mps = this.getMANOproviders();
+		ObjectMapper mapper = new ObjectMapper();
+        // Registering Hibernate5Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( mps );
 		
 		return res;
 	}

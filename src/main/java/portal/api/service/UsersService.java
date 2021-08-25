@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,7 +94,36 @@ public class UsersService {
 //			Category c = new Category();
 //			c.setName("None");
 //			saveCategory(c);
-		}		
+		}	
+		
+		PortalUser manoService = null;
+		try
+		{
+			manoService = findByUsername("manoService");
+			logger.info("======================== manoService  = " + manoService);			
+		}
+		catch(Exception e)
+		{
+			logger.info("======================== manoService NOT FOUND, initializing");						
+		}
+		if (manoService == null) {
+			PortalUser bu = new PortalUser();
+			bu.setFirstname("MANO Service System User");
+			bu.setUsername( "manoService" );
+		    int length = 16;
+		    boolean useLetters = true;
+		    boolean useNumbers = false;
+		    String generatedString = RandomStringUtils.random(length, useLetters, useNumbers);			
+			bu.setPassword( generatedString );
+			bu.setApikey( UUID.randomUUID().toString() );		
+			
+			bu.setEmail("");
+			bu.setOrganization("");
+			bu.addRole( UserRoleType.ROLE_ADMIN );
+			bu.addRole( UserRoleType.ROLE_MENTOR );
+			bu.setActive(true);
+			addPortalUserToUsers( bu );			
+		}				
 	}
 
 	public List<PortalUser> findAll() {

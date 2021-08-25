@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.ExperimentMetadata;
+import io.openslice.model.Infrastructure;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.VxFMetadata;
 import portal.api.repo.ManoProvidersRepository;
@@ -42,6 +43,27 @@ public class VxFService {
 	@Autowired
 	VxFsRepository vxfsRepo;
 
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getVnfdsEagerDataJson() throws JsonProcessingException {
+
+		List<VxFMetadata> il = this.getVxFs();
+		ObjectMapper mapper = new ObjectMapper();
+        // Registering Hibernate5Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( il );
+		
+		return res;
+	}
+
+	public List<VxFMetadata> getVxFs() {
+		return (List<VxFMetadata>) this.vxfsRepo.findAll();
+	}
+	
 	public VxFMetadata getProductByID(long id) {
 
 		Optional<VxFMetadata> o = this.vxfsRepo.findById(id);
@@ -61,7 +83,7 @@ public class VxFService {
 	 * @return a Json containing all data
 	 * @throws JsonProcessingException
 	 */
-	public String getProductByIDEagerDataJson(long id) throws JsonProcessingException {
+	public String getProductByIDDataJson(long id) throws JsonProcessingException {
 	
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
@@ -130,4 +152,30 @@ public class VxFService {
 		return o.orElse(null);
 	}
 
+	public VxFMetadata getVxFById(long vxfId) {
+		Optional<VxFMetadata> o = this.vxfsRepo.findById(vxfId);
+		return o.orElse(null);
+	}
+
+	public VxFMetadata addVxFMetadata(VxFMetadata c) {
+		return this.vxfsRepo.save(c);
+	}
+	
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String addVxFMetadataEagerDataJson(VxFMetadata receivedVxFMetadata) throws JsonProcessingException {
+
+		VxFMetadata vxfmetadata = this.addVxFMetadata(receivedVxFMetadata);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( vxfmetadata );
+		
+		return res;		
+	}	
 }

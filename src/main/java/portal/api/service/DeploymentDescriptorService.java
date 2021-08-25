@@ -320,6 +320,18 @@ public class DeploymentDescriptorService {
 		return res;
 	}
 	
+	public List<DeploymentDescriptor> getAllDeployments() {
+		List<DeploymentDescriptor> DeploymentDescriptors = new ArrayList<>();
+		List<DeploymentDescriptor> DeploymentDescriptor_list = this.ddRepo.readAllDeployments();
+		for(DeploymentDescriptor d : DeploymentDescriptor_list)
+		{
+			d.getExperimentFullDetails();
+			d.getInfrastructureForAll();			
+			DeploymentDescriptors.add(d);
+		}
+		return DeploymentDescriptors;
+	}
+
 	public List<DeploymentDescriptor> getDeploymentsToInstantiate() {
 		List<DeploymentDescriptor> DeploymentDescriptorsToRun = new ArrayList<>();
 		List<DeploymentDescriptor> DeploymentDescriptor_list = this.ddRepo.readScheduledDeployments();
@@ -336,6 +348,19 @@ public class DeploymentDescriptorService {
 			}
 		}
 		return DeploymentDescriptorsToRun;
+	}
+
+	public String getAllDeploymentsEagerDataJson() throws JsonProcessingException {
+
+		List<DeploymentDescriptor> dds = this.getAllDeployments();
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( dds );
+		
+		return res;
 	}
 	
 	public String getDeploymentsToInstantiateEagerDataJson() throws JsonProcessingException {
