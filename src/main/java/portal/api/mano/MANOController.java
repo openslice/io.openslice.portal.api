@@ -237,18 +237,12 @@ public class MANOController {
 	public void checkAndUpdateRunningDeploymentDescriptors() {
 		logger.info("Update Deployment Descriptors");
 		List<DeploymentDescriptor> runningDeploymentDescriptors = deploymentDescriptorService.getRunningInstantiatingAndTerminatingDeployments();
-		
-
 		// For each deployment get the status info and the IPs
 		for (int i = 0; i < runningDeploymentDescriptors.size(); i++) {
 			DeploymentDescriptor deployment_tmp = deploymentDescriptorService.getDeploymentByIdEager(runningDeploymentDescriptors.get(i).getId());
 			try {
-				// Get the MANO Provider for each deployment
-				
+				// Get the MANO Provider for each deployment				
 				MANOprovider sm = manoProviderService.getMANOproviderByID( getExperimOBD( deployment_tmp ).getObMANOprovider().getId() );
-				
-				
-				
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -259,10 +253,7 @@ public class MANOController {
 	}
 
 	private ExperimentOnBoardDescriptor getExperimOBD(DeploymentDescriptor deployment_tmp) {
-		
-		
 		for (ExperimentOnBoardDescriptor e : deployment_tmp.getExperimentFullDetails().getExperimentOnBoardDescriptors()) {
-
 			return e; //return the first one found
 		}
 		return null;
@@ -274,8 +265,7 @@ public class MANOController {
 		if (uexpobd == null) {
 			throw new Exception("uexpobd is NULL. Cannot load VxFOnBoardedDescriptor");
 		}
-		
-		
+				
 		uexpobd.setOnBoardingStatus(OnBoardingStatus.ONBOARDING);
 		centralLogger.log( CLevel.INFO, "Onboarding status change of Experiment "+uexpobd.getExperiment().getName()+" to "+uexpobd.getOnBoardingStatus(), compname);													
 		// This is the Deployment ID for the portal

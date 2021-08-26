@@ -1946,7 +1946,7 @@ public class ArtifactsAPIController {
 			ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID( expobd_tmp.getId() );
 			nsdOBDService.deleteExperimentOnBoardDescriptor( sm );			
 		}
-		nsd.getExperimentfOnBoardDescriptors().clear();	
+		nsd.getExperimentOnBoardDescriptors().clear();	
 		
 		// Remove NSD from Portal Users
 		PortalUser owner =  usersService.findById( nsd.getOwner().getId() );		

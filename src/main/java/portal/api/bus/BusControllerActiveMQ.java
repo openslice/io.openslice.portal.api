@@ -276,7 +276,7 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		
 		from("activemq:queue:getNSDByID")
 		.log( "activemq:queue:getNSDByID for ${body} !" )		
-		.bean( nsdService, "getProductByIDDataJson" )
+		.bean( nsdService, "getProductByIDEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:getRunningInstantiatingAndTerminatingDeployments")
@@ -305,8 +305,10 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:getDeploymentByIdEager")
-		.log( "activemq:queue:getDeploymentByIdEager !" )		
+		//.log( "activemq:queue:getDeploymentByIdEager !" )
+		.log(LoggingLevel.INFO, log, "activemq:queue:getDeploymentByIdEager ${body} message received!")		
 		.bean( deploymentDescriptorService, "getDeploymentByIdEagerDataJson" )
+		.log(LoggingLevel.INFO, log, "activemq:queue:getDeploymentByIdEager replied with ${body} !")
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 
 		from("activemq:queue:getDeploymentByInstanceIdEager")
