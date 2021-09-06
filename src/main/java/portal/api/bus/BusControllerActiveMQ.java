@@ -268,6 +268,16 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log( "activemq:queue:getVxFByID for ${body} !" )		
 		.bean( vxfService, "getProductByIDDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+
+		from("activemq:queue:getVxFByUUIDDataJson")
+		.log( "activemq:queue:getVxFByUUDataJson for ${body} !" )		
+		.bean( vxfService, "getVxFByUUIDDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getVxFByUUID")
+		.log("activemq:queue:getVxFByUUID for ${body} !" )		
+		.bean( vxfService , "getVxFByUUID" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:getVxFByName")
 		.log( "activemq:queue:getVxFByName for ${body} !" )		
@@ -276,7 +286,7 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		
 		from("activemq:queue:getNSDByID")
 		.log( "activemq:queue:getNSDByID for ${body} !" )		
-		.bean( nsdService, "getProductByIDEagerDataJson" )
+		.bean( nsdService, "getProductByIDDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:getRunningInstantiatingAndTerminatingDeployments")
@@ -321,6 +331,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.DeploymentDescriptor.class, true)		
 		.bean( deploymentDescriptorService, "updateDeploymentEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getVxFOnBoardedDescriptorByVxFAndMP")
+		.log("activemq:queue:getVxFOnBoardedDescriptorByVxFAndMP for ${body} !" )		
+		.bean( vxfObdService , "getVxFOnBoardedDescriptorByVxFAndMP" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");		
 		
 		from("activemq:queue:updateVxFOnBoardedDescriptor")
 		.log( "activemq:queue:updateVxFOnBoardedDescriptor for ${body} !" )		

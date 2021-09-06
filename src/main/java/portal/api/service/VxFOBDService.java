@@ -38,6 +38,7 @@ import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorStatus;
 import io.openslice.model.ExperimentOnBoardDescriptor;
+import io.openslice.model.MANOprovider;
 import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
@@ -53,6 +54,8 @@ public class VxFOBDService {
 	VxFOBDRepository vxfOBDRepository;
 	@Autowired
 	VxFService vxfService;
+	@Autowired
+	ManoProviderService mpService;
 	
 	private static final transient Log logger = LogFactory.getLog( VxFOBDService.class.getName());	
 
@@ -129,4 +132,24 @@ public class VxFOBDService {
 		
 		return res;	
 	}		
+	
+	public String getVxFOnBoardedDescriptorByVxFAndMP(String input)
+	{
+		String vnfd_id=input.split("##")[0];
+		long mp_id = Long.parseLong(input.split("##")[1]);
+		MANOprovider mp_obj=mpService.getMANOproviderByID(mp_id);
+		VxFOnBoardedDescriptor tmp = this.vxfOBDRepository.findByVxFAndMP(vnfd_id,mp_obj);
+		if(tmp!=null)
+			return tmp.getUuid();
+		else
+			return null;
+	}
+
+	public VxFMetadata getVxFIdByVxFMANOProviderIDAndMP(String vxf_mp_id,long mp_id)
+	{
+		MANOprovider mp_obj=mpService.getMANOproviderByID(mp_id);
+		VxFOnBoardedDescriptor tmp = this.vxfOBDRepository.VxFIdByVxFMANOProviderIDAndMP(vxf_mp_id,mp_obj);
+		return tmp.getVxf();
+	}
+	
 }

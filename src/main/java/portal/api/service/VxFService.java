@@ -64,20 +64,6 @@ public class VxFService {
 		return (List<VxFMetadata>) this.vxfsRepo.findAll();
 	}
 	
-	public VxFMetadata getProductByID(long id) {
-
-		Optional<VxFMetadata> o = this.vxfsRepo.findById(id);
-
-		return o.orElse(null);
-	}
-	
-	public VxFMetadata getProductByName(String name) {
-
-		Optional<VxFMetadata> o = this.vxfsRepo.findByName(name);
-
-		return o.orElse(null);
-	}
-	
 	/**
 	 * @param id
 	 * @return a Json containing all data
@@ -90,7 +76,7 @@ public class VxFService {
 		// this will fetch all lazy objects of VxF before marshaling
         mapper.registerModule(new Hibernate5Module());
 		
-        VxFMetadata o = this.getProductByID(id);        
+        VxFMetadata o = this.getVxFById(id);        
 		String res = mapper.writeValueAsString( o );
 		return res;
 	}
@@ -107,7 +93,7 @@ public class VxFService {
 		// this will fetch all lazy objects of VxF before marshaling
         mapper.registerModule(new Hibernate5Module());
 		
-        VxFMetadata o = this.getProductByName(name);        
+        VxFMetadata o = this.getVxFByName(name);        
 		String res = mapper.writeValueAsString( o );
 		return res;
 	}
@@ -137,9 +123,25 @@ public class VxFService {
 		return (List<VxFMetadata>) this.vxfsRepo.getVxFsByUserID(userid);
 	}
 
-	public VxFMetadata getVxFtByUUID(String uuid) {
+	public VxFMetadata getVxFByUUID(String uuid) {
 		Optional<VxFMetadata> o = this.vxfsRepo.findByUUID( uuid );
 		return o.orElse(null);
+	}
+	/**
+	 * @param id
+	 * @return a Json containing all data
+	 * @throws JsonProcessingException
+	 */
+	public String getVxFByUUIDDataJson(String uuid) throws JsonProcessingException {
+	
+		ObjectMapper mapper = new ObjectMapper();
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module());
+		
+        VxFMetadata o = this.getVxFByUUID(uuid);        
+		String res = mapper.writeValueAsString( o );
+		return res;
 	}
 
 	public void deleteProduct(VxFMetadata vxf) {
@@ -151,12 +153,19 @@ public class VxFService {
 		Optional<VxFMetadata> o = this.vxfsRepo.findByName( name );
 		return o.orElse(null);
 	}
-
+	
 	public VxFMetadata getVxFById(long vxfId) {
 		Optional<VxFMetadata> o = this.vxfsRepo.findById(vxfId);
 		return o.orElse(null);
 	}
 
+	public List<VxFMetadata> getAllVxFByName(String name) {
+
+		List<VxFMetadata> o = (List<VxFMetadata>) this.vxfsRepo.findAllByName(name);
+		return o;
+	}
+	
+	
 	public VxFMetadata addVxFMetadata(VxFMetadata c) {
 		return this.vxfsRepo.save(c);
 	}

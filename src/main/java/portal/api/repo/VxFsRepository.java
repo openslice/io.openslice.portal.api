@@ -44,7 +44,6 @@ public interface VxFsRepository extends PagingAndSortingRepository<VxFMetadata, 
 	@Query( value = "SELECT a FROM VxFMetadata a WHERE a.published=TRUE ORDER BY a.name" ) //
 	Collection<VxFMetadata> getPublishedVxF();
 
-
 	@Query( value ="SELECT a FROM VxFMetadata a  WHERE a.owner.id=?1 ORDER BY a.id" )
 	Collection<VxFMetadata> getVxFsByUserID(long userid);
 
@@ -57,7 +56,7 @@ public interface VxFsRepository extends PagingAndSortingRepository<VxFMetadata, 
 	@Query( value ="SELECT a FROM VxFMetadata a WHERE a.name LIKE ?1" )
 	Optional<VxFMetadata> findByName(String name);
 
-
-	
+	@Query( value ="SELECT a FROM VxFMetadata a WHERE a.name LIKE ?1" )
+	Collection<VxFMetadata> findAllByName(String name);
 
 }

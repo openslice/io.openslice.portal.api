@@ -56,6 +56,8 @@ public interface NSDsRepository extends PagingAndSortingRepository<ExperimentMet
 	@Query( value ="SELECT a FROM ExperimentMetadata a WHERE a.name LIKE ?1" )
 	Optional<ExperimentMetadata> findByName(String name);
 
+	@Query( value ="SELECT a FROM ExperimentMetadata a WHERE a.id LIKE ?1" )
+	Optional<ExperimentMetadata> findById(long id);
 
 	@Query( value ="SELECT e FROM ExperimentMetadata e JOIN FETCH e.experimentOnBoardDescriptors "
 			+ "JOIN FETCH e.experimentOnBoardDescriptors obd  "

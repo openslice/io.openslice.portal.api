@@ -121,5 +121,10 @@ public class NSDOBDService {
 		String res = mapper.writeValueAsString( nsdobd );
 		
 		return res;	
-	}		
+	}
+	
+	public ExperimentOnBoardDescriptor getExperimentOnBoardedDescriptorByUUid(String UUid)
+	{		
+		return nsdOBDRepository.findByDeployId( UUid );
+	}
 }

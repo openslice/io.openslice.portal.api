@@ -19,6 +19,7 @@
  */
 package portal.api.repo;
 
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.stereotype.Repository;
 
@@ -31,4 +32,6 @@ import io.openslice.model.ExperimentOnBoardDescriptor;
 @Repository
 public interface NSDOBDRepository extends PagingAndSortingRepository<ExperimentOnBoardDescriptor, Long> {
 
+	@Query( value ="SELECT a FROM ExperimentOnBoardDescriptor a WHERE a.deployId=?1" )
+	ExperimentOnBoardDescriptor findByDeployId(String deployId);	
 }

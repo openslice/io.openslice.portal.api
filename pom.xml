@@ -255,6 +255,11 @@
 			<version>${project.version}</version>
 		</dependency>
 		<dependency>
+			<groupId>io.openslice.sol005nbi</groupId>
+			<artifactId>io.openslice.sol005nbi.osm10</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
 			<groupId>io.openslice</groupId>
 			<artifactId>io.openslice.centrallog.client</artifactId>
 			<version>${project.version}</version>
