@@ -336,6 +336,18 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.log("activemq:queue:getVxFOnBoardedDescriptorByVxFAndMP for ${body} !" )		
 		.bean( vxfObdService , "getVxFOnBoardedDescriptorByVxFAndMP" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");		
+
+		from("activemq:queue:getVxFOnBoardedDescriptorListDataJson")
+		.log("activemq:queue:getVxFOnBoardedDescriptorListDataJson!" )		
+		.bean( vxfObdService , "getVxFOnBoardedDescriptorListDataJson" )
+		.log(LoggingLevel.INFO, log, "\"activemq:queue:getVxFOnBoardedDescriptorListDataJson replied with ${body} !")
+		.to("log:DEBUG?showBody=true&showHeaders=true");		
+		
+		from("activemq:queue:getExperimentOnBoardDescriptorsDataJson")
+		.log("activemq:queue:getExperimentOnBoardDescriptorsDataJson!" )		
+		.bean( nsdObdService , "getExperimentOnBoardDescriptorsDataJson" )
+		.log(LoggingLevel.INFO, log, "activemq:queue:getExperimentOnBoardDescriptorsDataJson replied with ${body} !")
+		.to("log:DEBUG?showBody=true&showHeaders=true");		
 		
 		from("activemq:queue:updateVxFOnBoardedDescriptor")
 		.log( "activemq:queue:updateVxFOnBoardedDescriptor for ${body} !" )		

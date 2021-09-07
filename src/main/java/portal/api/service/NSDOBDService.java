@@ -60,6 +60,24 @@ public class NSDOBDService {
 		return (List<ExperimentOnBoardDescriptor>) this.nsdOBDRepository.findAll();
 	}
 
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getExperimentOnBoardDescriptorsDataJson() throws JsonProcessingException {
+
+		List<ExperimentOnBoardDescriptor> tmp = this.getExperimentOnBoardDescriptors();
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( tmp );
+		
+		return res;		
+	}
+	
 	public void deleteExperimentOnBoardDescriptor(ExperimentOnBoardDescriptor u) {
 		this.nsdOBDRepository.delete(u);
 		

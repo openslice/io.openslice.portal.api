@@ -145,6 +145,42 @@ public class VxFOBDService {
 			return null;
 	}
 
+	public List<VxFOnBoardedDescriptor> getVxFOnBoardedDescriptorListByMP(Long mp_id)
+	{
+		MANOprovider mp_obj=mpService.getMANOproviderByID(mp_id);
+		List<VxFOnBoardedDescriptor> tmp = this.vxfOBDRepository.findByMP(mp_obj);
+		if(tmp!=null)
+			return tmp;
+		else
+			return null;
+	}
+	
+	public List<VxFOnBoardedDescriptor> getVxFOnBoardedDescriptorList()
+	{
+		List<VxFOnBoardedDescriptor> tmp = this.vxfOBDRepository.findAll();
+		if(tmp!=null)
+			return tmp;
+		else
+			return null;
+	}
+	/**
+	 * @param d
+	 * @return as json
+	 * @throws JsonProcessingException
+	 */
+	public String getVxFOnBoardedDescriptorListDataJson() throws JsonProcessingException {
+
+		List<VxFOnBoardedDescriptor> tmp = this.getVxFOnBoardedDescriptorList();
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( tmp );
+		
+		return res;		
+	}
+	
 	public VxFMetadata getVxFIdByVxFMANOProviderIDAndMP(String vxf_mp_id,long mp_id)
 	{
 		MANOprovider mp_obj=mpService.getMANOproviderByID(mp_id);

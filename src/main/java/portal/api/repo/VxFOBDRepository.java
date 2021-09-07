@@ -19,6 +19,8 @@
  */
 package portal.api.repo;
 
+import java.util.List;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.stereotype.Repository;
@@ -35,6 +37,12 @@ public interface VxFOBDRepository extends PagingAndSortingRepository<VxFOnBoarde
 	
 	@Query( value ="SELECT a FROM VxFOnBoardedDescriptor a WHERE a.vxfMANOProviderID=?1 and a.obMANOprovider=?2" )
 	VxFOnBoardedDescriptor findByVxFAndMP(String vxf, MANOprovider mp);
+
+	@Query( value ="SELECT a FROM VxFOnBoardedDescriptor a WHERE a.obMANOprovider=?1" )
+	List<VxFOnBoardedDescriptor> findByMP(MANOprovider mp);
+
+	@Query( value ="SELECT a FROM VxFOnBoardedDescriptor a WHERE 1=1" )
+	List<VxFOnBoardedDescriptor> findAll();
 
 	@Query( value ="SELECT a FROM VxFOnBoardedDescriptor a WHERE a.vxfMANOProviderID=?1 and a.obMANOprovider=?2" )
 	VxFOnBoardedDescriptor VxFIdByVxFMANOProviderIDAndMP(String vxf_id, MANOprovider mp);
