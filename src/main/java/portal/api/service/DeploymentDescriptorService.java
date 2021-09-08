@@ -56,6 +56,7 @@ import io.openslice.model.DeploymentDescriptorVxFPlacement;
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.Infrastructure;
+import io.openslice.model.MANOprovider;
 import io.openslice.model.PortalUser;
 import io.openslice.model.UserRoleType;
 import io.openslice.model.VxFMetadata;
@@ -82,6 +83,13 @@ public class DeploymentDescriptorService {
 	
 
 
+	@Autowired
+	NSDOBDService nsdOBDService;
+
+	@Autowired
+	ManoProviderService manoProviderService;
+	
+	
 	@Value("${spring.application.name}")
 	private String compname;
 
@@ -560,22 +568,34 @@ public class DeploymentDescriptorService {
 		if ( depl.getStatus() == null  ) {
 			depl.setStatus(DeploymentDescriptorStatus.UNDER_REVIEW);			
 		}
-		
-		
+
+
 		ExperimentMetadata baseNSD = (ExperimentMetadata) nsdService.getProductByID(depl.getExperiment().getId());
 		depl.setExperiment(baseNSD); // reattach from the DB model
 		
-		logger.info("reattach InfrastructureForAll from the DB model");
-		Infrastructure infrDefault = null;
-		if ( infrastructureService.getInfrastructures().size()>0 ) {
-			infrDefault = infrastructureService.getInfrastructures().get(0);			
-		} else  {
-			infrDefault = new Infrastructure();
-			infrDefault.setVIMid("UNDEFINED-INFRASTRUCTUREID-INOPENSLICE");
+		ExperimentOnBoardDescriptor uexpobd = nsdOBDService.getExperimentOnBoardDescriptorByID( depl.getObddescriptor_uuid().getId() );
+		depl.setObddescriptor_uuid(uexpobd); // reattach from the DB model
+		
+		if (uexpobd == null) {
+			logger.error("uexpobd is NULL. Cannot load VxFOnBoardedDescriptor");
 		}
-		depl.setInfrastructureForAll(  
-				infrDefault
-				);
+		
+		
+		logger.info("reattach InfrastructureForAll from the DB model");
+		Infrastructure infrDefault = new Infrastructure();
+		infrDefault.setVIMid("UNDEFINED-INFRASTRUCTUREID-INOPENSLICE");		
+		if ( infrastructureService.getInfrastructures().size()>0 ) {
+			infrDefault = infrastructureService.getInfrastructures().get(0); //first replace with any existing default infra			
+		}
+		
+		MANOprovider provider = manoProviderService.getMANOproviderByID( uexpobd.getObMANOprovider().getId() ); //fetch one infra from provider		
+		if ( provider!= null) {
+			if ( provider.getVims() != null  && provider.getVims().size()>0 ){
+				infrDefault = provider.getVims().get(0);
+			}
+		}		
+
+		depl.setInfrastructureForAll(  infrDefault );
 
 		logger.info("reattach Mentor from the DB model");
 		depl.setMentor( usersService.findByUsername("admin") );

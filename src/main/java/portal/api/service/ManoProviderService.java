@@ -24,6 +24,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -46,6 +47,7 @@ public class ManoProviderService {
 		return (List<MANOprovider>) this.manoProvidersRepo.findAllEnabled() ;
 	}
 
+	@Transactional
 	public MANOprovider getMANOproviderByID(long id) {
 		Optional<MANOprovider> o = this.manoProvidersRepo.findById(id);
 		return o.orElse(null);
