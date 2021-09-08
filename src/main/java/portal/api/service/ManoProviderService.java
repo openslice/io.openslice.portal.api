@@ -58,6 +58,8 @@ public class ManoProviderService {
 	 * @return as json
 	 * @throws JsonProcessingException
 	 */
+
+	@Transactional
 	public String getMANOproviderByIDEagerDataJson( long id ) throws JsonProcessingException {
 
 		MANOprovider dd = this.getMANOproviderByID( id );
@@ -70,6 +72,7 @@ public class ManoProviderService {
 		return res;
 	}
 	
+	@Transactional
 	public String getMANOprovidersEagerDataJson() throws JsonProcessingException {
 
 		List<MANOprovider> mps = this.getMANOproviders();
