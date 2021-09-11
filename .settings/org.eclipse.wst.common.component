@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
-    <wb-module deploy-name="io.openslice.portal.api-1.0.2-SNAPSHOT">
+    <wb-module deploy-name="io.openslice.portal.api-1.1.0-SNAPSHOT">
         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/java"/>
         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/resources"/>
-        <dependent-module archiveName="io.openslice.sol005nbi.osm5-1.0.2-SNAPSHOT.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/io.openslice.sol005nbi.osm5/io.openslice.sol005nbi.osm5">
+        <dependent-module archiveName="io.openslice.sol005nbi.osm5-1.1.0-SNAPSHOT.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/io.openslice.sol005nbi.osm5/io.openslice.sol005nbi.osm5">
             <dependency-type>uses</dependency-type>
         </dependent-module>
         <property name="context-root" value="io.openslice.portal.api"/>
