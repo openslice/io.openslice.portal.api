@@ -1827,7 +1827,18 @@ public class ArtifactsAPIController {
 																			// ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
 		// Get the OnBoarded Descriptors to OffBoard them
-		Set<ExperimentOnBoardDescriptor> expobds = nsd.getExperimentOnBoardDescriptors();
+		Set<ExperimentOnBoardDescriptor> expobds;
+		
+		try
+		{
+			expobds = nsd.getExperimentOnBoardDescriptors();
+		}
+		catch(Exception e)
+		{
+			centralLogger.log(CLevel.INFO, "Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid(), compname);			
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid());
+		}
 
 		if (nsd.isValid()) {
 			return (ResponseEntity<?>) ResponseEntity.badRequest()
@@ -1895,6 +1906,12 @@ public class ArtifactsAPIController {
 				// busController.offBoardNSDSucceded( u );
 
 			}
+		}
+		else
+		{
+			centralLogger.log(CLevel.INFO, "No expobds found for "+nsd.getUuid(), compname);			
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid());
 		}
 		busController.deletedExperiment(nsd);
 
