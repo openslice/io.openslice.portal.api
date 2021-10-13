@@ -47,6 +47,11 @@ public class ManoProviderService {
 		return (List<MANOprovider>) this.manoProvidersRepo.findAllEnabled() ;
 	}
 
+	public List<MANOprovider>  getMANOprovidersForSync() {
+		return (List<MANOprovider>) this.manoProvidersRepo.findAllEnabledForSync();
+	}
+
+
 	@Transactional
 	public MANOprovider getMANOproviderByID(long id) {
 		Optional<MANOprovider> o = this.manoProvidersRepo.findById(id);
@@ -85,6 +90,18 @@ public class ManoProviderService {
 		return res;
 	}
 	
+	@Transactional
+	public String getMANOprovidersForSyncEagerDataJson() throws JsonProcessingException {
+
+		List<MANOprovider> mps = this.getMANOprovidersForSync();
+		ObjectMapper mapper = new ObjectMapper();
+        // Registering Hibernate5Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( mps );
+		
+		return res;
+	}
 
 	public MANOprovider updateMANOproviderInfo(MANOprovider c) {
 		
@@ -103,5 +120,5 @@ public class ManoProviderService {
 	public List<MANOprovider>  getMANOproviders() {
 		return (List<MANOprovider>) this.manoProvidersRepo.findAll();
 	}
-
+	
 }

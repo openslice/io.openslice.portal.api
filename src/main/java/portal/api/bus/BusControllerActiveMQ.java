@@ -402,6 +402,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.bean( manoProviderService, "getMANOprovidersEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
+		from("activemq:queue:getMANOProvidersForSync")
+		.log( "activemq:queue:getMANOprovidersForSync !" )		
+		.bean( manoProviderService, "getMANOprovidersForSyncEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
 		from("activemq:queue:getInfrastructures")
 		.log( "activemq:queue:getInfrastructures !" )		
 		.bean( infraStructureService, "getInfrastructuresEagerDataJson" )
