@@ -1169,19 +1169,19 @@ public class ArtifactsAPIController {
 					response = busController.offBoardVxF(vxfobd_tmp);
 					logger.info("offBoard VxF response:" + response.toString());
 				} catch (HttpClientErrorException e) {
-					vxfobd_tmp.setOnBoardingStatus(previous_status);
-					centralLogger.log(CLevel.INFO, "Onboarding Status change of VxF " + vxfobd_tmp.getVxf().getName()
-							+ " to " + vxfobd_tmp.getOnBoardingStatus(), compname);
-					vxfobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
-					u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
 					logger.info("offBoard VxF exception:" + e.toString());
 					logger.info("offBoard VxF exception response:" + response.toString());
-					return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
-							.body(e.getResponseBodyAsString());
+//					vxfobd_tmp.setOnBoardingStatus(previous_status);
+//					centralLogger.log(CLevel.INFO, "Onboarding Status change of VxF " + vxfobd_tmp.getVxf().getName()
+//							+ " to " + vxfobd_tmp.getOnBoardingStatus(), compname);
+//					vxfobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
+//					u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
+//					return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
+//							.body(e.getResponseBodyAsString());
 				}
 
-				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError()
-						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND)))) // If response is 400like or
+				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError())
+						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND))) // If response is 400like or
 																						// 500like quit the deletion.
 				{
 					vxfobd_tmp.setOnBoardingStatus(previous_status);
@@ -1839,12 +1839,14 @@ public class ArtifactsAPIController {
 			return (ResponseEntity<?>) ResponseEntity.badRequest()
 					.body("Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid());
 		}
-
+		// If the NSD is Valid exit
 		if (nsd.isValid()) {
 			return (ResponseEntity<?>) ResponseEntity.badRequest()
 					.body("ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
 		}
-		if (expobds.size() > 0) {
+		// If there are Experiment OnBoard Descriptors		
+		if (expobds!=null && expobds.size() > 0) {
+			// Foreach Experiment OnBoard Descriptors
 			for (ExperimentOnBoardDescriptor expobd_tmp : expobds) {
 				if (expobd_tmp.getOnBoardingStatus() != OnBoardingStatus.ONBOARDED) {
 					continue;
@@ -1862,20 +1864,20 @@ public class ArtifactsAPIController {
 					response = busController.offBoardNSD(expobd_tmp);
 					logger.info("offBoard NSD response:" + response.toString());
 				} catch (HttpStatusCodeException e) {
-					expobd_tmp.setOnBoardingStatus(previous_status);
-					centralLogger.log(CLevel.INFO, "Boarding Status change of VxF "
-							+ expobd_tmp.getExperiment().getName() + " to " + expobd_tmp.getOnBoardingStatus(),
-							compname);
-					expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
-					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 					logger.info("offBoard NSD exception:" + e.toString());
 					logger.info("offBoard NSD exception response:" + response.toString());
-					return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
-							.body(e.getResponseBodyAsString());
+					//expobd_tmp.setOnBoardingStatus(previous_status);
+					//centralLogger.log(CLevel.INFO, "Boarding Status change of VxF "
+					//		+ expobd_tmp.getExperiment().getName() + " to " + expobd_tmp.getOnBoardingStatus(),
+					//		compname);
+					//expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
+					//u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
+					//return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
+					//		.body(e.getResponseBodyAsString());
 				}
-
-				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError()
-						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND)))) // If response is 400like or
+				// if the deletion fails with a 400like or 500like update the object.
+				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError())
+						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND))) // If response is 400like or
 																						// 500like quit the deletion.
 				{
 					expobd_tmp.setOnBoardingStatus(previous_status);
@@ -1894,11 +1896,11 @@ public class ArtifactsAPIController {
 				// vxfobd_tmp.getVxf().setCertified(false);
 				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 				try {
-					centralLogger.log(CLevel.INFO, "Onboarding Status change of VxF "
+					centralLogger.log(CLevel.INFO, "Onboarding Status change of NSD "
 							+ expobd_tmp.getExperiment().getName() + " to " + expobd_tmp.getOnBoardingStatus(),
 							compname);
 				} catch (Exception e) {
-					centralLogger.log(CLevel.INFO, "No related VxF found for " + expobd_tmp.getId() + " in status  "
+					centralLogger.log(CLevel.INFO, "No related NSD found for " + expobd_tmp.getId() + " in status  "
 							+ expobd_tmp.getOnBoardingStatus(), compname);
 				}
 
