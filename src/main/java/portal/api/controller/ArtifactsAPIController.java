@@ -2222,19 +2222,18 @@ public class ArtifactsAPIController {
 
 			logger.info("NS status change is now " + deploymentSaved.getStatus());
 
-//			u = portalRepositoryRef.updateUserInfo(u);
+			//u = portalRepositoryRef.updateUserInfo(u);
+			//deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
 
-//			deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
+			//busController.newDeploymentRequest(deploymentSaved);
 
-			busController.newDeploymentRequest(deploymentSaved);
-
-//			String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
-//			if ((adminemail != null) && (!adminemail.equals(""))) {
-//				String subj = "[5GinFIREPortal] New Deployment Request";
-//				EmailUtil.SendRegistrationActivationEmail(adminemail,
-//						"5GinFIREPortal New Deployment Request by user : " + u.getUsername() + ", " + u.getEmail()+ "\n<br/> Status: " + deployment.getStatus().name()+ "\n<br/> Description: " + deployment.getDescription()   ,
-//						subj);
-//			}
+			//String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
+			//if ((adminemail != null) && (!adminemail.equals(""))) {
+			//	String subj = "[5GinFIREPortal] New Deployment Request";
+			//	EmailUtil.SendRegistrationActivationEmail(adminemail,
+			//			"5GinFIREPortal New Deployment Request by user : " + u.getUsername() + ", " + u.getEmail()+ "\n<br/> Status: " + deployment.getStatus().name()+ "\n<br/> Description: " + deployment.getDescription()   ,
+			//			subj);
+			//}
 
 			return ResponseEntity.ok(deploymentSaved);
 		} else {
@@ -2324,19 +2323,19 @@ public class ArtifactsAPIController {
 				// portalRepositoryRef.getUserByID(d.getOwner().getId());
 				// d.setOwner(deploymentOwner); // reattach from the DB model
 
-//				ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
-//						.getProductByID(d.getExperiment().getId());
-//				d.setExperiment(baseApplication); // reattach from the DB model
-//
-//				DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
-//				List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
-//				for (DeploymentDescriptor deploymentDescriptor : deployments) {
-//					logger.info("Deployment id = " + deploymentDescriptor.getId() );
-//				}
-//				if ( ! deployments.contains(deployment) ) {
-//					deploymentOwner.getDeployments().add(deployment);
-//					deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
-//				}
+				//ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
+				//		.getProductByID(d.getExperiment().getId());
+				//d.setExperiment(baseApplication); // reattach from the DB model
+				//
+				//DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
+				//List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
+				//for (DeploymentDescriptor deploymentDescriptor : deployments) {
+				//	logger.info("Deployment id = " + deploymentDescriptor.getId() );
+				//}
+				//if ( ! deployments.contains(deployment) ) {
+				//	deploymentOwner.getDeployments().add(deployment);
+				//	deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
+				//}
 
 				aDeployment.setName(receivedDeployment.getName());
 				aDeployment.setFeedback(receivedDeployment.getFeedback());
@@ -2447,42 +2446,42 @@ public class ArtifactsAPIController {
 
 	}
 
-//	@POST
-//	@Path("/registerresource/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
-//
-//		logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
-//				+ sm.getOwner().getId());
-//
-//		PortalUser u = sm.getOwner();
-//		u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
-//
-//		if ((u != null) && (sm.getUuid() != null)) {
-//
-//			SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
-//
-//			if (checkSM == null) {
-//				sm.setOwner(u);
-//				sm.setActive(false);
-//				u.getSubscribedResources().add(sm);
-//				u = portalRepositoryRef.updateUserInfo(  u);
-//				return Response.ok().entity(sm).build();
-//			} else {
-//				checkSM.setURL(sm.getURL());// update URL if changed
-//				// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
-//				checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
-//				return Response.ok().entity(checkSM).build();
-//			}
-//
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
-//					+ " cannot be registered under not found user");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
+	//@POST
+	//@Path("/registerresource/")
+	//@Produces("application/json")
+	//@Consumes("application/json")
+	//public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
+	//
+	//	logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
+	//			+ sm.getOwner().getId());
+	//
+	//	PortalUser u = sm.getOwner();
+	//	u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
+	//
+	//	if ((u != null) && (sm.getUuid() != null)) {
+	//
+	//		SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
+	//
+	//		if (checkSM == null) {
+	//			sm.setOwner(u);
+	//			sm.setActive(false);
+	//			u.getSubscribedResources().add(sm);
+	//			u = portalRepositoryRef.updateUserInfo(  u);
+	//			return Response.ok().entity(sm).build();
+	//		} else {
+	//			checkSM.setURL(sm.getURL());// update URL if changed
+	//			// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
+	//			checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
+	//			return Response.ok().entity(checkSM).build();
+	//		}
+	//
+	//	} else {
+	//		ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
+	//		builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
+	//				+ " cannot be registered under not found user");
+	//		throw new WebApplicationException(builder.build());
+	//	}
+	//}
 
 	/********************************************************************************
 	 * 
@@ -2805,31 +2804,31 @@ public class ArtifactsAPIController {
 			return (ResponseEntity<?>) ResponseEntity.notFound();
 		}
 
-//		/**
-//		 * the following polling will be performed automatically by CAMEL with a timer
-//		 */
-//
-//		if (obds.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
-//
-//			Vnfd vnfd = null;
-//			List<Vnfd> vnfds = OSMClient.getInstance(obds.getObMANOprovider()).getVNFDs();
-//			for (Vnfd v : vnfds) {
-//				if (v.getId().equalsIgnoreCase(obds.getVxfMANOProviderID())
-//						|| v.getName().equalsIgnoreCase(obds.getVxfMANOProviderID())) {
-//					vnfd = v;
-//					break;
-//				}
-//			}
-//
-//			if (vnfd == null) {
-//				obds.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
-//			} else {
-//				obds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
-//			}
-//
-//			obds = portalRepositoryRef.updateVxFOnBoardedDescriptor(obds);
-//
-//		}
+		///**
+		// * the following polling will be performed automatically by CAMEL with a timer
+		// */
+		//
+		//if (obds.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
+		//
+		//	Vnfd vnfd = null;
+		//	List<Vnfd> vnfds = OSMClient.getInstance(obds.getObMANOprovider()).getVNFDs();
+		//	for (Vnfd v : vnfds) {
+		//		if (v.getId().equalsIgnoreCase(obds.getVxfMANOProviderID())
+		//				|| v.getName().equalsIgnoreCase(obds.getVxfMANOProviderID())) {
+		//			vnfd = v;
+		//			break;
+		//		}
+		//	}
+		//
+		//	if (vnfd == null) {
+		//		obds.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
+		//	} else {
+		//		obds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
+		//	}
+		//
+		//	obds = portalRepositoryRef.updateVxFOnBoardedDescriptor(obds);
+		//
+		//}
 
 		return ResponseEntity.ok(obds);
 

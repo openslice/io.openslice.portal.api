@@ -131,12 +131,11 @@ public class BusController  {
 	 * Asynchronously sends to the routing bus (seda:deployments.create?multipleConsumers=true) that a new user is added
 	 * @param deployment a {@link DeploymentDescriptor}
 	 */
-	public void newDeploymentRequest( DeploymentDescriptor deployment) {
-
-		FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:deployments.create?multipleConsumers=true");
-		template.withBody( deployment ).asyncSend();
-		
-	}
+	// NOT USED
+	//public void newDeploymentRequest( DeploymentDescriptor deployment) {
+	//	FluentProducerTemplate template = contxt.createFluentProducerTemplate().to("seda:deployments.create?multipleConsumers=true");
+	//	template.withBody( deployment ).asyncSend();		
+	//}
 
 	/**
 	 * Asynchronously sends to the routing bus (seda:deployments.create?multipleConsumers=true) that a new user is added

@@ -175,11 +175,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.onboard.fail" );
 		
-		
-		from("seda:deployments.create?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
-		.convertBodyTo( String.class )
-		.to( "activemq:topic:deployments.create" );
+		//Dead end
+		//from("seda:deployments.create?multipleConsumers=true")
+		//.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		//.convertBodyTo( String.class )
+		//.to( "activemq:topic:deployments.create" );
 		
 		from("seda:deployments.reject?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
