@@ -466,7 +466,17 @@ public class DeploymentDescriptorService {
 		aDeployment.setNsLcmOpOccId(receivedDeployment.getNsLcmOpOccId());
 		aDeployment.setNs_nslcm_details(receivedDeployment.getNs_nslcm_details());
 		
-		if(1==1 || receivedDeployment.getStatus() != aDeployment.getStatus() )
+		logger.info("Update VxF Instance Info");
+		try
+		{
+			logger.info(receivedDeployment.getDeploymentDescriptorVxFInstanceInfo().toArray().toString());
+			aDeployment.setDeploymentDescriptorVxFInstanceInfo(receivedDeployment.getDeploymentDescriptorVxFInstanceInfo());
+		}
+		catch(Exception e)
+		{				
+			logger.info("Update of Vxf Instance Info failed with " + e.getMessage());
+		}
+		if(receivedDeployment.getStatus() != aDeployment.getStatus() )
 		{
 			aDeployment.setStatus( receivedDeployment.getStatus() );
 			centralLogger.log( CLevel.INFO, "Status change of deployment "+aDeployment.getName()+" to "+aDeployment.getStatus(), compname );
@@ -479,16 +489,6 @@ public class DeploymentDescriptorService {
 			logger.info( "Feedback of deployment set to "+aDeployment.getFeedback() );			
 			aDeployment.getExperimentFullDetails();
 			aDeployment.getInfrastructureForAll();
-			logger.info("reattach DeploymentDescriptorVxFPlacement from the DB model");
-			try
-			{
-				logger.info(receivedDeployment.getDeploymentDescriptorVxFInstanceInfo().toArray().toString());
-				aDeployment.setDeploymentDescriptorVxFInstanceInfo(receivedDeployment.getDeploymentDescriptorVxFInstanceInfo());
-			}
-			catch(Exception e)
-			{				
-				logger.info("Update of Vxf Instance Info failed with " + e.getMessage());
-			}
 			logger.info("updateDeployment for id: " + aDeployment.getId());
 				
 			if( receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED && aDeployment.getInstanceId() == null)
