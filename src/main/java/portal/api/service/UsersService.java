@@ -122,7 +122,8 @@ public class UsersService {
 			bu.addRole( UserRoleType.ROLE_ADMIN );
 			bu.addRole( UserRoleType.ROLE_MENTOR );
 			bu.setActive(true);
-			addPortalUserToUsers( bu );			
+			usersRepo.save( bu );
+			//addPortalUserToUsers( bu );			
 		}				
 	}
 
