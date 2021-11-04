@@ -1820,14 +1820,21 @@ public class ArtifactsAPIController {
 		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
 		SecurityContextHolder.setContext((SecurityContext) attr);
 
+		// Get the OnBoarded Descriptors to OffBoard them
+		Set<ExperimentOnBoardDescriptor> expobds = null;
+
 		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID(appid);
 
 		if (!checkUserIDorIsAdmin(nsd.getOwner().getId())) {
 			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
 																			// ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
-		// Get the OnBoarded Descriptors to OffBoard them
-		Set<ExperimentOnBoardDescriptor> expobds;
+		
+		// If the NSD is Valid exit
+		if (nsd.isValid()) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
+		}
 		
 		try
 		{
@@ -1836,13 +1843,6 @@ public class ArtifactsAPIController {
 		catch(Exception e)
 		{
 			centralLogger.log(CLevel.INFO, "Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid(), compname);			
-			return (ResponseEntity<?>) ResponseEntity.badRequest()
-					.body("Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid());
-		}
-		// If the NSD is Valid exit
-		if (nsd.isValid()) {
-			return (ResponseEntity<?>) ResponseEntity.badRequest()
-					.body("ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
 		}
 		// If there are Experiment OnBoard Descriptors		
 		if (expobds!=null && expobds.size() > 0) {
@@ -1883,8 +1883,8 @@ public class ArtifactsAPIController {
 					expobd_tmp.setOnBoardingStatus(previous_status);
 					expobd_tmp.setFeedbackMessage(response.getBody());
 					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
-					return ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders())
-							.body(response.getBody());
+					logger.info("Failed offboarding of NSD with id " + expobd_tmp.getId());
+					centralLogger.log(CLevel.INFO, "Failed offboarding of NSD with id " + expobd_tmp.getId(), compname);
 				} else {
 					if (response.getBody() != null) {
 						expobd_tmp.setFeedbackMessage(response.getBody().toString());
@@ -1906,14 +1906,11 @@ public class ArtifactsAPIController {
 
 				u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 				// busController.offBoardNSDSucceded( u );
-
 			}
 		}
 		else
 		{
 			centralLogger.log(CLevel.INFO, "No expobds found for "+nsd.getUuid(), compname);			
-			return (ResponseEntity<?>) ResponseEntity.badRequest()
-					.body("Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid());
 		}
 		busController.deletedExperiment(nsd);
 
