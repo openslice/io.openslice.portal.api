@@ -1883,8 +1883,9 @@ public class ArtifactsAPIController {
 					expobd_tmp.setOnBoardingStatus(previous_status);
 					expobd_tmp.setFeedbackMessage(response.getBody());
 					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
-					logger.info("Failed offboarding of NSD with id " + expobd_tmp.getId());
-					centralLogger.log(CLevel.INFO, "Failed offboarding of NSD with id " + expobd_tmp.getId(), compname);
+					return ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders())
+							.body(response.getBody());
+												
 				} else {
 					if (response.getBody() != null) {
 						expobd_tmp.setFeedbackMessage(response.getBody().toString());
