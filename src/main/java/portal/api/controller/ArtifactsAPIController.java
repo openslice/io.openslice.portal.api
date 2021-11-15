@@ -2648,6 +2648,7 @@ public class ArtifactsAPIController {
 		prev.setDescription(c.getDescription());
 		prev.setName(c.getName());
 		prev.setSupportedMANOplatform(c.getSupportedMANOplatform());
+		prev.setVims(c.getVims());
 
 		MANOprovider u = manoProviderService.updateMANOproviderInfo(c);
 
