@@ -19,6 +19,7 @@
  */
 package portal.api.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,13 +45,39 @@ public class ManoProviderService {
 
 	public List<MANOprovider> getMANOprovidersEnabledForOnboarding() {
 		
-		return (List<MANOprovider>) this.manoProvidersRepo.findAllEnabled() ;
+		List<MANOprovider> tmp_mp_list = new ArrayList<MANOprovider>(); 
+		for(MANOprovider tmp : this.manoProvidersRepo.findAllEnabled())
+		{
+			tmp.getVims();
+			tmp_mp_list.add(tmp);
+		}
+			
+		return tmp_mp_list;		
 	}
+
+	public List<MANOprovider>  getMANOprovidersForSync() {
+		List<MANOprovider> tmp_mp_list = new ArrayList<MANOprovider>(); 
+		for(MANOprovider tmp : this.manoProvidersRepo.findAllEnabledForSync())
+		{
+			tmp.getVims();
+			tmp_mp_list.add(tmp);
+		}
+			
+		return tmp_mp_list;				
+	}
+
 
 	@Transactional
 	public MANOprovider getMANOproviderByID(long id) {
 		Optional<MANOprovider> o = this.manoProvidersRepo.findById(id);
-		return o.orElse(null);
+		try
+		{
+			return (MANOprovider) o.get().getVims();
+		}
+		catch(Exception e)
+		{
+			return o.orElse(null);
+		}		
 	}
 
 	/**
@@ -65,7 +92,7 @@ public class ManoProviderService {
 		MANOprovider dd = this.getMANOproviderByID( id );
 		ObjectMapper mapper = new ObjectMapper();
         // Registering Hibernate5Module to support lazy objects
-		// this will fetch all lazy objects of VxF before marshaling
+		// this will fetch all lazy objects of MANOprovider before marshaling
         mapper.registerModule(new Hibernate5Module()); 
 		String res = mapper.writeValueAsString( dd );
 		
@@ -85,6 +112,24 @@ public class ManoProviderService {
 		return res;
 	}
 	
+	@Transactional
+	public String getMANOprovidersForSyncEagerDataJson() throws JsonProcessingException {
+
+		List<MANOprovider> mps = this.getMANOprovidersForSync();
+		List<MANOprovider> tmp_mp_list = new ArrayList<MANOprovider>(); 
+		for(MANOprovider tmp : mps)
+		{
+			tmp.getVims();
+			tmp_mp_list.add(tmp);
+		}		
+		ObjectMapper mapper = new ObjectMapper();
+        // Registering Hibernate5Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( tmp_mp_list );
+		
+		return res;
+	}
 
 	public MANOprovider updateMANOproviderInfo(MANOprovider c) {
 		
@@ -101,7 +146,14 @@ public class ManoProviderService {
 	}
 
 	public List<MANOprovider>  getMANOproviders() {
-		return (List<MANOprovider>) this.manoProvidersRepo.findAll();
+		List<MANOprovider> tmp_mp_list = new ArrayList<MANOprovider>(); 
+		for(MANOprovider tmp : this.manoProvidersRepo.findAll())
+		{
+			tmp.getVims();
+			tmp_mp_list.add(tmp);
+		}
+			
+		return tmp_mp_list;
 	}
-
+	
 }

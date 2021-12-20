@@ -1169,19 +1169,19 @@ public class ArtifactsAPIController {
 					response = busController.offBoardVxF(vxfobd_tmp);
 					logger.info("offBoard VxF response:" + response.toString());
 				} catch (HttpClientErrorException e) {
-					vxfobd_tmp.setOnBoardingStatus(previous_status);
-					centralLogger.log(CLevel.INFO, "Onboarding Status change of VxF " + vxfobd_tmp.getVxf().getName()
-							+ " to " + vxfobd_tmp.getOnBoardingStatus(), compname);
-					vxfobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
-					u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
 					logger.info("offBoard VxF exception:" + e.toString());
 					logger.info("offBoard VxF exception response:" + response.toString());
-					return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
-							.body(e.getResponseBodyAsString());
+//					vxfobd_tmp.setOnBoardingStatus(previous_status);
+//					centralLogger.log(CLevel.INFO, "Onboarding Status change of VxF " + vxfobd_tmp.getVxf().getName()
+//							+ " to " + vxfobd_tmp.getOnBoardingStatus(), compname);
+//					vxfobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
+//					u = vxfOBDService.updateVxFOnBoardedDescriptor(vxfobd_tmp);
+//					return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
+//							.body(e.getResponseBodyAsString());
 				}
 
-				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError()
-						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND)))) // If response is 400like or
+				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError())
+						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND))) // If response is 400like or
 																						// 500like quit the deletion.
 				{
 					vxfobd_tmp.setOnBoardingStatus(previous_status);
@@ -1820,14 +1820,21 @@ public class ArtifactsAPIController {
 		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
 		SecurityContextHolder.setContext((SecurityContext) attr);
 
+		// Get the OnBoarded Descriptors to OffBoard them
+		Set<ExperimentOnBoardDescriptor> expobds = null;
+
 		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID(appid);
 
 		if (!checkUserIDorIsAdmin(nsd.getOwner().getId())) {
 			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
 																			// ResponseEntity.status(HttpStatus.FORBIDDEN);
 		}
-		// Get the OnBoarded Descriptors to OffBoard them
-		Set<ExperimentOnBoardDescriptor> expobds;
+		
+		// If the NSD is Valid exit
+		if (nsd.isValid()) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
+		}
 		
 		try
 		{
@@ -1836,15 +1843,10 @@ public class ArtifactsAPIController {
 		catch(Exception e)
 		{
 			centralLogger.log(CLevel.INFO, "Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid(), compname);			
-			return (ResponseEntity<?>) ResponseEntity.badRequest()
-					.body("Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid());
 		}
-
-		if (nsd.isValid()) {
-			return (ResponseEntity<?>) ResponseEntity.badRequest()
-					.body("ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
-		}
-		if (expobds.size() > 0) {
+		// If there are Experiment OnBoard Descriptors		
+		if (expobds!=null && expobds.size() > 0) {
+			// Foreach Experiment OnBoard Descriptors
 			for (ExperimentOnBoardDescriptor expobd_tmp : expobds) {
 				if (expobd_tmp.getOnBoardingStatus() != OnBoardingStatus.ONBOARDED) {
 					continue;
@@ -1862,20 +1864,20 @@ public class ArtifactsAPIController {
 					response = busController.offBoardNSD(expobd_tmp);
 					logger.info("offBoard NSD response:" + response.toString());
 				} catch (HttpStatusCodeException e) {
-					expobd_tmp.setOnBoardingStatus(previous_status);
-					centralLogger.log(CLevel.INFO, "Boarding Status change of VxF "
-							+ expobd_tmp.getExperiment().getName() + " to " + expobd_tmp.getOnBoardingStatus(),
-							compname);
-					expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
-					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 					logger.info("offBoard NSD exception:" + e.toString());
 					logger.info("offBoard NSD exception response:" + response.toString());
-					return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
-							.body(e.getResponseBodyAsString());
+					//expobd_tmp.setOnBoardingStatus(previous_status);
+					//centralLogger.log(CLevel.INFO, "Boarding Status change of VxF "
+					//		+ expobd_tmp.getExperiment().getName() + " to " + expobd_tmp.getOnBoardingStatus(),
+					//		compname);
+					//expobd_tmp.setFeedbackMessage(e.getResponseBodyAsString());
+					//u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
+					//return ResponseEntity.status(e.getRawStatusCode()).headers(e.getResponseHeaders())
+					//		.body(e.getResponseBodyAsString());
 				}
-
-				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError()
-						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND)))) // If response is 400like or
+				// if the deletion fails with a 400like or 500like update the object.
+				if ((response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError())
+						&& (!response.getStatusCode().equals(HttpStatus.NOT_FOUND))) // If response is 400like or
 																						// 500like quit the deletion.
 				{
 					expobd_tmp.setOnBoardingStatus(previous_status);
@@ -1883,6 +1885,7 @@ public class ArtifactsAPIController {
 					u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 					return ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders())
 							.body(response.getBody());
+												
 				} else {
 					if (response.getBody() != null) {
 						expobd_tmp.setFeedbackMessage(response.getBody().toString());
@@ -1894,24 +1897,21 @@ public class ArtifactsAPIController {
 				// vxfobd_tmp.getVxf().setCertified(false);
 				expobd_tmp.setOnBoardingStatus(OnBoardingStatus.OFFBOARDED);
 				try {
-					centralLogger.log(CLevel.INFO, "Onboarding Status change of VxF "
+					centralLogger.log(CLevel.INFO, "Onboarding Status change of NSD "
 							+ expobd_tmp.getExperiment().getName() + " to " + expobd_tmp.getOnBoardingStatus(),
 							compname);
 				} catch (Exception e) {
-					centralLogger.log(CLevel.INFO, "No related VxF found for " + expobd_tmp.getId() + " in status  "
+					centralLogger.log(CLevel.INFO, "No related NSD found for " + expobd_tmp.getId() + " in status  "
 							+ expobd_tmp.getOnBoardingStatus(), compname);
 				}
 
 				u = nsdOBDService.updateExperimentOnBoardDescriptor(expobd_tmp);
 				// busController.offBoardNSDSucceded( u );
-
 			}
 		}
 		else
 		{
 			centralLogger.log(CLevel.INFO, "No expobds found for "+nsd.getUuid(), compname);			
-			return (ResponseEntity<?>) ResponseEntity.badRequest()
-					.body("Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid());
 		}
 		busController.deletedExperiment(nsd);
 
@@ -2220,19 +2220,18 @@ public class ArtifactsAPIController {
 
 			logger.info("NS status change is now " + deploymentSaved.getStatus());
 
-//			u = portalRepositoryRef.updateUserInfo(u);
+			//u = portalRepositoryRef.updateUserInfo(u);
+			//deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
 
-//			deployment = portalRepositoryRef.getDeploymentByUUID( deployment.getUuid() );//reattach from model
+			//busController.newDeploymentRequest(deploymentSaved);
 
-			busController.newDeploymentRequest(deploymentSaved);
-
-//			String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
-//			if ((adminemail != null) && (!adminemail.equals(""))) {
-//				String subj = "[5GinFIREPortal] New Deployment Request";
-//				EmailUtil.SendRegistrationActivationEmail(adminemail,
-//						"5GinFIREPortal New Deployment Request by user : " + u.getUsername() + ", " + u.getEmail()+ "\n<br/> Status: " + deployment.getStatus().name()+ "\n<br/> Description: " + deployment.getDescription()   ,
-//						subj);
-//			}
+			//String adminemail = PortalRepository.getPropertyByName("adminEmail").getValue();
+			//if ((adminemail != null) && (!adminemail.equals(""))) {
+			//	String subj = "[5GinFIREPortal] New Deployment Request";
+			//	EmailUtil.SendRegistrationActivationEmail(adminemail,
+			//			"5GinFIREPortal New Deployment Request by user : " + u.getUsername() + ", " + u.getEmail()+ "\n<br/> Status: " + deployment.getStatus().name()+ "\n<br/> Description: " + deployment.getDescription()   ,
+			//			subj);
+			//}
 
 			return ResponseEntity.ok(deploymentSaved);
 		} else {
@@ -2322,19 +2321,19 @@ public class ArtifactsAPIController {
 				// portalRepositoryRef.getUserByID(d.getOwner().getId());
 				// d.setOwner(deploymentOwner); // reattach from the DB model
 
-//				ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
-//						.getProductByID(d.getExperiment().getId());
-//				d.setExperiment(baseApplication); // reattach from the DB model
-//
-//				DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
-//				List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
-//				for (DeploymentDescriptor deploymentDescriptor : deployments) {
-//					logger.info("Deployment id = " + deploymentDescriptor.getId() );
-//				}
-//				if ( ! deployments.contains(deployment) ) {
-//					deploymentOwner.getDeployments().add(deployment);
-//					deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
-//				}
+				//ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
+				//		.getProductByID(d.getExperiment().getId());
+				//d.setExperiment(baseApplication); // reattach from the DB model
+				//
+				//DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
+				//List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
+				//for (DeploymentDescriptor deploymentDescriptor : deployments) {
+				//	logger.info("Deployment id = " + deploymentDescriptor.getId() );
+				//}
+				//if ( ! deployments.contains(deployment) ) {
+				//	deploymentOwner.getDeployments().add(deployment);
+				//	deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
+				//}
 
 				aDeployment.setName(receivedDeployment.getName());
 				aDeployment.setFeedback(receivedDeployment.getFeedback());
@@ -2445,42 +2444,42 @@ public class ArtifactsAPIController {
 
 	}
 
-//	@POST
-//	@Path("/registerresource/")
-//	@Produces("application/json")
-//	@Consumes("application/json")
-//	public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
-//
-//		logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
-//				+ sm.getOwner().getId());
-//
-//		PortalUser u = sm.getOwner();
-//		u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
-//
-//		if ((u != null) && (sm.getUuid() != null)) {
-//
-//			SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
-//
-//			if (checkSM == null) {
-//				sm.setOwner(u);
-//				sm.setActive(false);
-//				u.getSubscribedResources().add(sm);
-//				u = portalRepositoryRef.updateUserInfo(  u);
-//				return Response.ok().entity(sm).build();
-//			} else {
-//				checkSM.setURL(sm.getURL());// update URL if changed
-//				// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
-//				checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
-//				return Response.ok().entity(checkSM).build();
-//			}
-//
-//		} else {
-//			ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-//			builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
-//					+ " cannot be registered under not found user");
-//			throw new WebApplicationException(builder.build());
-//		}
-//	}
+	//@POST
+	//@Path("/registerresource/")
+	//@Produces("application/json")
+	//@Consumes("application/json")
+	//public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
+	//
+	//	logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
+	//			+ sm.getOwner().getId());
+	//
+	//	PortalUser u = sm.getOwner();
+	//	u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
+	//
+	//	if ((u != null) && (sm.getUuid() != null)) {
+	//
+	//		SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
+	//
+	//		if (checkSM == null) {
+	//			sm.setOwner(u);
+	//			sm.setActive(false);
+	//			u.getSubscribedResources().add(sm);
+	//			u = portalRepositoryRef.updateUserInfo(  u);
+	//			return Response.ok().entity(sm).build();
+	//		} else {
+	//			checkSM.setURL(sm.getURL());// update URL if changed
+	//			// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
+	//			checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
+	//			return Response.ok().entity(checkSM).build();
+	//		}
+	//
+	//	} else {
+	//		ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
+	//		builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
+	//				+ " cannot be registered under not found user");
+	//		throw new WebApplicationException(builder.build());
+	//	}
+	//}
 
 	/********************************************************************************
 	 * 
@@ -2649,6 +2648,7 @@ public class ArtifactsAPIController {
 		prev.setDescription(c.getDescription());
 		prev.setName(c.getName());
 		prev.setSupportedMANOplatform(c.getSupportedMANOplatform());
+		prev.setVims(c.getVims());
 
 		MANOprovider u = manoProviderService.updateMANOproviderInfo(c);
 
@@ -2803,31 +2803,31 @@ public class ArtifactsAPIController {
 			return (ResponseEntity<?>) ResponseEntity.notFound();
 		}
 
-//		/**
-//		 * the following polling will be performed automatically by CAMEL with a timer
-//		 */
-//
-//		if (obds.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
-//
-//			Vnfd vnfd = null;
-//			List<Vnfd> vnfds = OSMClient.getInstance(obds.getObMANOprovider()).getVNFDs();
-//			for (Vnfd v : vnfds) {
-//				if (v.getId().equalsIgnoreCase(obds.getVxfMANOProviderID())
-//						|| v.getName().equalsIgnoreCase(obds.getVxfMANOProviderID())) {
-//					vnfd = v;
-//					break;
-//				}
-//			}
-//
-//			if (vnfd == null) {
-//				obds.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
-//			} else {
-//				obds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
-//			}
-//
-//			obds = portalRepositoryRef.updateVxFOnBoardedDescriptor(obds);
-//
-//		}
+		///**
+		// * the following polling will be performed automatically by CAMEL with a timer
+		// */
+		//
+		//if (obds.getOnBoardingStatus().equals(OnBoardingStatus.ONBOARDING)) {
+		//
+		//	Vnfd vnfd = null;
+		//	List<Vnfd> vnfds = OSMClient.getInstance(obds.getObMANOprovider()).getVNFDs();
+		//	for (Vnfd v : vnfds) {
+		//		if (v.getId().equalsIgnoreCase(obds.getVxfMANOProviderID())
+		//				|| v.getName().equalsIgnoreCase(obds.getVxfMANOProviderID())) {
+		//			vnfd = v;
+		//			break;
+		//		}
+		//	}
+		//
+		//	if (vnfd == null) {
+		//		obds.setOnBoardingStatus(OnBoardingStatus.UNKNOWN);
+		//	} else {
+		//		obds.setOnBoardingStatus(OnBoardingStatus.ONBOARDED);
+		//	}
+		//
+		//	obds = portalRepositoryRef.updateVxFOnBoardedDescriptor(obds);
+		//
+		//}
 
 		return ResponseEntity.ok(obds);
 

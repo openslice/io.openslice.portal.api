@@ -175,11 +175,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.convertBodyTo( String.class )
 		.to( "activemq:topic:nsd.onboard.fail" );
 		
-		
-		from("seda:deployments.create?multipleConsumers=true")
-		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
-		.convertBodyTo( String.class )
-		.to( "activemq:topic:deployments.create" );
+		//Dead end
+		//from("seda:deployments.create?multipleConsumers=true")
+		//.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
+		//.convertBodyTo( String.class )
+		//.to( "activemq:topic:deployments.create" );
 		
 		from("seda:deployments.reject?multipleConsumers=true")
 		.marshal().json( JsonLibrary.Jackson, DeploymentDescriptor.class, true)
@@ -400,6 +400,11 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		from("activemq:queue:getMANOProviders")
 		.log( "activemq:queue:getMANOproviders !" )		
 		.bean( manoProviderService, "getMANOprovidersEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
+		
+		from("activemq:queue:getMANOProvidersForSync")
+		.log( "activemq:queue:getMANOprovidersForSync !" )		
+		.bean( manoProviderService, "getMANOprovidersForSyncEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:getInfrastructures")

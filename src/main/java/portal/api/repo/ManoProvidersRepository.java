@@ -39,4 +39,7 @@ public interface ManoProvidersRepository extends PagingAndSortingRepository<MANO
 	@Query( value="SELECT mp FROM MANOprovider mp WHERE mp.enabledForONBOARDING = TRUE")
 	Collection<MANOprovider> findAllEnabled();
 
+	@Query( value="SELECT mp FROM MANOprovider mp WHERE mp.enabledForSYNC = TRUE")
+	Collection<MANOprovider> findAllEnabledForSync();
+	
 }
