@@ -1244,6 +1244,63 @@ public class ArtifactsAPIController {
 		return ResponseEntity.ok().body("{}");
 	}
 
+	@DeleteMapping(value = "/admin/vxfs/{vxfid}/softdelete", produces = "application/json")
+	public ResponseEntity<?> softDeleteVxF(@PathVariable("vxfid") int vxfid, HttpServletRequest request)
+			throws ForbiddenException {
+
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext((SecurityContext) attr);
+
+		VxFMetadata vxf = (VxFMetadata) vxfService.getVxFById(vxfid);
+
+		if (!checkUserIDorIsAdmin(vxf.getOwner().getId())) {
+			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
+																			// ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		// Get the OnBoarded Descriptors to OffBoard them
+		List<VxFOnBoardedDescriptor> vxfobds = vxf.getVxfOnBoardedDescriptors();
+		if (vxf.isCertified()) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("vxf with id=" + vxfid + " is Certified and will not be deleted");
+		}
+		try
+		{
+			busController.deletedVxF(vxf);
+			// remove from categories
+			for (Category c : vxf.getCategories()) {
+				if (c.getProducts().contains(vxf)) {
+					c.getProducts().remove(vxf);
+					categoryService.updateCategoryInfo(c);
+				}
+			}
+	
+			vxf.getCategories().clear();
+	
+			// remove from onboard descriptos
+			for (VxFOnBoardedDescriptor vxfobd_tmp : vxfobds) {
+				VxFOnBoardedDescriptor sm = vxfOBDService.getVxFOnBoardedDescriptorByID(vxfobd_tmp.getId());
+				vxfOBDService.deleteVxFOnBoardedDescriptor(sm);
+	
+			}
+			vxf.getVxfOnBoardedDescriptors().clear();
+	
+			PortalUser owner = usersService.findById(vxf.getOwner().getId());
+			owner.getProducts().remove(vxf);
+			usersService.updateUserInfo(owner, false);
+			vxf.setOwner(null);
+	
+			// check also if deleted from consistuent VNFs
+			vxfService.deleteProduct(vxf);
+		}
+		catch(Exception e)
+		{
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("vxf with id=" + vxfid + " could not be deleted. Please check for possible dependencies.");			
+		}
+		return ResponseEntity.ok().body("{}");
+	}
+	
+	
 	@GetMapping(value = "/vxfs/{vxfid}", produces = "application/json")
 	public ResponseEntity<?> getVxFMetadataByID(@PathVariable("vxfid") int vxfid) throws ForbiddenException {
 		logger.info("getVxFMetadataByID  vxfid=" + vxfid);
@@ -1952,6 +2009,85 @@ public class ArtifactsAPIController {
 		return ResponseEntity.ok().body("{}");
 	}
 
+	@DeleteMapping(value = "/admin/experiments/{appid}/softdelete", produces = "application/json")
+	public ResponseEntity<?> softdeleteExperiment(@PathVariable("appid") int appid, HttpServletRequest request)
+			throws ForbiddenException {
+
+		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		SecurityContextHolder.setContext((SecurityContext) attr);
+
+		// Get the OnBoarded Descriptors to OffBoard them
+		Set<ExperimentOnBoardDescriptor> expobds = null;
+
+		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID(appid);
+
+		if (!checkUserIDorIsAdmin(nsd.getOwner().getId())) {
+			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
+																			// ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		
+		// If the NSD is Valid exit
+		if (nsd.isValid()) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
+		}
+		
+		try
+		{
+			expobds = nsd.getExperimentOnBoardDescriptors();
+		}
+		catch(Exception e)
+		{
+			centralLogger.log(CLevel.INFO, "Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid(), compname);			
+		}
+		
+		try
+		{
+			busController.deletedExperiment(nsd);
+	
+			// Remove NS dependencies
+			for (DeploymentDescriptor d : deploymentDescriptorService.getDeploymentsByExperimentId(nsd.getId())) {
+				d.setExperiment(null);
+				// Clear VxFPlacement to be able to delete the related VxFs also after NSD
+				// deletion.
+				d.getVxfPlacements().clear();
+				deploymentDescriptorService.updateDeploymentDescriptor(d);
+			}
+			// nsd.getDeploymentDescriptors().clear();
+	
+			// Remove NSD from the categories
+			for (Category c : nsd.getCategories()) {
+				if (c.getProducts().contains(nsd)) {
+					c.getProducts().remove(nsd);
+					categoryService.updateCategoryInfo(c);
+				}
+			}
+			nsd.getCategories().clear();
+	
+			// Remove NSD from OnBoarded descriptors
+			for (ExperimentOnBoardDescriptor expobd_tmp : expobds) {
+				ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID(expobd_tmp.getId());
+				nsdOBDService.deleteExperimentOnBoardDescriptor(sm);
+			}
+			nsd.getExperimentOnBoardDescriptors().clear();
+	
+			// Remove NSD from Portal Users
+			PortalUser owner = usersService.findById(nsd.getOwner().getId());
+			owner.getProducts().remove(nsd);
+			usersService.updateUserInfo(owner, false);
+			nsd.setOwner(null);
+	
+			// Delete NSD from Products
+			nsdService.deleteProduct(nsd);
+		}
+		catch(Exception e)
+		{
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("ExperimentMetadata with id=" + appid + " could not be deleted. Please check for possible dependencies.");			
+		}
+		return ResponseEntity.ok().body("{}");
+	}
+	
 	@GetMapping(value = "/admin/properties", produces = "application/json")
 	public ResponseEntity<?> getProperties() throws ForbiddenException {
 
