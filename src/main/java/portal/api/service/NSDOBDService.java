@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.ExperimentOnBoardDescriptor;
-import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.repo.NSDOBDRepository;
 
 @Service

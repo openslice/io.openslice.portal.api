@@ -25,13 +25,8 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import io.openslice.model.ExperimentMetadata;
-import io.openslice.model.MANOprovider;
 import io.openslice.model.VFImage;
-import io.openslice.model.VxFMetadata;
-import portal.api.repo.ManoProvidersRepository;
 import portal.api.repo.VFImageRepository;
-import portal.api.repo.VxFsRepository;
 
 @Service
 public class VFImageService {

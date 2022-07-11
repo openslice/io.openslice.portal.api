@@ -21,8 +21,6 @@ package portal.api.service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.logging.Log;
@@ -31,8 +29,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import io.openslice.model.Category;
-import io.openslice.model.PortalUser;
-import io.openslice.model.UserRoleType;
 import portal.api.repo.CategoriesRepository;
 
 
