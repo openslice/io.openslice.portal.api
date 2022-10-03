@@ -23,15 +23,21 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 /**
  * Our API docs are at:
- * http://localhost:13000/osapi/swagger-ui.html
+ * http://localhost:13000/osapi/swagger-ui/index.html
  * http://localhost:13000/osapi/v2/api-docs
  * 
  * @author ctranoris
  *
  */
+@SpringBootApplication()
+@EnableSwagger2
+@EnableWebMvc
 @EntityScan( basePackages = {"io.openslice.model", "io.openslice.centrallog.client"})
 @ComponentScan(basePackages = {	
 		"portal.api",
@@ -46,7 +52,6 @@ import org.springframework.context.annotation.ComponentScan;
 		"portal.api.validation.ci",
 		"io.openslice.centrallog.client"
 		})
-@SpringBootApplication()
 public class PortalApplication {
 
 	public static void main(String[] args) {

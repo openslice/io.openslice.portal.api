@@ -59,7 +59,11 @@ public class MvcConfig implements WebMvcConfigurer {
 				.resourceChain(true)
 				.addResolver(new EncodedResourceResolver())
 				.addResolver(new PathResourceResolver());
-		
+
+        registry.addResourceHandler("/swagger-ui/**")
+        .addResourceLocations("classpath:/META-INF/resources/webjars/springfox-swagger-ui/")
+        .resourceChain(false);
+        
 		registry.addResourceHandler("swagger-ui.html")
         .addResourceLocations("classpath:/META-INF/resources/");
 

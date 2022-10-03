@@ -46,6 +46,8 @@ spring:
         enabled: true
         instanceId: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
         healthCheckInterval: 120s
+  resources:
+    add-mappings: true
 logging:
   level:
     root: INFO

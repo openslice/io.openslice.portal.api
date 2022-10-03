@@ -26,11 +26,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.AuthorizationCodeGrantBuilder;
 import springfox.documentation.builders.OAuthBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.AuthorizationScope;
+import springfox.documentation.service.Contact;
 import springfox.documentation.service.GrantType;
 import springfox.documentation.service.SecurityReference;
 import springfox.documentation.service.SecurityScheme;
@@ -44,8 +47,6 @@ import springfox.documentation.swagger.web.SecurityConfigurationBuilder;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 @Configuration
-@EnableSwagger2
-@Profile("!testing")
 public class SwaggerConfig {
 	
 
@@ -112,4 +113,33 @@ public class SwaggerConfig {
           new AuthorizationScope("openapi", "Access openapi API") };
         return scopes;
     }
+    
+    
+    @Bean
+    public Docket customnfvportal(){
+        return new Docket(DocumentationType.SWAGGER_2)
+        		.groupName("NFV portal API")
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("portal.api.controller"))
+                    .build()
+                    .directModelSubstitute(java.time.LocalDate.class, java.sql.Date.class)
+                .directModelSubstitute(java.time.OffsetDateTime.class, java.util.Date.class)
+                .apiInfo(apiInfoPortalAPI())
+        		.securitySchemes(Arrays.asList(securityScheme()))
+        		.securityContexts(Arrays.asList(securityContext()));
+    }
+    
+    ApiInfo apiInfoPortalAPI() {
+        return new ApiInfoBuilder()
+            .title("NFV portal API")
+            .description("##NFV portal API")
+            .license("")
+            .licenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html")
+            .termsOfServiceUrl("")
+            .version("1.0.0")
+            .contact(new Contact("","", ""))
+            .build();
+    }
+    
+    
 }
