@@ -28,8 +28,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import javax.persistence.EntityManagerFactory;
-import javax.validation.Valid;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.Hibernate;
@@ -38,13 +36,8 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
@@ -58,9 +51,6 @@ import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.Infrastructure;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.PortalUser;
-import io.openslice.model.UserRoleType;
-import io.openslice.model.VxFMetadata;
-import portal.api.bus.BusController;
 //import portal.api.centrallog.CLevel;
 //import portal.api.centrallog.CentralLogger;
 import portal.api.repo.DeploymentDescriptorRepository;

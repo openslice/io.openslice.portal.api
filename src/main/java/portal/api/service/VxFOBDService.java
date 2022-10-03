@@ -19,32 +19,20 @@
  */
 package portal.api.service;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
-import io.openslice.model.DeploymentDescriptor;
-import io.openslice.model.DeploymentDescriptorStatus;
-import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.MANOprovider;
-import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
-//import portal.api.centrallog.CLevel;
-//import portal.api.centrallog.CentralLogger;
-import portal.api.repo.DeploymentDescriptorRepository;
 import portal.api.repo.VxFOBDRepository;
 
 @Service

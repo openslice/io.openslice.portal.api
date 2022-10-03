@@ -25,21 +25,16 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
-import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.Infrastructure;
-import io.openslice.model.MANOprovider;
-import io.openslice.model.Product;
-import io.openslice.model.VxFMetadata;
-import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.repo.InfrastructureRepository;
-import portal.api.repo.ManoProvidersRepository;
-import portal.api.repo.ProductRepository;
-import portal.api.repo.VxFsRepository;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+
 
 @Service
 public class InfrastructureService {
@@ -47,6 +42,7 @@ public class InfrastructureService {
 	@Autowired
 	InfrastructureRepository infraRepo;
 
+	private static final transient Log logger = LogFactory.getLog( Infrastructure.class.getName());	
 
 	public List<Infrastructure> getInfrastructures() {
 		return (List<Infrastructure>) this.infraRepo.findAll();
@@ -104,6 +100,31 @@ public class InfrastructureService {
 		String res = mapper.writeValueAsString( infrastructure );
 		
 		return res;		
+	}	
+	
+	public Infrastructure updateInfrastructureByJSON(Infrastructure infrastructure) {
+
+		Infrastructure aInfrastructure = getInfrastructureByID( infrastructure.getId() );														
+		logger.info("Previous Infrastructure Status is :"+aInfrastructure.getInfrastructureStatus()+",New Status is:"+infrastructure.getInfrastructureStatus()+" and Instance Id is "+infrastructure.getId());
+				
+		aInfrastructure.setInfrastructureStatus(infrastructure.getInfrastructureStatus());
+		logger.info("updateInfrastructure for id: " + aInfrastructure.getId());				
+		aInfrastructure = updateInfrastructureInfo(aInfrastructure);
+			
+		return aInfrastructure;
+	}
+	
+	public String updateInfrastructureEagerDataJson(Infrastructure receivedInfrastructure) throws JsonProcessingException {
+
+		Infrastructure infrastructure = this.updateInfrastructureByJSON(receivedInfrastructure);
+		ObjectMapper mapper = new ObjectMapper();
+		
+        //Registering Hibernate4Module to support lazy objects
+		// this will fetch all lazy objects of VxF before marshaling
+        mapper.registerModule(new Hibernate5Module()); 
+		String res = mapper.writeValueAsString( infrastructure );
+		
+		return res;
 	}
 	
 }

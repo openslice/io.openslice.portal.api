@@ -30,10 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.ExperimentMetadata;
-import io.openslice.model.Infrastructure;
-import io.openslice.model.MANOprovider;
-import io.openslice.model.VxFMetadata;
-import portal.api.repo.ManoProvidersRepository;
 import portal.api.repo.NSDsRepository;
 
 @Service
