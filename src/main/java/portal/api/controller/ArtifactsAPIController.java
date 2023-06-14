@@ -640,8 +640,8 @@ public class ArtifactsAPIController {
 			HttpServletRequest request) {
 		logger.info("getVxFs categoryid=" + categoryid);
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
 		PortalUser u = usersService.findByUsername(authentication.getName());
@@ -684,8 +684,8 @@ public class ArtifactsAPIController {
 			e.printStackTrace();
 		}
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -1130,8 +1130,8 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> deleteVxF(@PathVariable("vxfid") int vxfid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 
 		VxFMetadata vxf = (VxFMetadata) vxfService.getVxFById(vxfid);
 
@@ -1412,8 +1412,8 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> getApps(@RequestParam(name = "categoryid", required = false) Long categoryid,
 			HttpServletRequest request) {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 
 		if (u != null) {
@@ -1672,8 +1672,8 @@ public class ArtifactsAPIController {
 			e.printStackTrace();
 		}
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 
 		if (u == null) {
@@ -1874,8 +1874,8 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 
 		// Get the OnBoarded Descriptors to OffBoard them
 		Set<ExperimentOnBoardDescriptor> expobds = null;
