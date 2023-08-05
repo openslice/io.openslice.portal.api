@@ -29,7 +29,6 @@ import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.model.dataformat.JsonLibrary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
@@ -88,7 +87,7 @@ public class ValidationCIRouteBuilder extends RouteBuilder {
 		.errorHandler(deadLetterChannel("direct:dlq_validations")
 				.maximumRedeliveries( 3 ) //let's try 3 times to send it....
 				.redeliveryDelay( 30000 ).useOriginalMessage()
-				.deadLetterHandleNewException( false )
+				//.deadLetterHandleNewException( false )
 				//.logExhaustedMessageHistory(false)
 				.logExhausted(true)
 				.logHandled(true)

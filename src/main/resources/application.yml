@@ -1,22 +1,72 @@
+origins: http://localhost,http://localhost:13082,http://127.0.0.1:13082,https://localhost, 
+keycloak-issuer: http://localhost/auth/realms/openslice
+
+
 server:
   port: 13000
   servlet:
     context-path : /osapi
+  error:
+    include-message: always
+  ssl:
+    enabled: false
+    
+springdoc:
+  version: '@springdoc.version@'
+  writer-with-default-pretty-printer: true
+  swagger-ui:
+    display-request-duration: true
+    groups-order: ASC
+    operationsSorter: method
+    disable-swagger-default-url: true
+    use-root-path: true
+    oauth:
+      client-id: osapiWebClientId
+      clientsecret: "secret"
+      use-pkce-with-authorization-code-grant: false
+  oAuthFlow:
+    authorizationUrl: http://localhost/auth/realms/openslice/protocol/openid-connect/auth
+    tokenUrl: http://localhost/auth/realms/openslice/protocol/openid-connect/token
+  show-actuator: true
+
+spring-addons:
+  issuers:
+  - uri: ${keycloak-issuer}
+    username-json-path: $.preferred_username
+    claims:
+    - jsonPath: $.realm_access.roles
+    - jsonPath: $.resource_access.*.roles
+
+    
 spring:
-  profiles: default
+  config:
+    activate:
+      on-profile: "default"
   application:
     name: openslice-portal-api
   datasource:
     url: jdbc:mysql://localhost/osdb?createDatabaseIfNotExist=true
     password: letmein
     username: root
+    hikari:
+       minimumIdle: 2
+       maximumPoolSize: 40
+       idleTimeout: 120000
+       connectionTimeout: 400000
+       leakDetectionThreshold: 100000
   jpa:
-    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    database-platform: portal.api.LocalMysqlDialect
     hibernate:
       ddl-auto: update
     show-sql: false
     generate-ddl: true
     properties.hibernate.current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+    properties:
+      hibernate:
+        connection:
+          characterEncoding: utf-8
+          CharSet: utf-8
+          useUnicode: true 
   activemq:
     brokerUrl: tcp://localhost:61616
     user: admin
@@ -29,23 +79,6 @@ spring:
   servlet:
     multipart.max-file-size: 10MB
     multipart.max-request-size: 10MB
-  cloud:
-    consul:
-      enabled: true
-      host: http://localhost
-      port: 8500
-      config:
-        enabled: true
-        prefix: config
-        defaultContext: openslice
-        data-key: osdata
-        profileSeparator: '::'
-        format: yaml        
-      discovery:
-        tags: openslice-microservice
-        enabled: true
-        instanceId: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
-        healthCheckInterval: 120s
   resources:
     add-mappings: true
 logging:
@@ -57,7 +90,12 @@ logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
     file: "%d %p %c{1.} [%t] %m%n"
-    
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak-issuer}    
+
 keycloak:
   realm: openslice
   auth-server-url: http://localhost:28080/auth

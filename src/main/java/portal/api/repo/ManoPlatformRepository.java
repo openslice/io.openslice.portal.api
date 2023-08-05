@@ -19,7 +19,7 @@
  */
 package portal.api.repo;
 
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import io.openslice.model.MANOplatform;
@@ -30,7 +30,7 @@ import io.openslice.model.MANOplatform;
  *
  */
 @Repository
-public interface ManoPlatformRepository extends PagingAndSortingRepository<MANOplatform, Long> {
+public interface ManoPlatformRepository extends CrudRepository<MANOplatform, Long> {
 
 
 }

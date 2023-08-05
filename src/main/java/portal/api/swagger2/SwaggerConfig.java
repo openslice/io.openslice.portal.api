@@ -21,32 +21,33 @@ package portal.api.swagger2;
 
 import java.util.Arrays;
 
+import org.springdoc.core.customizers.OpenApiCustomizer;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
-import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.AuthorizationCodeGrantBuilder;
-import springfox.documentation.builders.OAuthBuilder;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.service.AuthorizationScope;
-import springfox.documentation.service.Contact;
-import springfox.documentation.service.GrantType;
-import springfox.documentation.service.SecurityReference;
-import springfox.documentation.service.SecurityScheme;
-import springfox.documentation.service.TokenEndpoint;
-import springfox.documentation.service.TokenRequestEndpoint;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spi.service.contexts.SecurityContext;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger.web.SecurityConfiguration;
-import springfox.documentation.swagger.web.SecurityConfigurationBuilder;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.OAuthFlow;
+import io.swagger.v3.oas.annotations.security.OAuthFlows;
+import io.swagger.v3.oas.annotations.security.OAuthScope;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.models.ExternalDocumentation;
+import io.swagger.v3.oas.models.SpecVersion;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 
 @Configuration
+@SecurityScheme(name = "security_auth", type = SecuritySchemeType.OAUTH2, bearerFormat = "JWT", 
+scheme = "bearer",
+flows = @OAuthFlows(authorizationCode = @OAuthFlow(
+		authorizationUrl = "${springdoc.oAuthFlow.authorizationUrl}"
+		, tokenUrl = "${springdoc.oAuthFlow.tokenUrl}", scopes = {
+		@OAuthScope(name = "read", description = "read scope"),
+		@OAuthScope(name = "write", description = "write scope") })))
 public class SwaggerConfig {
 	
 
@@ -57,88 +58,31 @@ public class SwaggerConfig {
 	@Value("${swagger.clientsecret}")
 	private String CLIENT_SECRET;
 	
-//    public static final String AUTH_SERVER = "http://localhost:13081/osapi-oauth-server";
-//    public static final String CLIENT_ID = "fooClientIdPassword";
-//    public static final String CLIENT_SECRET = "secret";
 
-    @Bean
-    public Docket api() {
-        return new Docket(DocumentationType.SWAGGER_2).select()
-        		.apis(RequestHandlerSelectors.any())
-        		.paths(PathSelectors.any())
-        		.build()
-        		.securitySchemes(Arrays.asList(securityScheme()))
-        		.securityContexts(Arrays.asList(securityContext()));
-    }
-
-    @Bean
-    public SecurityConfiguration security() {
-        return SecurityConfigurationBuilder.builder()
-        		
-        				    .realm("openslice")
-        				    .clientId(CLIENT_ID)
-        				    .clientSecret(CLIENT_SECRET)
-        				    .appName("oauthtoken")
-        				    .scopeSeparator(" ")
-        		.build();
-    }
-
-    private SecurityScheme securityScheme() {
-        GrantType grantType = new AuthorizationCodeGrantBuilder()
-        		.tokenEndpoint(new TokenEndpoint(AUTH_SERVER + "/protocol/openid-connect/token", "oauthtoken"))
-        		.tokenRequestEndpoint(
-        		  new TokenRequestEndpoint(AUTH_SERVER + "/protocol/openid-connect/auth", CLIENT_ID, CLIENT_SECRET))
-        		.build();
-
-        SecurityScheme oauth = new OAuthBuilder().name("spring_oauth")
-        		.grantTypes(Arrays.asList(grantType))
-        		.scopes(Arrays.asList(scopes()))
-        		.build();
-        return oauth;
-    }
-
-    private SecurityContext securityContext() {
-        return SecurityContext.builder()
-        		.securityReferences(
-        		  Arrays.asList(new SecurityReference("spring_oauth", scopes())))
-        		.forPaths(PathSelectors.regex("/admin.*"))
-        		.build();
-    }
-
-    private AuthorizationScope[] scopes() {
-        AuthorizationScope[] scopes = { 
-          new AuthorizationScope("read", "for read operations"), 
-          new AuthorizationScope("write", "for write operations"), 
-          new AuthorizationScope("admin", "Access admin API"), 
-          new AuthorizationScope("openapi", "Access openapi API") };
-        return scopes;
-    }
-    
     
     @Bean
-    public Docket customnfvportal(){
-        return new Docket(DocumentationType.SWAGGER_2)
-        		.groupName("NFV portal API")
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("portal.api.controller"))
-                    .build()
-                    .directModelSubstitute(java.time.LocalDate.class, java.sql.Date.class)
-                .directModelSubstitute(java.time.OffsetDateTime.class, java.util.Date.class)
-                .apiInfo(apiInfoPortalAPI())
-        		.securitySchemes(Arrays.asList(securityScheme()))
-        		.securityContexts(Arrays.asList(securityContext()));
-    }
-    
-    ApiInfo apiInfoPortalAPI() {
-        return new ApiInfoBuilder()
-            .title("NFV portal API")
-            .description("##NFV portal API")
-            .license("")
-            .licenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html")
-            .termsOfServiceUrl("")
-            .version("1.0.0")
-            .contact(new Contact("","", ""))
+    public GroupedOpenApi customnfvportal(){
+    	
+      	SpringDocUtils.getConfig().replaceWithClass(java.time.LocalDate.class, java.sql.Date.class);
+	  	SpringDocUtils.getConfig().replaceWithClass(java.time.OffsetDateTime.class, java.util.Date.class);
+      return GroupedOpenApi.builder()
+      		.group("nfv-portal.api.controller-v1.0.0")
+    		.addOpenApiCustomizer( this.apiInfoPortalAPI() )
+            .packagesToScan("portal.api.controller")
             .build();
+      
+    }
+    
+    OpenApiCustomizer apiInfoPortalAPI() {
+
+		
+		return openApi -> openApi
+				.specVersion( SpecVersion.V30 ).addSecurityItem(new SecurityRequirement().addList("security_auth")) 
+	              .info(new Info().title("NFV portal API")
+	            		  .description("## NFV portal API")
+	                      
+		              .version("1.0.0")
+		              .license(new License().name("Apache 2.0").url("http://openslice.io")));
     }
     
     

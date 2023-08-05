@@ -22,8 +22,6 @@ package portal.api.service;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.ws.rs.core.Response;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.keycloak.admin.client.Keycloak;
@@ -38,6 +36,7 @@ import org.springframework.stereotype.Component;
 
 import io.openslice.model.PortalUser;
 import io.openslice.model.UserRoleType;
+import jakarta.ws.rs.core.Response;
 
 
 /**

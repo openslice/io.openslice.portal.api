@@ -24,14 +24,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import io.openslice.model.PortalProperty;
+import jakarta.annotation.PostConstruct;
 import portal.api.repo.PortalPropertiesRepository;
 
 /**

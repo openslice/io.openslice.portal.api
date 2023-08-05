@@ -19,7 +19,7 @@
  */
 package portal.api.repo;
 
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import io.openslice.model.Infrastructure;
@@ -30,7 +30,7 @@ import io.openslice.model.Infrastructure;
  *
  */
 @Repository
-public interface InfrastructureRepository extends PagingAndSortingRepository<Infrastructure, Long> {
+public interface InfrastructureRepository extends CrudRepository<Infrastructure, Long> {
 
 
 
