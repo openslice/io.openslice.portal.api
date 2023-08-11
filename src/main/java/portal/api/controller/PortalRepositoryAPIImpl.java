@@ -36,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.access.prepost.PreAuthorize;
 //import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -119,7 +120,7 @@ public class PortalRepositoryAPIImpl {
 
 	/*************** Users API *************************/
 
-	@Secured({ "ROLE_ADMIN" })
+	@PreAuthorize("hasAnyAuthority('ROLE_ADMIN')" )
 	@GetMapping( value = "/admin/users", produces = "application/json" )
 	public ResponseEntity<List<PortalUser>>  getUsers(Principal principal) {
 
@@ -138,7 +139,7 @@ public class PortalRepositoryAPIImpl {
 		return ResponseEntity.ok( usersService.getUserMentorsValues());
 	}
 
-	@Secured({ "ROLE_ADMIN" })
+	@PreAuthorize("hasAnyAuthority('ROLE_ADMIN')" )
 	@GetMapping( value = "/admin/users/{userid}", produces = "application/json" )
 	public ResponseEntity<?> getUserById( @PathVariable(required = true) long userid) {
 		
@@ -285,7 +286,7 @@ public class PortalRepositoryAPIImpl {
 	}
 
 
-	@Secured({ "ROLE_ADMIN" })
+	@PreAuthorize("hasAnyAuthority('ROLE_ADMIN')" )
 	@PutMapping( value =  "/admin/users/{userid}", produces = "application/json", consumes = "application/json" )
 	public ResponseEntity<?>  updateUserInfo(  @PathVariable(required = true) long userid ,  @Valid @RequestBody PortalUser user) {
 		logger.info("Received PUT for user: " + user.getUsername());
@@ -333,7 +334,7 @@ public class PortalRepositoryAPIImpl {
 		}
 	}
 
-	@Secured({ "ROLE_ADMIN" })
+	@PreAuthorize("hasAnyAuthority('ROLE_ADMIN')" )
 	@DeleteMapping( value =  "/admin/users/{userid}"  )
 	public ResponseEntity<?> deleteUser(@PathVariable("userid") int userid) {
 		logger.info("Received DELETE for userid: " + userid);
@@ -599,7 +600,7 @@ public class PortalRepositoryAPIImpl {
 	}
 
 	
-	@Secured({ "ROLE_ADMIN" })
+	@PreAuthorize("hasAnyAuthority('ROLE_ADMIN')" )
 	@PostMapping( value =  "/admin/categories", produces = "application/json", consumes = "application/json" )
 	public ResponseEntity<?> addCategory(@Valid @RequestBody Category c) {
 		
@@ -613,7 +614,7 @@ public class PortalRepositoryAPIImpl {
 		}
 	}
 
-	@Secured({ "ROLE_ADMIN" })
+	@PreAuthorize("hasAnyAuthority('ROLE_ADMIN')" )
 	@PutMapping( value =  "/admin/categories/{catid}", produces = "application/json", consumes = "application/json" )
 	public ResponseEntity<?> updateCategory(@PathVariable("catid") long catid, @Valid @RequestBody Category c) {
 		
@@ -632,7 +633,7 @@ public class PortalRepositoryAPIImpl {
 
 	}
 
-	@Secured({ "ROLE_ADMIN" })
+	@PreAuthorize("hasAnyAuthority('ROLE_ADMIN')" )
 	@DeleteMapping( value =  "/admin/categories/{catid}", produces = "application/json")
 	public ResponseEntity<?> deleteCategory( @PathVariable("catid") long catid) {
 		

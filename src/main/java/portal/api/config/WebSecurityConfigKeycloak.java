@@ -221,7 +221,11 @@ public class WebSecurityConfigKeycloak   {
 					}
 				}
 				return Stream.empty();
-			}).map(SimpleGrantedAuthority::new).map(GrantedAuthority.class::cast).toList();
+			})/* Insert some transformation here if you want to add a prefix like "ROLE_" or force upper-case authorities */
+
+					.map(s -> "ROLE_" + s)
+					.map(SimpleGrantedAuthority::new)
+					.map(GrantedAuthority.class::cast).toList();
 		}
 	}
 
