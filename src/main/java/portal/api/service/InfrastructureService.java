@@ -24,7 +24,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -78,7 +78,7 @@ public class InfrastructureService {
 		ObjectMapper mapper = new ObjectMapper();
         // Registering Hibernate5Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( il );
 		
 		return res;
@@ -96,7 +96,7 @@ public class InfrastructureService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( infrastructure );
 		
 		return res;		
@@ -121,7 +121,7 @@ public class InfrastructureService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( infrastructure );
 		
 		return res;

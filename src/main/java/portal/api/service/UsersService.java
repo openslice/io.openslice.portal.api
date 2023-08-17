@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.logging.Log;
@@ -210,7 +210,7 @@ public class UsersService {
 		PortalUser user = findByUsername( username );
 		if ( user != null ) {
 			ObjectMapper mapper = new ObjectMapper();		
-	        mapper.registerModule(new Hibernate5Module()); 
+	        mapper.registerModule(new Hibernate5JakartaModule()); 
 			String res = mapper.writeValueAsString( user );		
 			return res;			
 		}
