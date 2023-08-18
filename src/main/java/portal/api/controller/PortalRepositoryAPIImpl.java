@@ -43,6 +43,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -152,20 +154,53 @@ public class PortalRepositoryAPIImpl {
 	//@PreAuthorize("#oauth2.hasScope('read')")
 	@GetMapping( value = "/admin/users/myuser", produces = "application/json" )
 	@ResponseBody
-	public PortalUser getUser( ) {
+	public PortalUser getUser( Principal principal ) {
 
-		PortalUser u =  usersService.findByUsername( SecurityContextHolder.getContext().getAuthentication().getName() );
+		logger.debug("principal=  " + principal.toString());
+		
+		PortalUser u =  usersService.findByUsername( principal.getName() );
+		
+		
 		
 		if ( u == null ) {
-			logger.info("New user with username=" + SecurityContextHolder.getContext().getAuthentication().getName()  + " cannot be found but is logged in. Will try to fetch from auth server");
-			u = usersService.addPortalUserToUsersFromAuthServer( SecurityContextHolder.getContext().getAuthentication().getName() );
-			busController.newUserAdded( u );	//this will trigger also the user to be added in Bugzilla	
-		} else {
-			//we need to properly add the roles from the auth server to the local repo
+			logger.info("New user with username=" + principal.getName()  + " cannot be found but is logged in. Will try to fetch from auth server");
 			
-			u = usersService.updateUserInfoFromKeycloak( u );
+			
+			if ( principal instanceof JwtAuthenticationToken) {
+				JwtAuthenticationToken pr = ( JwtAuthenticationToken ) principal;
+				Jwt lp = (Jwt) pr.getPrincipal();
+				u = usersService.addPortalUserToUsersFromAuthServer( principal.getName(), 
+						lp.getClaimAsString("email"),
+						lp.getClaimAsString("given_name"), 
+						lp.getClaimAsString("name") );
+				
+			}else {
+			}
+			
+
+			
+			
+			busController.newUserAdded( u );	//this will trigger also the user to be added in Bugzilla	
 		}
-		
+
+		u.getRoles().clear();
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_ADMIN.getValue()  ) ) ) {
+			u.addRole( UserRoleType.ROLE_ADMIN ); 
+		}
+		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_NFV_DEVELOPER.getValue()  ) ) ) {
+			u.addRole( UserRoleType.ROLE_NFV_DEVELOPER ); 
+		}
+		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_EXPERIMENTER.getValue()  ) ) ) {
+			u.addRole( UserRoleType.ROLE_EXPERIMENTER ); 
+		}
+		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_MENTOR.getValue()  ) ) ) {
+			u.addRole( UserRoleType.ROLE_MENTOR ); 
+		}
+		if ( authentication.getAuthorities().contains( new SimpleGrantedAuthority( UserRoleType.ROLE_TESTBED_PROVIDER.getValue()  ) ) ) {
+			u.addRole( UserRoleType.ROLE_TESTBED_PROVIDER ); 
+		}
+		u = usersService.updateUserInfo(u, null);
 		
 		return u  ;		
 	}

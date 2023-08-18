@@ -30,6 +30,7 @@ import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -54,8 +55,6 @@ public class UsersService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-    @Autowired(required = false)
-    private KeyCloakService keyCloakService;
     
 	private static final transient Log logger = LogFactory.getLog( UsersService.class.getName() );
 
@@ -68,32 +67,32 @@ public class UsersService {
 	@PostConstruct
 	public void initRepo() {
 		
-		PortalUser admin = null;
-		try {
-			admin = findById(1);
-			logger.info("======================== admin  = " + admin);
-		} catch (Exception e) {
-			logger.info("======================== admin NOT FOUND, initializing");			
-		}
-
-		if (admin == null) {
-			PortalUser bu = new PortalUser();
-			bu.setFirstname("Portal Administrator");
-			bu.setUsername( "admin" );			
-			bu.setPassword( "changeme" );
-			bu.setApikey( UUID.randomUUID().toString() );		
-			
-			bu.setEmail("");
-			bu.setOrganization("");
-			bu.addRole( UserRoleType.ROLE_ADMIN );
-			bu.addRole( UserRoleType.ROLE_MENTOR  );
-			bu.setActive(true);
-			addPortalUserToUsers( bu );
-			
-//			Category c = new Category();
-//			c.setName("None");
-//			saveCategory(c);
-		}	
+//		PortalUser admin = null;
+//		try {
+//			admin = findById(1);
+//			logger.info("======================== admin  = " + admin);
+//		} catch (Exception e) {
+//			logger.info("======================== admin NOT FOUND, initializing");			
+//		}
+//
+//		if (admin == null) {
+//			PortalUser bu = new PortalUser();
+//			bu.setFirstname("Portal Administrator");
+//			bu.setUsername( "admin" );			
+//			bu.setPassword( "changeme" );
+//			bu.setApikey( UUID.randomUUID().toString() );		
+//			
+//			bu.setEmail("");
+//			bu.setOrganization("");
+//			bu.addRole( UserRoleType.ROLE_ADMIN );
+//			bu.addRole( UserRoleType.ROLE_MENTOR  );
+//			bu.setActive(true);
+//			addPortalUserToUsers( bu );
+//			
+////			Category c = new Category();
+////			c.setName("None");
+////			saveCategory(c);
+//		}	
 		
 		PortalUser manoService = null;
 		try
@@ -152,54 +151,39 @@ public class UsersService {
 	}
 
 	public PortalUser addPortalUserToUsers(PortalUser user) {
-		
-		if ( keyCloakService!=null ) {
-
-			String keycloakid = keyCloakService.createUserInKeyCloak(user);
-			if ( keycloakid!= null ) {
-				return usersRepo.save( user );			
-			}			
-		} else {
-			return usersRepo.save( user );				
-		}
-		return null;
+	
+		return usersRepo.save( user );			
+	
 	}
 	
-	public PortalUser addPortalUserToUsersFromAuthServer(String username) {
+	public PortalUser addPortalUserToUsersFromAuthServer(String username, String email, String firstname, String lastname) {
 
-		PortalUser user = keyCloakService.fetchUserDetails( username );
-		user.addRole( UserRoleType.ROLE_NFV_DEVELOPER); 
-		user.addRole( UserRoleType.ROLE_EXPERIMENTER);
-		user.setApikey( UUID.randomUUID().toString() );
-		usersRepo.save( user );			
-		return updateUserInfo( user, true );	
+		PortalUser userDTO  = new  PortalUser();
+		
+		userDTO.setUsername( username );
+		userDTO.setEmail( email );
+		userDTO.setFirstname( firstname );
+		userDTO.setLastname( lastname );
+		userDTO.setActive( true );
+		
+		userDTO.setApikey( UUID.randomUUID().toString() );
+		usersRepo.save( userDTO );			
+		return updateUserInfo( userDTO, true );	
 	}
 
 	/**
 	 * @param user
-	 * @param userInfoChanged make it true if needed so that the changes can be reflected to Auth Server (keycloak)
+	 * @param userInfoChanged 
 	 * @return
 	 */
 	public PortalUser updateUserInfo(PortalUser user, Boolean userInfoChanged) {
 		
-		if ( userInfoChanged ) {
-			String keycloakid = keyCloakService.updateUserInKeyCloak(user);
-			if ( keycloakid!= null ) {
-				return usersRepo.save( user );			
-			}
-		} else {
-			return usersRepo.save( user );		}
+		return usersRepo.save( user );
 		
-		return null;
+
 	}
 	
-	public PortalUser updateUserInfoFromKeycloak(PortalUser user) {
-		
-		PortalUser auser = keyCloakService.updateUserFromKeyCloak(user);
-		return usersRepo.save( auser );			
-			
-		
-	}
+	
 
 	public void delete(PortalUser u) {
 		usersRepo.delete(u);		
@@ -218,7 +202,7 @@ public class UsersService {
 	}
 
 	public void logout( String username ) {
-		keyCloakService.logoutUser(username);
+		//keyCloakService.logoutUser(username);
 	}
 
 	

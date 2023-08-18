@@ -23,7 +23,6 @@ package portal.api.config;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,18 +31,11 @@ import java.util.stream.Stream;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 
-import org.keycloak.adapters.springboot.KeycloakSpringBootConfigResolver;
-import org.keycloak.adapters.springsecurity.KeycloakSecurityComponents;
-import org.keycloak.adapters.springsecurity.authentication.KeycloakAuthenticationProvider;
-import org.keycloak.adapters.springsecurity.config.KeycloakWebSecurityConfigurerAdapter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.convert.converter.Converter;
@@ -52,14 +44,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationManagerResolver;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.authority.mapping.SimpleAuthorityMapper;
-import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -68,12 +58,9 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtIssuerAuthenticationManagerResolver;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.stereotype.Component;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Data;
@@ -81,9 +68,9 @@ import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @Profile("!testing")
-public class WebSecurityConfigKeycloak   {
-	
+public class WebSecurityConfigKeycloak {
 
 	@Bean
 	SecurityFilterChain filterChain(HttpSecurity http, ServerProperties serverProperties,
@@ -128,7 +115,7 @@ public class WebSecurityConfigKeycloak   {
 		configuration.setAllowedMethods(List.of("*"));
 		configuration.setAllowedHeaders(List.of("*"));
 		configuration.setExposedHeaders(List.of("*"));
-
+		configuration.setAllowCredentials(true);
 		final var source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/**", configuration);
 		return source;
@@ -190,6 +177,8 @@ public class WebSecurityConfigKeycloak   {
 		@Override
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public Collection<? extends GrantedAuthority> convert(Jwt jwt) {
+			
+			
 			return Stream.of(properties.claims).flatMap(claimProperties -> {
 				Object claim;
 				try {
@@ -221,7 +210,7 @@ public class WebSecurityConfigKeycloak   {
 					}
 				}
 				return Stream.empty();
-			})/* Insert some transformation here if you want to add a prefix like "ROLE_" or force upper-case authorities */
+			}) /* Insert some transformation here if you want to add a prefix like "ROLE_" or force upper-case authorities */
 
 					.map(s -> "ROLE_" + s)
 					.map(SimpleGrantedAuthority::new)
@@ -262,4 +251,3 @@ public class WebSecurityConfigKeycloak   {
 		return provider;
 	}
 }
-

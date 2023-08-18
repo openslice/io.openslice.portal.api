@@ -1,5 +1,4 @@
-origins: http://localhost,http://localhost:13082,http://127.0.0.1:13082,https://localhost, 
-keycloak-issuer: http://localhost/auth/realms/openslice
+origins: http://localhost,http://localhost:13000,http://127.0.0.1:13000,https://localhost, 
 
 
 server:
@@ -25,13 +24,13 @@ springdoc:
       clientsecret: "secret"
       use-pkce-with-authorization-code-grant: false
   oAuthFlow:
-    authorizationUrl: http://localhost/auth/realms/openslice/protocol/openid-connect/auth
-    tokenUrl: http://localhost/auth/realms/openslice/protocol/openid-connect/token
+    authorizationUrl: http://keycloak:8080/auth/realms/openslice/protocol/openid-connect/auth
+    tokenUrl: http://keycloak:8080/auth/realms/openslice/protocol/openid-connect/token
   show-actuator: true
 
 spring-addons:
   issuers:
-  - uri: ${keycloak-issuer}
+  - uri: http://keycloak:8080/auth/realms/openslice
     username-json-path: $.preferred_username
     claims:
     - jsonPath: $.realm_access.roles
@@ -45,7 +44,7 @@ spring:
   application:
     name: openslice-portal-api
   datasource:
-    url: jdbc:mysql://localhost/osdb?createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:13306/osdb?createDatabaseIfNotExist=true
     password: letmein
     username: root
     hikari:
@@ -95,28 +94,6 @@ logging:
       resourceserver:
         jwt:
           issuer-uri: ${keycloak-issuer}    
-
-keycloak:
-  realm: openslice
-  auth-server-url: http://localhost:28080/auth
-  ssl-required: none
-  resource: admin-cli
-  credentials:
-    secret: none
-  public-client: false
-  bearer-only: true
-  principal-attribute: preferred_username
-
-keycloak-internal-auth-server-url: http://localhost:28080/auth
-keycloak-admin-password: Pa55w0rd
-    
-swagger:
-  authserver: http://localhost:28080/auth/realms/openslice
-  clientid: "osapiWebClientId"
-  clientsecret: "secret"
-  
-oauthsign:
-   key: "EK97Y7Y9WPGG1MEG"
 
 
 #QUEUE MESSSAGES WITH VNFNSD CATALOG

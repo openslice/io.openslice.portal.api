@@ -50,15 +50,6 @@ flows = @OAuthFlows(authorizationCode = @OAuthFlow(
 		@OAuthScope(name = "write", description = "write scope") })))
 public class SwaggerConfig {
 	
-
-	@Value("${swagger.authserver}")
-	private String AUTH_SERVER;
-	@Value("${swagger.clientid}")
-	private String CLIENT_ID;
-	@Value("${swagger.clientsecret}")
-	private String CLIENT_SECRET;
-	
-
     
     @Bean
     public GroupedOpenApi customnfvportal(){
