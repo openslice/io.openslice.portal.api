@@ -705,7 +705,7 @@ public class ArtifactsAPIController {
 		} catch (Exception e) {
 			vxfsaved = null;
 			e.printStackTrace();
-			logger.error(e.getMessage());
+			logger.error("Exception during adding New Product Data with message" + e.getMessage());
 			emsg = e.getMessage();
 		}
 
@@ -1000,6 +1000,7 @@ public class ArtifactsAPIController {
 						this.updateVxfMetadataFromOSMVxFDescriptorFile((VxFMetadata) prevProduct, attachmentInfo,
 								endpointUrl);
 					} catch (NullPointerException e) {
+						logger.error("Null Pointer Exception during update VxF Metadata From OSM VxF Descriptor File");
 						return null;
 					}
 					logger.info("After " + prod.getPackageLocation());
@@ -1011,6 +1012,7 @@ public class ArtifactsAPIController {
 						this.loadNSMetadataFromOSMNSDescriptorFile((ExperimentMetadata) prod, attachmentInfo,
 								endpointUrl);
 					} catch (NullPointerException e) {
+						logger.error("Null Pointer Exception during loading NS Metadata From OSM NS Descriptor File");
 						return null;
 					}
 
