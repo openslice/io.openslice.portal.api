@@ -25,7 +25,6 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 /**
  * Our API docs are at:
@@ -36,7 +35,6 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
  *
  */
 @SpringBootApplication()
-@EnableSwagger2
 @EnableWebMvc
 @EntityScan( basePackages = {"io.openslice.model", "io.openslice.centrallog.client"})
 @ComponentScan(basePackages = {	

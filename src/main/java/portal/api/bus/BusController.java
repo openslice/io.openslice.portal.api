@@ -20,44 +20,25 @@
 
 package portal.api.bus;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.Future;
-
-import javax.jms.BytesMessage;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.Session;
-import javax.validation.Valid;
-
-import org.apache.activemq.BlobMessage;
-import org.apache.camel.CamelContext;
-import org.apache.camel.Exchange;
-import org.apache.camel.FluentProducerTemplate;
-import org.apache.camel.ProducerTemplate;
-import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.component.activemq.ActiveMQComponent;
-import org.apache.camel.model.ModelCamelContext;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
-import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.apache.camel.CamelContext;
+import org.apache.camel.FluentProducerTemplate;
+import org.apache.camel.ProducerTemplate;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.stereotype.Component;
 
 import io.openslice.model.CompositeExperimentOnBoardDescriptor;
 import io.openslice.model.CompositeVxFOnBoardDescriptor;
@@ -65,11 +46,11 @@ import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.ExperimentMetadata;
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.PortalUser;
-import io.openslice.model.Product;
 import io.openslice.model.VFImage;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
 import portal.api.mano.MANOStatus;
+import portal.api.validation.ci.ValidationJobResult;
 
 
 /**

@@ -20,8 +20,9 @@
 package portal.api.repo;
 
 import java.util.List;
+
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import io.openslice.model.DeploymentDescriptor;
@@ -32,7 +33,7 @@ import io.openslice.model.DeploymentDescriptor;
  *
  */
 @Repository
-public interface DeploymentDescriptorRepository extends PagingAndSortingRepository<DeploymentDescriptor, Long> {
+public interface DeploymentDescriptorRepository extends CrudRepository<DeploymentDescriptor, Long> {
 
 
 	@Query( value = "SELECT m FROM DeploymentDescriptor m  WHERE "

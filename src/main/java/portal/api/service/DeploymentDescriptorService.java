@@ -27,7 +27,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.persistence.EntityManagerFactory;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.Hibernate;
@@ -38,10 +42,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
+import io.openslice.centrallog.client.CLevel;
+import io.openslice.centrallog.client.CentralLogger;
 import io.openslice.model.ConstituentVxF;
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorStatus;
@@ -51,10 +54,10 @@ import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.Infrastructure;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.PortalUser;
+import jakarta.persistence.EntityManagerFactory;
 //import portal.api.centrallog.CLevel;
 //import portal.api.centrallog.CentralLogger;
 import portal.api.repo.DeploymentDescriptorRepository;
-import io.openslice.centrallog.client.*;
 
 @Service
 public class DeploymentDescriptorService {
@@ -254,7 +257,7 @@ public class DeploymentDescriptorService {
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );
 		
 		return res;
@@ -272,7 +275,7 @@ public class DeploymentDescriptorService {
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );
 		
 		return res;
@@ -289,7 +292,7 @@ public class DeploymentDescriptorService {
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );
 		
 		return res;
@@ -316,7 +319,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -359,7 +362,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -372,7 +375,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -403,7 +406,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -434,7 +437,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -547,7 +550,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );
 		
 		return res;
@@ -631,7 +634,7 @@ public class DeploymentDescriptorService {
 	public String createDeploymentRequestJson(DeploymentDescriptor depl) throws JsonProcessingException {
 		DeploymentDescriptor dd = this.createDeploymentRequest( depl );
 		ObjectMapper mapper = new ObjectMapper();		
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );		
 		return res;
 	}

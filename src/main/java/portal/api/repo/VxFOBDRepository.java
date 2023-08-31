@@ -22,11 +22,10 @@ package portal.api.repo;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import io.openslice.model.MANOprovider;
-import io.openslice.model.OnBoardingStatus;
 import io.openslice.model.VxFOnBoardedDescriptor;
 
 /**
@@ -34,7 +33,7 @@ import io.openslice.model.VxFOnBoardedDescriptor;
  *
  */
 @Repository
-public interface VxFOBDRepository extends PagingAndSortingRepository<VxFOnBoardedDescriptor, Long> {
+public interface VxFOBDRepository extends CrudRepository<VxFOnBoardedDescriptor, Long> {
 	
 	@Query( value ="SELECT a FROM VxFOnBoardedDescriptor a WHERE a.vxfMANOProviderID=?1 and a.obMANOprovider=?2 and a.onBoardingStatus=2" )
 	VxFOnBoardedDescriptor findByVxFAndMP(String vxf, MANOprovider mp);

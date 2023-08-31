@@ -22,14 +22,14 @@ package portal.api.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
 
 import io.openslice.model.ExperimentOnBoardDescriptor;
 import portal.api.repo.NSDOBDRepository;
@@ -71,7 +71,7 @@ public class NSDOBDService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( tmp );
 		
 		return res;		
@@ -110,7 +110,7 @@ public class NSDOBDService {
 
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( vxfobd );
 
 		return res;
@@ -134,7 +134,7 @@ public class NSDOBDService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( nsdobd );
 		
 		return res;	

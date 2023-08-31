@@ -19,7 +19,7 @@
  */
 package portal.api.repo;
 
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import io.openslice.model.Category;
@@ -30,6 +30,6 @@ import io.openslice.model.Category;
  *
  */
 @Repository
-public interface CategoriesRepository extends PagingAndSortingRepository<Category, Long> {
+public interface CategoriesRepository extends CrudRepository<Category, Long> {
 
 }

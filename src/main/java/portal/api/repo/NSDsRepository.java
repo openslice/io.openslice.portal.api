@@ -20,11 +20,10 @@
 package portal.api.repo;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import io.openslice.model.ExperimentMetadata;
@@ -35,7 +34,7 @@ import io.openslice.model.ExperimentMetadata;
  *
  */
 @Repository
-public interface NSDsRepository extends PagingAndSortingRepository<ExperimentMetadata, Long> {
+public interface NSDsRepository extends CrudRepository<ExperimentMetadata, Long> {
 
 
 	@Query( value = "SELECT a FROM ExperimentMetadata a JOIN a.categories ac WHERE a.published=TRUE AND ac.id=?1 ORDER BY a.name" ) //	

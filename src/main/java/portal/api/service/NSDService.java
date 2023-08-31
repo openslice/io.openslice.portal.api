@@ -22,12 +22,12 @@ package portal.api.service;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
+import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import io.openslice.model.ExperimentMetadata;
 import portal.api.repo.NSDsRepository;
@@ -49,7 +49,7 @@ public class NSDService {
 		ObjectMapper mapper = new ObjectMapper();
         // Registering Hibernate5Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( il );
 		
 		return res;
@@ -68,7 +68,7 @@ public class NSDService {
 		
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
-        mapper.registerModule(new Hibernate5Module());
+        mapper.registerModule(new Hibernate5JakartaModule());
 		
         ExperimentMetadata o = this.getProductByIDEagerData(id);
         
@@ -92,7 +92,7 @@ public class NSDService {
 		
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
-        mapper.registerModule(new Hibernate5Module());
+        mapper.registerModule(new Hibernate5JakartaModule());
 		
         ExperimentMetadata o = this.getProductByID(id);
         
@@ -163,7 +163,7 @@ public class NSDService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( vxfmetadata );
 		
 		return res;		
