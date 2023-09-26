@@ -1,3 +1,4 @@
+
 origins: http://localhost,http://localhost:13000,http://127.0.0.1:13000,https://localhost, 
 
 
@@ -80,6 +81,19 @@ spring:
     multipart.max-request-size: 10MB
   resources:
     add-mappings: true
+  portal:
+    admin.email: info@example.org
+    activation.email.subject: OpenSlice Activation Email
+    mail.host: localhost
+    mail.user: exampleusername
+    mail.password: pass
+    main.domain: http://localhost
+    jenkins.ci.url: http://ci.example.org
+    jenkins.ci.key: my_key
+    pipeline.token: my_token
+    central.loger.url: http://localhost
+    portal.title: OpenSlice
+
 logging:
   level:
     root: INFO
@@ -93,8 +107,7 @@ logging:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${keycloak-issuer}    
-
+          issuer-uri: ${keycloak-issuer}
 
 #QUEUE MESSSAGES WITH VNFNSD CATALOG
 NFV_CATALOG_GET_NSD_BY_ID: "jms:queue:NFVCATALOG.GET.NSD_BY_ID" 
