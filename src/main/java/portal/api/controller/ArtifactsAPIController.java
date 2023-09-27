@@ -1021,18 +1021,20 @@ public class ArtifactsAPIController {
 
 		String screenshotsFilenames = "";
 		int i = 1;
-		for (MultipartFile shot : screenshots) {
-			String shotFileNamePosted = shot.getOriginalFilename(); // AttachmentUtil.getFileName(shot.getHeaders());
-			logger.info("Found screenshot image shotFileNamePosted = " + shotFileNamePosted);
-			logger.info("shotFileNamePosted = " + shotFileNamePosted);
-			if (!shotFileNamePosted.equals("")) {
-				shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
-				String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
-				logger.info("shotfilepath saved to = " + shotfilepath);
-				shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + prevProduct.getUuid() + "/"
-						+ shotFileNamePosted;
-				screenshotsFilenames += shotfilepath + ",";
-				i++;
+		if (screenshots != null){
+			for (MultipartFile shot : screenshots) {
+				String shotFileNamePosted = shot.getOriginalFilename(); // AttachmentUtil.getFileName(shot.getHeaders());
+				logger.info("Found screenshot image shotFileNamePosted = " + shotFileNamePosted);
+				logger.info("shotFileNamePosted = " + shotFileNamePosted);
+				if (!shotFileNamePosted.equals("")) {
+					shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
+					String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
+					logger.info("shotfilepath saved to = " + shotfilepath);
+					shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + prevProduct.getUuid() + "/"
+							+ shotFileNamePosted;
+					screenshotsFilenames += shotfilepath + ",";
+					i++;
+				}
 			}
 		}
 		if (screenshotsFilenames.length() > 0)
