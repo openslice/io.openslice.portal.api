@@ -1250,8 +1250,6 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> softDeleteVxF(@PathVariable("vxfid") int vxfid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
 
 		VxFMetadata vxf = (VxFMetadata) vxfService.getVxFById(vxfid);
 
@@ -2015,8 +2013,6 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> softdeleteExperiment(@PathVariable("appid") int appid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
 
 		// Get the OnBoarded Descriptors to OffBoard them
 		Set<ExperimentOnBoardDescriptor> expobds = null;
@@ -2299,8 +2295,6 @@ public class ArtifactsAPIController {
 			HttpServletRequest request) {
 
 		logger.info("AddDeployment request received:" + deployment.toJSON());
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
 
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -3359,8 +3353,6 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> addInfrastructure(@Valid @RequestBody Infrastructure c, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
 
 		if (!checkUserIDorIsAdmin(-1)) {
 			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
