@@ -3358,10 +3358,27 @@ public class ArtifactsAPIController {
 			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
 																			// ResponseEntity.status(HttpStatus.FORBIDDEN)
 																			// ;
+		}		
+		Infrastructure infrastructure = new Infrastructure(); 
+		List<MANOprovider> MANOprovidersEnabledForOnboarding = manoProviderService
+				.getMANOprovidersEnabledForOnboarding();
+		int MPfoundByName=0;
+		for (MANOprovider mp : MANOprovidersEnabledForOnboarding) {
+			if(mp.getName().equals(c.getDatacentername()))
+			{
+				infrastructure.setMp(mp);
+				MPfoundByName=1;
+			}
 		}
-		Infrastructure u = infrastructureService.addInfrastructure(c);
-
-		if (u != null) {
+		infrastructure.setDatacentername(c.getDatacentername());
+		infrastructure.setEmail(c.getEmail());
+		infrastructure.setVIMid(c.getVIMid());
+		infrastructure.setName(c.getName());
+		infrastructure.setOrganization(c.getOrganization());
+		
+		Infrastructure u = infrastructureService.addInfrastructure(infrastructure);
+		
+		if (u != null && MPfoundByName==1) {
 			return ResponseEntity.ok(u);
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
@@ -3377,7 +3394,16 @@ public class ArtifactsAPIController {
 																			// ;
 		}
 		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
-
+		List<MANOprovider> MANOprovidersEnabledForOnboarding = manoProviderService
+				.getMANOprovidersEnabledForOnboarding();
+		int MPfoundByName=0;
+		for (MANOprovider mp : MANOprovidersEnabledForOnboarding) {
+			if(mp.getName().equals(c.getDatacentername()))
+			{
+				infrastructure.setMp(mp);
+				MPfoundByName=1;
+			}
+		}
 		infrastructure.setDatacentername(c.getDatacentername());
 		infrastructure.setEmail(c.getEmail());
 		infrastructure.setVIMid(c.getVIMid());
@@ -3386,7 +3412,7 @@ public class ArtifactsAPIController {
 
 		Infrastructure u = infrastructureService.updateInfrastructureInfo(infrastructure);
 
-		if (u != null) {
+		if (u != null && MPfoundByName==1) {
 			return ResponseEntity.ok(u);
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
