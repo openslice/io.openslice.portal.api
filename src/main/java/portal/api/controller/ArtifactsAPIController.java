@@ -1250,8 +1250,6 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> softDeleteVxF(@PathVariable("vxfid") int vxfid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		//Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		//SecurityContextHolder.setContext((SecurityContext) attr);
 
 		VxFMetadata vxf = (VxFMetadata) vxfService.getVxFById(vxfid);
 
@@ -2015,8 +2013,6 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> softdeleteExperiment(@PathVariable("appid") int appid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		// SecurityContextHolder.setContext((SecurityContext) attr);
 
 		// Get the OnBoarded Descriptors to OffBoard them
 		Set<ExperimentOnBoardDescriptor> expobds = null;
@@ -2299,8 +2295,6 @@ public class ArtifactsAPIController {
 			HttpServletRequest request) {
 
 		logger.info("AddDeployment request received:" + deployment.toJSON());
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
 
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		
@@ -3358,18 +3352,39 @@ public class ArtifactsAPIController {
 	@PostMapping(value = "/admin/infrastructures", produces = "application/json", consumes = "application/json")
 	public ResponseEntity<?> addInfrastructure(@Valid @RequestBody Infrastructure c, HttpServletRequest request)
 			throws ForbiddenException {
+<<<<<<< HEAD
 		
 		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
 		// SecurityContextHolder.setContext((SecurityContext) attr);
+=======
+
+>>>>>>> upstream/develop
 
 		if (!checkUserIDorIsAdmin(-1)) {
 			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
 																			// ResponseEntity.status(HttpStatus.FORBIDDEN)
 																			// ;
+		}		
+		Infrastructure infrastructure = new Infrastructure(); 
+		List<MANOprovider> MANOprovidersEnabledForOnboarding = manoProviderService
+				.getMANOprovidersEnabledForOnboarding();
+		int MPfoundByName=0;
+		for (MANOprovider mp : MANOprovidersEnabledForOnboarding) {
+			if(mp.getName().equals(c.getDatacentername()))
+			{
+				infrastructure.setMp(mp);
+				MPfoundByName=1;
+			}
 		}
-		Infrastructure u = infrastructureService.addInfrastructure(c);
-
-		if (u != null) {
+		infrastructure.setDatacentername(c.getDatacentername());
+		infrastructure.setEmail(c.getEmail());
+		infrastructure.setVIMid(c.getVIMid());
+		infrastructure.setName(c.getName());
+		infrastructure.setOrganization(c.getOrganization());
+		
+		Infrastructure u = infrastructureService.addInfrastructure(infrastructure);
+		
+		if (u != null && MPfoundByName==1) {
 			return ResponseEntity.ok(u);
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
@@ -3385,7 +3400,16 @@ public class ArtifactsAPIController {
 																			// ;
 		}
 		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
-
+		List<MANOprovider> MANOprovidersEnabledForOnboarding = manoProviderService
+				.getMANOprovidersEnabledForOnboarding();
+		int MPfoundByName=0;
+		for (MANOprovider mp : MANOprovidersEnabledForOnboarding) {
+			if(mp.getName().equals(c.getDatacentername()))
+			{
+				infrastructure.setMp(mp);
+				MPfoundByName=1;
+			}
+		}
 		infrastructure.setDatacentername(c.getDatacentername());
 		infrastructure.setEmail(c.getEmail());
 		infrastructure.setVIMid(c.getVIMid());
@@ -3394,7 +3418,7 @@ public class ArtifactsAPIController {
 
 		Infrastructure u = infrastructureService.updateInfrastructureInfo(infrastructure);
 
-		if (u != null) {
+		if (u != null && MPfoundByName==1) {
 			return ResponseEntity.ok(u);
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
