@@ -3352,13 +3352,6 @@ public class ArtifactsAPIController {
 	@PostMapping(value = "/admin/infrastructures", produces = "application/json", consumes = "application/json")
 	public ResponseEntity<?> addInfrastructure(@Valid @RequestBody Infrastructure c, HttpServletRequest request)
 			throws ForbiddenException {
-<<<<<<< HEAD
-		
-		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		// SecurityContextHolder.setContext((SecurityContext) attr);
-=======
-
->>>>>>> upstream/develop
 
 		if (!checkUserIDorIsAdmin(-1)) {
 			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
@@ -3366,22 +3359,18 @@ public class ArtifactsAPIController {
 																			// ;
 		}		
 		Infrastructure infrastructure = new Infrastructure(); 
-		List<MANOprovider> MANOprovidersEnabledForOnboarding = manoProviderService
-				.getMANOprovidersEnabledForOnboarding();
 		int MPfoundByName=0;
-		for (MANOprovider mp : MANOprovidersEnabledForOnboarding) {
-			if(mp.getName().equals(c.getDatacentername()))
-			{
-				infrastructure.setMp(mp);
-				MPfoundByName=1;
-			}
+		
+		if(c.getMp() != null){
+			MPfoundByName=1;
+			infrastructure.setMp(c.getMp());
 		}
+
 		infrastructure.setDatacentername(c.getDatacentername());
 		infrastructure.setEmail(c.getEmail());
 		infrastructure.setVIMid(c.getVIMid());
 		infrastructure.setName(c.getName());
 		infrastructure.setOrganization(c.getOrganization());
-		
 		Infrastructure u = infrastructureService.addInfrastructure(infrastructure);
 		
 		if (u != null && MPfoundByName==1) {
@@ -3400,22 +3389,16 @@ public class ArtifactsAPIController {
 																			// ;
 		}
 		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
-		List<MANOprovider> MANOprovidersEnabledForOnboarding = manoProviderService
-				.getMANOprovidersEnabledForOnboarding();
 		int MPfoundByName=0;
-		for (MANOprovider mp : MANOprovidersEnabledForOnboarding) {
-			if(mp.getName().equals(c.getDatacentername()))
-			{
-				infrastructure.setMp(mp);
-				MPfoundByName=1;
-			}
+		if(c.getMp() != null){
+			MPfoundByName=1;
+			infrastructure.setMp(c.getMp());
 		}
 		infrastructure.setDatacentername(c.getDatacentername());
 		infrastructure.setEmail(c.getEmail());
 		infrastructure.setVIMid(c.getVIMid());
 		infrastructure.setName(c.getName());
 		infrastructure.setOrganization(c.getOrganization());
-
 		Infrastructure u = infrastructureService.updateInfrastructureInfo(infrastructure);
 
 		if (u != null && MPfoundByName==1) {
