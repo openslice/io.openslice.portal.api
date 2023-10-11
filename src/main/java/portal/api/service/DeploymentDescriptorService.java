@@ -191,6 +191,7 @@ public class DeploymentDescriptorService {
 
 
 
+	@Transactional
 	public DeploymentDescriptor updateDeploymentDescriptor(DeploymentDescriptor deployment) {
 		return this.ddRepo.save(deployment);
 	}
@@ -226,6 +227,12 @@ public class DeploymentDescriptorService {
 		        }
 		        Hibernate.initialize( dd.getVxfPlacements() );		        
 		        Hibernate.initialize( dd.getDeploymentDescriptorVxFInstanceInfo() );
+                Hibernate.initialize( dd.getMentor().getRoles() );              
+                Hibernate.initialize( dd.getInfrastructureForAll().getRefSupportedImages() );  
+                Hibernate.initialize( dd.getExperiment().getConstituentVxF() );              
+                Hibernate.initialize( dd.getExperimentFullDetails().getCategories() );       
+                Hibernate.initialize( dd.getExperimentFullDetails().getExtensions() );       
+                Hibernate.initialize( dd.getExperimentFullDetails().getValidationJobs() );              
 		        tx.commit();
 		        if ( dd.getExperimentFullDetails()!=null ) {
 		        	dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();

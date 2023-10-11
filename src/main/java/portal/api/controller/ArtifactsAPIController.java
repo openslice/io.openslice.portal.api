@@ -2565,6 +2565,7 @@ public class ArtifactsAPIController {
 
 					logger.info("Previous status is the same so just update deployment info");
 					aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+					aDeployment = deploymentDescriptorService.getDeploymentByIdEager( aDeployment.getId() );
 					busController.updateDeploymentRequest(aDeployment);
 				}
 				return ResponseEntity.ok(aDeployment);
