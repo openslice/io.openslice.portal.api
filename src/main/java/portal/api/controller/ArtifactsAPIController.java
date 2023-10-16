@@ -45,6 +45,9 @@ import org.apache.camel.ProducerTemplate;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -58,6 +61,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -2432,187 +2436,133 @@ public class ArtifactsAPIController {
 		return (ResponseEntity<?>) ResponseEntity.notFound();
 
 	}
+	
+	@Autowired
+	private SessionFactory  sessionFactory;
 
 	@PutMapping(value = "/admin/deployments/{id}", produces = "application/json", consumes = "application/json")
+	@Transactional
 	public ResponseEntity<?> updateDeployment(@PathVariable("id") int id,
 			@Valid @RequestBody DeploymentDescriptor receivedDeployment) {
+	    // Open a new session and begin a transaction
+	    Session session = sessionFactory.openSession();
+	    Transaction transaction = session.beginTransaction();
 
-		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-
-		if ((u != null)) {
-
-			if ((u.getRoles().contains(UserRoleType.ROLE_ADMIN))
-					|| u.getApikey().equals(receivedDeployment.getMentor().getApikey())) // only admin or Deployment
-																							// Mentor can alter a
-																							// deployment
-			{
-				DeploymentDescriptor aDeployment = deploymentDescriptorService
-						.getDeploymentByID(receivedDeployment.getId());
-
-				// PortalUser deploymentOwner =
-				// portalRepositoryRef.getUserByID(d.getOwner().getId());
-				// d.setOwner(deploymentOwner); // reattach from the DB model
-
-				//ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
-				//		.getProductByID(d.getExperiment().getId());
-				//d.setExperiment(baseApplication); // reattach from the DB model
-				//
-				//DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
-				//List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
-				//for (DeploymentDescriptor deploymentDescriptor : deployments) {
-				//	logger.info("Deployment id = " + deploymentDescriptor.getId() );
-				//}
-				//if ( ! deployments.contains(deployment) ) {
-				//	deploymentOwner.getDeployments().add(deployment);
-				//	deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
-				//}
-
-				aDeployment.setName(receivedDeployment.getName());
-				aDeployment.setFeedback(receivedDeployment.getFeedback());
-				aDeployment.setStartDate(receivedDeployment.getStartDate());
-				aDeployment.setEndDate(receivedDeployment.getEndDate());
-
-				logger.info("Previous Status is :" + aDeployment.getStatus() + ",New Status is:"
-						+ receivedDeployment.getStatus() + " and Instance Id is " + aDeployment.getInstanceId());
-
-				// prevDeployment =
-				// portalRepositoryRef.updateDeploymentDescriptor(prevDeployment);
-				if (receivedDeployment.getStatus() != aDeployment.getStatus()) {
-					aDeployment.setStatus(receivedDeployment.getStatus());
-					centralLogger.log(CLevel.INFO,
-							"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus(),
-							compname);
-					logger.info(
-							"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus());
-					aDeployment.getExperimentFullDetails();
-					aDeployment.getInfrastructureForAll();
-
-					logger.info("updateDeployment for id: " + aDeployment.getId());
-
-					// String adminemail =
-					// PortalRepository.getPropertyByName("adminEmail").getValue();
-					// if ((adminemail != null) && (!adminemail.equals(""))) {
-					// String subj = "[5GinFIREPortal] Deployment Request";
-					// EmailUtil.SendRegistrationActivationEmail(prevDeployment.getOwner().getEmail(),
-					// "5GinFIREPortal Deployment Request for experiment: " +
-					// prevDeployment.getName() + "\n<br/>Status: " +
-					// prevDeployment.getStatus().name()+ "\n<br/>Feedback: " +
-					// prevDeployment.getFeedback() + "\n\n<br/><br/> The 5GinFIRE team" ,
-					// subj);
-					// }
-
-					DeploymentDescriptor dd = deploymentDescriptorService.getDeploymentByID(receivedDeployment.getId()); // rereading
-																															// this,
-																															// seems
-																															// to
-																															// keep
-																															// the
-																															// DB
-																															// connection
-
-					if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED
-							&& aDeployment.getInstanceId() == null) {
-						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails()
-								.getExperimentOnBoardDescriptors()) {
+	    try {
+			PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+	
+			if ((u != null)) {
+	
+				if ((u.getRoles().contains(UserRoleType.ROLE_ADMIN))
+						|| u.getApikey().equals(receivedDeployment.getMentor().getApikey())) // only admin or Deployment
+																								// Mentor can alter a
+																								// deployment
+				{
+					DeploymentDescriptor aDeployment = deploymentDescriptorService
+							.getDeploymentByID(receivedDeployment.getId());
+		
+					aDeployment.setName(receivedDeployment.getName());
+					aDeployment.setFeedback(receivedDeployment.getFeedback());
+					aDeployment.setStartDate(receivedDeployment.getStartDate());
+					aDeployment.setEndDate(receivedDeployment.getEndDate());
+	
+					logger.info("Previous Status is :" + aDeployment.getStatus() + ",New Status is:"
+							+ receivedDeployment.getStatus() + " and Instance Id is " + aDeployment.getInstanceId());
+	
+					if (receivedDeployment.getStatus() != aDeployment.getStatus()) {
+						aDeployment.setStatus(receivedDeployment.getStatus());
+						centralLogger.log(CLevel.INFO,
+								"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus(),
+								compname);
+						logger.info(
+								"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus());
+						aDeployment.getExperimentFullDetails();
+						aDeployment.getInfrastructureForAll();
+	
+						logger.info("updateDeployment for id: " + aDeployment.getId());
+	
+						if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED
+								&& aDeployment.getInstanceId() == null) {
+							for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails()
+									.getExperimentOnBoardDescriptors()) {
+								aDeployment.setStatus(receivedDeployment.getStatus());
+								centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
+										+ " to " + aDeployment.getStatus(), compname);
+								logger.info("Status change of deployment " + aDeployment.getName() + " to "
+										+ aDeployment.getStatus());
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now " + aDeployment.getStatus());
+								busController.scheduleExperiment(aDeployment);
+							}
+						} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING
+								&& aDeployment.getInstanceId() == null) {
+							for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails()
+									.getExperimentOnBoardDescriptors()) {
+								aDeployment.setStatus(receivedDeployment.getStatus());
+								centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
+										+ " to " + aDeployment.getStatus(), compname);
+								logger.info("Status change of deployment " + aDeployment.getName() + " to "
+										+ aDeployment.getStatus());
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now " + aDeployment.getStatus());
+	
+								busController.deployExperiment(aDeployment);
+							}
+						} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED
+								&& aDeployment.getInstanceId() != null) {
 							aDeployment.setStatus(receivedDeployment.getStatus());
-							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
-									+ " to " + aDeployment.getStatus(), compname);
+							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
+									+ aDeployment.getStatus(), compname);
 							logger.info("Status change of deployment " + aDeployment.getName() + " to "
 									+ aDeployment.getStatus());
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now " + aDeployment.getStatus());
-							busController.scheduleExperiment(aDeployment);
-						}
-					} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING
-							&& aDeployment.getInstanceId() == null) {
-						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails()
-								.getExperimentOnBoardDescriptors()) {
+							busController.completeExperiment(aDeployment);
+						} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED
+								&& aDeployment.getInstanceId() == null) {
 							aDeployment.setStatus(receivedDeployment.getStatus());
-							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
-									+ " to " + aDeployment.getStatus(), compname);
+							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
+									+ aDeployment.getStatus(), compname);
 							logger.info("Status change of deployment " + aDeployment.getName() + " to "
 									+ aDeployment.getStatus());
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now " + aDeployment.getStatus());
-
-							busController.deployExperiment(aDeployment);
+							busController.rejectExperiment(aDeployment);
+							logger.info("Deployment Rejected");
+						} else {
+							return (ResponseEntity<?>) ResponseEntity.badRequest().body("Inconsistent status change");
 						}
-					} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED
-							&& aDeployment.getInstanceId() != null) {
-						aDeployment.setStatus(receivedDeployment.getStatus());
-						centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus(), compname);
-						logger.info("Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus());
-						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
-						logger.info("NS status change is now " + aDeployment.getStatus());
-						busController.completeExperiment(aDeployment);
-					} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED
-							&& aDeployment.getInstanceId() == null) {
-						aDeployment.setStatus(receivedDeployment.getStatus());
-						centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus(), compname);
-						logger.info("Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus());
-						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
-						logger.info("NS status change is now " + aDeployment.getStatus());
-						busController.rejectExperiment(aDeployment);
-						logger.info("Deployment Rejected");
 					} else {
-						return (ResponseEntity<?>) ResponseEntity.badRequest().body("Inconsistent status change");
+	
+						logger.info("Previous status is the same so just update deployment info");
+						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+						aDeployment = deploymentDescriptorService.getDeploymentByIdEager( aDeployment.getId() );
+						busController.updateDeploymentRequest(aDeployment);
 					}
-				} else {
+			        transaction.commit();
 
-					logger.info("Previous status is the same so just update deployment info");
-					aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
-					aDeployment = deploymentDescriptorService.getDeploymentByIdEager( aDeployment.getId() );
-					busController.updateDeploymentRequest(aDeployment);
+			        // Return the response
+			        return ResponseEntity.ok(aDeployment);
 				}
-				return ResponseEntity.ok(aDeployment);
+	
 			}
-
-		}
-
-		return (ResponseEntity<?>) ResponseEntity.badRequest().build();
-
+	    } catch (Exception e) {
+	        // If an exception is thrown, rollback the transaction
+	        if (transaction != null && transaction.isActive()) {
+	            transaction.rollback();
+	        }
+	        // Log the exception (optional)
+	        logger.error("Error updating deployment", e);
+	        // Return an error response
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+	    } finally {
+	        // Close the session
+	        if (session != null && session.isOpen()) {
+	            session.close();
+	        }
+	    }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Request failed");
 	}
-
-	//@POST
-	//@Path("/registerresource/")
-	//@Produces("application/json")
-	//@Consumes("application/json")
-	//public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
-	//
-	//	logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
-	//			+ sm.getOwner().getId());
-	//
-	//	PortalUser u = sm.getOwner();
-	//	u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
-	//
-	//	if ((u != null) && (sm.getUuid() != null)) {
-	//
-	//		SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
-	//
-	//		if (checkSM == null) {
-	//			sm.setOwner(u);
-	//			sm.setActive(false);
-	//			u.getSubscribedResources().add(sm);
-	//			u = portalRepositoryRef.updateUserInfo(  u);
-	//			return Response.ok().entity(sm).build();
-	//		} else {
-	//			checkSM.setURL(sm.getURL());// update URL if changed
-	//			// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
-	//			checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
-	//			return Response.ok().entity(checkSM).build();
-	//		}
-	//
-	//	} else {
-	//		ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-	//		builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
-	//				+ " cannot be registered under not found user");
-	//		throw new WebApplicationException(builder.build());
-	//	}
-	//}
 
 	/********************************************************************************
 	 * 

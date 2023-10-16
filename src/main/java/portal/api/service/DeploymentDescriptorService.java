@@ -213,34 +213,40 @@ public class DeploymentDescriptorService {
 	 * @param id
 	 * @return
 	 */
+	@Transactional
 	public DeploymentDescriptor getDeploymentByIdEager(long id) {
-//		Optional<DeploymentDescriptor> o = this.ddRepo.findById(id);
-//		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find DeploymentDescriptor with id: " + id));
-		 Session session = sessionFactory.openSession();
-		    Transaction tx = session.beginTransaction();
-		    DeploymentDescriptor dd = null;
-		    try {
-		        dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
-		        Hibernate.initialize( dd.getExperimentFullDetails() );
-		        if ( dd.getExperimentFullDetails()!=null ) {
-			        Hibernate.initialize( dd.getExperimentFullDetails().getExperimentOnBoardDescriptors() );		        	
-		        }
-		        Hibernate.initialize( dd.getVxfPlacements() );		        
-		        Hibernate.initialize( dd.getDeploymentDescriptorVxFInstanceInfo() );
-                Hibernate.initialize( dd.getMentor().getRoles() );              
-                Hibernate.initialize( dd.getInfrastructureForAll().getRefSupportedImages() );  
-                Hibernate.initialize( dd.getExperiment().getConstituentVxF() );              
-                Hibernate.initialize( dd.getExperimentFullDetails().getCategories() );       
-                Hibernate.initialize( dd.getExperimentFullDetails().getExtensions() );       
-                Hibernate.initialize( dd.getExperimentFullDetails().getValidationJobs() );              
-		        tx.commit();
-		        if ( dd.getExperimentFullDetails()!=null ) {
-		        	dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();
-		        }
-		    } finally {
-		        session.close();
-		    }
-		    return dd;
+	    // Open a new session
+	    Session session = sessionFactory.openSession();
+	    try {
+	        // Begin a transaction
+	        session.beginTransaction();
+	        DeploymentDescriptor dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
+	        Hibernate.initialize(dd.getExperimentFullDetails());
+	        if (dd.getExperimentFullDetails() != null) {
+	            Hibernate.initialize(dd.getExperimentFullDetails().getExperimentOnBoardDescriptors());
+	        }
+	        Hibernate.initialize(dd.getVxfPlacements());
+	        Hibernate.initialize(dd.getDeploymentDescriptorVxFInstanceInfo());
+	        Hibernate.initialize(dd.getMentor().getRoles());
+	        Hibernate.initialize(dd.getInfrastructureForAll().getRefSupportedImages());
+	        Hibernate.initialize(dd.getExperiment().getConstituentVxF());
+	        Hibernate.initialize(dd.getExperimentFullDetails().getCategories());
+	        Hibernate.initialize(dd.getExperimentFullDetails().getExtensions());
+	        Hibernate.initialize(dd.getExperimentFullDetails().getValidationJobs());
+	        if (dd.getExperimentFullDetails() != null) {
+	            dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();  // This line forces initialization, consider revising if not necessary
+	        }
+	        return dd;
+	    } catch (Exception e) {
+	        // If there are any exceptions, rollback the transaction
+	        if (session.getTransaction().isActive()) {
+	            session.getTransaction().rollback();
+	        }
+	        throw e;  // Re-throw the exception (or handle it in some way)
+	    } finally {
+	        // Close the session
+	        session.close();
+	    }	        
 	}
 
 	/**
@@ -549,18 +555,33 @@ public class DeploymentDescriptorService {
 		return aDeployment;
 	}
 	
-	
+	@Transactional
 	public String updateDeploymentEagerDataJson(DeploymentDescriptor receivedDeployment) throws JsonProcessingException {
 
-		DeploymentDescriptor dd = this.updateDeploymentByJSON(receivedDeployment);
-		ObjectMapper mapper = new ObjectMapper();
-		
-        //Registering Hibernate4Module to support lazy objects
-		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5JakartaModule()); 
-		String res = mapper.writeValueAsString( dd );
-		
-		return res;
+	    Session session = sessionFactory.openSession();  // Open a new session
+	    Transaction tx = null;  // Declare a Transaction variable
+	    try {
+	        tx = session.beginTransaction();  // Start a new transaction
+	        
+	        DeploymentDescriptor dd = this.updateDeploymentByJSON(receivedDeployment);
+	        ObjectMapper mapper = new ObjectMapper();
+	        
+	        // Registering Hibernate5JakartaModule to support lazy objects
+	        // this will fetch all lazy objects of VxF before marshaling
+	        mapper.registerModule(new Hibernate5JakartaModule());
+	        String res = mapper.writeValueAsString(dd);
+	        
+	        tx.commit();  // Commit the transaction
+	        
+	        return res;
+	    } catch (Exception e) {
+	        if (tx != null && tx.isActive()) {
+	            tx.rollback();  // Rollback the transaction in case of an exception
+	        }
+	        throw e;  // Re-throw the exception
+	    } finally {
+	        session.close();  // Close the session
+	    }		
 	}
 	
 
