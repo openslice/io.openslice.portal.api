@@ -213,11 +213,9 @@ public class DeploymentDescriptorService {
 	 * @param id
 	 * @return
 	 */
-	@Transactional
 	public DeploymentDescriptor getDeploymentByIdEager(long id) {
 	    // Open a new session
-	    Session session = sessionFactory.openSession();
-	    try {
+	    try (Session session = sessionFactory.openSession()) {
 	        // Begin a transaction
 	        session.beginTransaction();
 	        DeploymentDescriptor dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
@@ -236,16 +234,11 @@ public class DeploymentDescriptorService {
 	        if (dd.getExperimentFullDetails() != null) {
 	            dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();  // This line forces initialization, consider revising if not necessary
 	        }
+	        session.getTransaction().commit();
 	        return dd;
 	    } catch (Exception e) {
-	        // If there are any exceptions, rollback the transaction
-	        if (session.getTransaction().isActive()) {
-	            session.getTransaction().rollback();
-	        }
+	    	logger.error("getDeploymentByIdEager failed!");
 	        throw e;  // Re-throw the exception (or handle it in some way)
-	    } finally {
-	        // Close the session
-	        session.close();
 	    }	        
 	}
 
@@ -555,33 +548,31 @@ public class DeploymentDescriptorService {
 		return aDeployment;
 	}
 	
-	@Transactional
 	public String updateDeploymentEagerDataJson(DeploymentDescriptor receivedDeployment) throws JsonProcessingException {
 
-	    Session session = sessionFactory.openSession();  // Open a new session
-	    Transaction tx = null;  // Declare a Transaction variable
-	    try {
-	        tx = session.beginTransaction();  // Start a new transaction
-	        
-	        DeploymentDescriptor dd = this.updateDeploymentByJSON(receivedDeployment);
-	        ObjectMapper mapper = new ObjectMapper();
-	        
-	        // Registering Hibernate5JakartaModule to support lazy objects
-	        // this will fetch all lazy objects of VxF before marshaling
-	        mapper.registerModule(new Hibernate5JakartaModule());
-	        String res = mapper.writeValueAsString(dd);
-	        
-	        tx.commit();  // Commit the transaction
-	        
-	        return res;
-	    } catch (Exception e) {
-	        if (tx != null && tx.isActive()) {
-	            tx.rollback();  // Rollback the transaction in case of an exception
+	    try (Session session = sessionFactory.openSession()) {  // Use try-with-resources for Session
+	        Transaction tx = null;  // Declare a Transaction variable
+	        try {
+	            tx = session.beginTransaction();  // Start a new transaction
+	            
+	            DeploymentDescriptor dd = this.updateDeploymentByJSON(receivedDeployment);
+	            ObjectMapper mapper = new ObjectMapper();
+	            
+	            // Registering Hibernate5JakartaModule to support lazy objects
+	            // this will fetch all lazy objects of VxF before marshaling
+	            mapper.registerModule(new Hibernate5JakartaModule());
+	            String res = mapper.writeValueAsString(dd);
+	            
+	            tx.commit();  // Commit the transaction
+	            return res;
+	            
+	        } catch (Exception e) {
+	            if (tx != null && tx.isActive()) {
+	                tx.rollback();  // Rollback the transaction in case of an exception
+	            }
+	            throw e;  // Re-throw the exception
 	        }
-	        throw e;  // Re-throw the exception
-	    } finally {
-	        session.close();  // Close the session
-	    }		
+	    }  // Session will be automatically closed after this block due to try-with-resources
 	}
 	
 

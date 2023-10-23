@@ -2212,7 +2212,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok(deployments);
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.notFound();
+			return ResponseEntity.notFound().build();
 		}
 
 	}
@@ -2490,8 +2490,9 @@ public class ArtifactsAPIController {
 										+ " to " + aDeployment.getStatus(), compname);
 								logger.info("Status change of deployment " + aDeployment.getName() + " to "
 										+ aDeployment.getStatus());
-								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);								
 								logger.info("NS status change is now " + aDeployment.getStatus());
+								aDeployment = deploymentDescriptorService.getDeploymentByIdEager( aDeployment.getId() );
 								busController.scheduleExperiment(aDeployment);
 							}
 						} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING
