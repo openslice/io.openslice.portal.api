@@ -1,10 +1,7 @@
-FROM adoptopenjdk/openjdk13-openj9:latest
+FROM ibm-semeru-runtimes:open-17.0.7_7-jdk
 MAINTAINER openslice.io
 RUN mkdir /opt/shareclasses
 RUN mkdir -p /opt/openslice/lib/
-COPY target/io.openslice.portal.api-1.1.0-SNAPSHOT.jar /opt/openslice/lib/
-ENV SPRING_APPLICATION_JSON='{ \
-	"spring.datasource.url": "jdbc:mysql://10.0.2.15/osdb?createDatabaseIfNotExist=true",  \
-	"spring.activemq.broker-url": "tcp://10.0.2.15:61616"  }'
-CMD ["java", "-Xshareclasses:cacheDir=/opt/shareclasses","-jar", "/opt/openslice/lib/io.openslice.portal.api-1.1.0-SNAPSHOT.jar"]
+COPY target/io.openslice.portal.api-1.2.0-SNAPSHOT.jar /opt/openslice/lib/
+CMD ["java", "-Xshareclasses:cacheDir=/opt/shareclasses","-jar", "/opt/openslice/lib/io.openslice.portal.api-1.2.0-SNAPSHOT.jar"]
 EXPOSE 13000

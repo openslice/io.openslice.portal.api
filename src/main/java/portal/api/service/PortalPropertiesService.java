@@ -24,14 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.annotation.PostConstruct;
-
+import org.springframework.core.env.Environment;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import io.openslice.model.PortalProperty;
+import jakarta.annotation.PostConstruct;
 import portal.api.repo.PortalPropertiesRepository;
 
 /**
@@ -42,76 +42,79 @@ import portal.api.repo.PortalPropertiesRepository;
 public class PortalPropertiesService {
 
 
-	@Autowired
-	PortalPropertiesRepository propsRepo;
+    @Autowired
+    PortalPropertiesRepository propsRepo;
 
-	private static final transient Log logger = LogFactory.getLog( PortalPropertiesService.class.getName() );
-	
-	public PortalProperty getPropertyByName(String aname) {
-		Optional<PortalProperty> optionalUser = this.propsRepo.findByName( aname );
-		return optionalUser.orElse(null);
-	}
+    @Autowired
+    private Environment env;
 
-	public List<PortalProperty> getProperties() {
-		
-		return (List<PortalProperty>) propsRepo.findAll();
-	}
+    private static final transient Log logger = LogFactory.getLog( PortalPropertiesService.class.getName() );
+    
+    public PortalProperty getPropertyByName(String aname) {
+        Optional<PortalProperty> optionalUser = this.propsRepo.findByName( aname );
+        return optionalUser.orElse(null);
+    }
 
-	public PortalProperty getPropertyByID(long propid) {
-		Optional<PortalProperty> optionalUser = this.propsRepo.findById(propid);
-		return optionalUser.orElse(null);
-	}
+    public List<PortalProperty> getProperties() {
+        
+        return (List<PortalProperty>) propsRepo.findAll();
+    }
 
-	public PortalProperty updateProperty(PortalProperty p) {
-		return propsRepo.save(p);
-	}
-	
-	@PostConstruct
-	public void initRepo() {
-		PortalProperty pn = null;
-		try {
-			pn = getPropertyByID(1);
-			logger.info("======================== PortalProperty  = " + pn);
-		} catch (Exception e) {
-			logger.info("======================== PortalProperty NOT FOUND, initializing");			
-		}
+    public PortalProperty getPropertyByID(long propid) {
+        Optional<PortalProperty> optionalUser = this.propsRepo.findById(propid);
+        return optionalUser.orElse(null);
+    }
 
-		if ( pn  == null) {
-			PortalProperty p = new PortalProperty("adminEmail", "info@example.org");
-			propsRepo.save(p);
-			p = new PortalProperty("activationEmailSubject", "OpenSlice Activation Email ");
-			propsRepo.save(p);
-			p = new PortalProperty("mailhost", "example.org");
-			propsRepo.save(p);
-			p = new PortalProperty("mailuser", "exampleusername");
-			propsRepo.save(p);
-			p = new PortalProperty("mailpassword", "pass");
-			propsRepo.save(p);
-			p = new PortalProperty("maindomain", "https://portal.example.org");
-			propsRepo.save(p);
-			p = new PortalProperty("jenkinsciurl", "ci.example.org");
-			propsRepo.save(p);
-			p = new PortalProperty("jenkinscikey", "");
-			propsRepo.save(p);
-			p = new PortalProperty("pipelinetoken", "");
-			propsRepo.save(p);
-			p = new PortalProperty("centrallogerurl", "");
-			propsRepo.save(p);
-			p = new PortalProperty("portaltitle", "OpenSlice Dev");
-			propsRepo.save(p);
-			
-		}
-				
-	}
+    public PortalProperty updateProperty(PortalProperty p) {
+        return propsRepo.save(p);
+    }
+    
+    @PostConstruct
+    public void initRepo() {
+        PortalProperty pn = null;
+        try {
+            pn = getPropertyByID(1);
+            logger.info("======================== PortalProperty  = " + pn);
+        } catch (Exception e) {
+            logger.info("======================== PortalProperty NOT FOUND, initializing");         
+        }
 
-	public Map<String, String> getPropertiesAsMap() {
-		Map<String, String> m = new HashMap<>();
+        if ( pn  == null) {
+            PortalProperty p = new PortalProperty("adminEmail", env.getProperty("spring.portal.admin.email"));
+            propsRepo.save(p);
+            p = new PortalProperty("activationEmailSubject", env.getProperty("spring.portal.activation.email.subject"));
+            propsRepo.save(p);
+            p = new PortalProperty("mailhost", env.getProperty("spring.portal.mail.host"));
+            propsRepo.save(p);
+            p = new PortalProperty("mailuser", env.getProperty("spring.portal.mail.user"));
+            propsRepo.save(p);
+            p = new PortalProperty("mailpassword", env.getProperty("spring.portal.mail.password"));
+            propsRepo.save(p);
+            p = new PortalProperty("maindomain", env.getProperty("spring.portal.main.domain"));
+            propsRepo.save(p);
+            p = new PortalProperty("jenkinsciurl", env.getProperty("spring.portal.jenkins.ci.url"));
+            propsRepo.save(p);
+            p = new PortalProperty("jenkinscikey", env.getProperty("spring.portal.jenkins.ci.key"));
+            propsRepo.save(p);
+            p = new PortalProperty("pipelinetoken", env.getProperty("spring.portal.pipeline.token"));
+            propsRepo.save(p);
+            p = new PortalProperty("centrallogerurl", env.getProperty("spring.portal.central.loger.url"));
+            propsRepo.save(p);
+            p = new PortalProperty("portaltitle", env.getProperty("spring.portal.portal.title"));
+            propsRepo.save(p);
+            
+        }
+                
+    }
 
-		m.put( "maindomain" , getPropertyByName("maindomain").getValue() );
-		m.put( "portaltitle" ,getPropertyByName("portaltitle").getValue() );
-		m.put( "centrallogerurl" , getPropertyByName("centrallogerurl").getValue() );
+    public Map<String, String> getPropertiesAsMap() {
+        Map<String, String> m = new HashMap<>();
 
-		
-		return m;
-	}	
+        m.put( "maindomain" , getPropertyByName("maindomain").getValue() );
+        m.put( "portaltitle" ,getPropertyByName("portaltitle").getValue() );
+        m.put( "centrallogerurl" , getPropertyByName("centrallogerurl").getValue() );
+
+        
+        return m;
+    }   
 }

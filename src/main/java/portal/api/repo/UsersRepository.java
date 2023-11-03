@@ -20,11 +20,10 @@
 package portal.api.repo;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import io.openslice.model.PortalUser;
@@ -41,11 +40,11 @@ import io.openslice.model.PortalUser;
  * 
  */
 @Repository
-public interface UsersRepository  extends PagingAndSortingRepository<PortalUser, Long> {
+public interface UsersRepository  extends CrudRepository<PortalUser, Long> {
 	
 	PortalUser findDistinctFirstByUsername( String username );
 
-	@Query( value = "SELECT m FROM PortalUser m INNER JOIN m.roles r WHERE r = io.openslice.model.UserRoleType.ROLE_MENTOR" ) //
+	@Query( value = "SELECT m FROM PortalUser m INNER JOIN m.roles r WHERE r = 'ROLE_MENTOR'" ) //
 	Collection<PortalUser> findAllMentors();
 
 	Optional<PortalUser> findByUsername(String username);

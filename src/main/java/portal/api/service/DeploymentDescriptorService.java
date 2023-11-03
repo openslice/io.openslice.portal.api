@@ -27,8 +27,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import javax.persistence.EntityManagerFactory;
-import javax.validation.Valid;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.hibernate5.jakarta.Hibernate5JakartaModule;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,17 +40,11 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.hibernate5.Hibernate5Module;
-
+import io.openslice.centrallog.client.CLevel;
+import io.openslice.centrallog.client.CentralLogger;
 import io.openslice.model.ConstituentVxF;
 import io.openslice.model.DeploymentDescriptor;
 import io.openslice.model.DeploymentDescriptorStatus;
@@ -58,13 +54,10 @@ import io.openslice.model.ExperimentOnBoardDescriptor;
 import io.openslice.model.Infrastructure;
 import io.openslice.model.MANOprovider;
 import io.openslice.model.PortalUser;
-import io.openslice.model.UserRoleType;
-import io.openslice.model.VxFMetadata;
-import portal.api.bus.BusController;
+import jakarta.persistence.EntityManagerFactory;
 //import portal.api.centrallog.CLevel;
 //import portal.api.centrallog.CentralLogger;
 import portal.api.repo.DeploymentDescriptorRepository;
-import io.openslice.centrallog.client.*;
 
 @Service
 public class DeploymentDescriptorService {
@@ -198,6 +191,7 @@ public class DeploymentDescriptorService {
 
 
 
+	@Transactional
 	public DeploymentDescriptor updateDeploymentDescriptor(DeploymentDescriptor deployment) {
 		return this.ddRepo.save(deployment);
 	}
@@ -220,27 +214,32 @@ public class DeploymentDescriptorService {
 	 * @return
 	 */
 	public DeploymentDescriptor getDeploymentByIdEager(long id) {
-//		Optional<DeploymentDescriptor> o = this.ddRepo.findById(id);
-//		return o.orElseThrow(() -> new ItemNotFoundException("Couldn't find DeploymentDescriptor with id: " + id));
-		 Session session = sessionFactory.openSession();
-		    Transaction tx = session.beginTransaction();
-		    DeploymentDescriptor dd = null;
-		    try {
-		        dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
-		        Hibernate.initialize( dd.getExperimentFullDetails() );
-		        if ( dd.getExperimentFullDetails()!=null ) {
-			        Hibernate.initialize( dd.getExperimentFullDetails().getExperimentOnBoardDescriptors() );		        	
-		        }
-		        Hibernate.initialize( dd.getVxfPlacements() );		        
-		        Hibernate.initialize( dd.getDeploymentDescriptorVxFInstanceInfo() );
-		        tx.commit();
-		        if ( dd.getExperimentFullDetails()!=null ) {
-		        	dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();
-		        }
-		    } finally {
-		        session.close();
-		    }
-		    return dd;
+	    // Open a new session
+	    try (Session session = sessionFactory.openSession()) {
+	        // Begin a transaction
+	        session.beginTransaction();
+	        DeploymentDescriptor dd = (DeploymentDescriptor) session.get(DeploymentDescriptor.class, id);
+	        Hibernate.initialize(dd.getExperimentFullDetails());
+	        if (dd.getExperimentFullDetails() != null) {
+	            Hibernate.initialize(dd.getExperimentFullDetails().getExperimentOnBoardDescriptors());
+	        }
+	        Hibernate.initialize(dd.getVxfPlacements());
+	        Hibernate.initialize(dd.getDeploymentDescriptorVxFInstanceInfo());
+	        Hibernate.initialize(dd.getMentor().getRoles());
+	        Hibernate.initialize(dd.getInfrastructureForAll().getRefSupportedImages());
+	        Hibernate.initialize(dd.getExperiment().getConstituentVxF());
+	        Hibernate.initialize(dd.getExperimentFullDetails().getCategories());
+	        Hibernate.initialize(dd.getExperimentFullDetails().getExtensions());
+	        Hibernate.initialize(dd.getExperimentFullDetails().getValidationJobs());
+	        if (dd.getExperimentFullDetails() != null) {
+	            dd.getExperimentFullDetails().getExperimentOnBoardDescriptors().size();  // This line forces initialization, consider revising if not necessary
+	        }
+	        session.getTransaction().commit();
+	        return dd;
+	    } catch (Exception e) {
+	    	logger.error("getDeploymentByIdEager failed!");
+	        throw e;  // Re-throw the exception (or handle it in some way)
+	    }	        
 	}
 
 	/**
@@ -264,7 +263,7 @@ public class DeploymentDescriptorService {
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );
 		
 		return res;
@@ -282,7 +281,7 @@ public class DeploymentDescriptorService {
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );
 		
 		return res;
@@ -299,7 +298,7 @@ public class DeploymentDescriptorService {
 		ObjectMapper mapper = new ObjectMapper();
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );
 		
 		return res;
@@ -326,7 +325,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -369,7 +368,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -382,7 +381,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -413,7 +412,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -444,7 +443,7 @@ public class DeploymentDescriptorService {
 		
         //Registering Hibernate4Module to support lazy objects
 		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dds );
 		
 		return res;
@@ -549,18 +548,31 @@ public class DeploymentDescriptorService {
 		return aDeployment;
 	}
 	
-	
 	public String updateDeploymentEagerDataJson(DeploymentDescriptor receivedDeployment) throws JsonProcessingException {
 
-		DeploymentDescriptor dd = this.updateDeploymentByJSON(receivedDeployment);
-		ObjectMapper mapper = new ObjectMapper();
-		
-        //Registering Hibernate4Module to support lazy objects
-		// this will fetch all lazy objects of VxF before marshaling
-        mapper.registerModule(new Hibernate5Module()); 
-		String res = mapper.writeValueAsString( dd );
-		
-		return res;
+	    try (Session session = sessionFactory.openSession()) {  // Use try-with-resources for Session
+	        Transaction tx = null;  // Declare a Transaction variable
+	        try {
+	            tx = session.beginTransaction();  // Start a new transaction
+	            
+	            DeploymentDescriptor dd = this.updateDeploymentByJSON(receivedDeployment);
+	            ObjectMapper mapper = new ObjectMapper();
+	            
+	            // Registering Hibernate5JakartaModule to support lazy objects
+	            // this will fetch all lazy objects of VxF before marshaling
+	            mapper.registerModule(new Hibernate5JakartaModule());
+	            String res = mapper.writeValueAsString(dd);
+	            
+	            tx.commit();  // Commit the transaction
+	            return res;
+	            
+	        } catch (Exception e) {
+	            if (tx != null && tx.isActive()) {
+	                tx.rollback();  // Rollback the transaction in case of an exception
+	            }
+	            throw e;  // Re-throw the exception
+	        }
+	    }  // Session will be automatically closed after this block due to try-with-resources
 	}
 	
 
@@ -641,7 +653,7 @@ public class DeploymentDescriptorService {
 	public String createDeploymentRequestJson(DeploymentDescriptor depl) throws JsonProcessingException {
 		DeploymentDescriptor dd = this.createDeploymentRequest( depl );
 		ObjectMapper mapper = new ObjectMapper();		
-        mapper.registerModule(new Hibernate5Module()); 
+        mapper.registerModule(new Hibernate5JakartaModule()); 
 		String res = mapper.writeValueAsString( dd );		
 		return res;
 	}

@@ -360,6 +360,12 @@ public class BusControllerActiveMQ  extends RouteBuilder {
 		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.Infrastructure.class, true)		
 		.bean( infraStructureService , "addInfrastructureEagerDataJson" )
 		.to("log:DEBUG?showBody=true&showHeaders=true");
+
+		from("activemq:queue:updateInfrastructure")
+		.log( "activemq:queue:updateInfrastructure for ${body} !" )		
+		.unmarshal().json( JsonLibrary.Jackson, io.openslice.model.Infrastructure.class, true)		
+		.bean( infraStructureService , "updateInfrastructureEagerDataJson" )
+		.to("log:DEBUG?showBody=true&showHeaders=true");
 		
 		from("activemq:queue:addVxFMetadata")
 		.log( "activemq:queue:addVxFMetadata for ${body} !" )		

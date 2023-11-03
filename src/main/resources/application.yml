@@ -1,26 +1,76 @@
+
+origins: http://localhost,http://localhost:13000,http://127.0.0.1:13000,https://localhost, 
+
+
 server:
   port: 13000
   servlet:
     context-path : /osapi
+  error:
+    include-message: always
+  ssl:
+    enabled: false
+    
+springdoc:
+  version: '@springdoc.version@'
+  writer-with-default-pretty-printer: true
+  swagger-ui:
+    display-request-duration: true
+    groups-order: ASC
+    operationsSorter: method
+    disable-swagger-default-url: true
+    use-root-path: true
+    oauth:
+      client-id: osapiWebClientId
+      clientsecret: "secret"
+      use-pkce-with-authorization-code-grant: false
+  oAuthFlow:
+    authorizationUrl: http://keycloak:8080/auth/realms/openslice/protocol/openid-connect/auth
+    tokenUrl: http://keycloak:8080/auth/realms/openslice/protocol/openid-connect/token
+  show-actuator: true
+
+spring-addons:
+  issuers:
+  - uri: http://keycloak:8080/auth/realms/openslice
+    username-json-path: $.preferred_username
+    claims:
+    - jsonPath: $.realm_access.roles
+    - jsonPath: $.resource_access.*.roles
+
+    
 spring:
-  profiles: default
+  config:
+    activate:
+      on-profile: "default"
   application:
     name: openslice-portal-api
   datasource:
-    url: jdbc:mysql://localhost/osdb?createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:13306/osdb?createDatabaseIfNotExist=true
     password: letmein
     username: root
+    hikari:
+       minimumIdle: 2
+       maximumPoolSize: 40
+       idleTimeout: 120000
+       connectionTimeout: 400000
+       leakDetectionThreshold: 100000
   jpa:
-    database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+    database-platform: portal.api.LocalMysqlDialect
     hibernate:
       ddl-auto: update
     show-sql: false
     generate-ddl: true
     properties.hibernate.current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+    properties:
+      hibernate:
+        connection:
+          characterEncoding: utf-8
+          CharSet: utf-8
+          useUnicode: true 
   activemq:
-    brokerUrl: tcp://localhost:61616
-    user: admin
-    password: admin
+    brokerUrl: tcp://localhost:61616?jms.watchTopicAdvisories=false
+    user: artemis
+    password: artemis
     pool:
       enabled: true
       max-connections: 100
@@ -29,23 +79,21 @@ spring:
   servlet:
     multipart.max-file-size: 10MB
     multipart.max-request-size: 10MB
-  cloud:
-    consul:
-      enabled: true
-      host: http://localhost
-      port: 8500
-      config:
-        enabled: true
-        prefix: config
-        defaultContext: openslice
-        data-key: osdata
-        profileSeparator: '::'
-        format: yaml        
-      discovery:
-        tags: openslice-microservice
-        enabled: true
-        instanceId: ${spring.application.name}:${vcap.application.instance_id:${spring.application.instance_id:${random.value}}}
-        healthCheckInterval: 120s
+  resources:
+    add-mappings: true
+  portal:
+    admin.email: info@example.org
+    activation.email.subject: OpenSlice Activation Email
+    mail.host: localhost
+    mail.user: exampleusername
+    mail.password: pass
+    main.domain: http://localhost
+    jenkins.ci.url: http://ci.example.org
+    jenkins.ci.key: my_key
+    pipeline.token: my_token
+    central.loger.url: http://localhost
+    portal.title: OpenSlice
+
 logging:
   level:
     root: INFO
@@ -55,29 +103,11 @@ logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"
     file: "%d %p %c{1.} [%t] %m%n"
-    
-keycloak:
-  realm: openslice
-  auth-server-url: http://localhost:28080/auth
-  ssl-required: none
-  resource: admin-cli
-  credentials:
-    secret: none
-  public-client: false
-  bearer-only: true
-  principal-attribute: preferred_username
-
-keycloak-internal-auth-server-url: http://localhost:28080/auth
-keycloak-admin-password: Pa55w0rd
-    
-swagger:
-  authserver: http://localhost:28080/auth/realms/openslice
-  clientid: "osapiWebClientId"
-  clientsecret: "secret"
-  
-oauthsign:
-   key: "EK97Y7Y9WPGG1MEG"
-
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${keycloak-issuer}
 
 #QUEUE MESSSAGES WITH VNFNSD CATALOG
 NFV_CATALOG_GET_NSD_BY_ID: "jms:queue:NFVCATALOG.GET.NSD_BY_ID" 

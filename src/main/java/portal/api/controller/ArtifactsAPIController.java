@@ -22,7 +22,6 @@ package portal.api.controller;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -35,14 +34,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 
 import org.apache.camel.ProducerTemplate;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,6 +61,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -69,13 +75,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
 
 import io.openslice.centrallog.client.CLevel;
 import io.openslice.centrallog.client.CentralLogger;
@@ -101,6 +100,9 @@ import io.openslice.model.ValidationJob;
 import io.openslice.model.ValidationStatus;
 import io.openslice.model.VxFMetadata;
 import io.openslice.model.VxFOnBoardedDescriptor;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import portal.api.bus.BusController;
 //import portal.api.centrallog.CLevel;
 //import portal.api.centrallog.CentralLogger;
@@ -640,8 +642,8 @@ public class ArtifactsAPIController {
 			HttpServletRequest request) {
 		logger.info("getVxFs categoryid=" + categoryid);
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
 		PortalUser u = usersService.findByUsername(authentication.getName());
@@ -684,8 +686,8 @@ public class ArtifactsAPIController {
 			e.printStackTrace();
 		}
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 
@@ -705,7 +707,7 @@ public class ArtifactsAPIController {
 		} catch (Exception e) {
 			vxfsaved = null;
 			e.printStackTrace();
-			logger.error(e.getMessage());
+			logger.error("Exception during adding New Product Data with message" + e.getMessage());
 			emsg = e.getMessage();
 		}
 
@@ -1000,6 +1002,7 @@ public class ArtifactsAPIController {
 						this.updateVxfMetadataFromOSMVxFDescriptorFile((VxFMetadata) prevProduct, attachmentInfo,
 								endpointUrl);
 					} catch (NullPointerException e) {
+						logger.error("Null Pointer Exception during update VxF Metadata From OSM VxF Descriptor File");
 						return null;
 					}
 					logger.info("After " + prod.getPackageLocation());
@@ -1011,6 +1014,7 @@ public class ArtifactsAPIController {
 						this.loadNSMetadataFromOSMNSDescriptorFile((ExperimentMetadata) prod, attachmentInfo,
 								endpointUrl);
 					} catch (NullPointerException e) {
+						logger.error("Null Pointer Exception during loading NS Metadata From OSM NS Descriptor File");
 						return null;
 					}
 
@@ -1021,18 +1025,20 @@ public class ArtifactsAPIController {
 
 		String screenshotsFilenames = "";
 		int i = 1;
-		for (MultipartFile shot : screenshots) {
-			String shotFileNamePosted = shot.getOriginalFilename(); // AttachmentUtil.getFileName(shot.getHeaders());
-			logger.info("Found screenshot image shotFileNamePosted = " + shotFileNamePosted);
-			logger.info("shotFileNamePosted = " + shotFileNamePosted);
-			if (!shotFileNamePosted.equals("")) {
-				shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
-				String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
-				logger.info("shotfilepath saved to = " + shotfilepath);
-				shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + prevProduct.getUuid() + "/"
-						+ shotFileNamePosted;
-				screenshotsFilenames += shotfilepath + ",";
-				i++;
+		if (screenshots != null){
+			for (MultipartFile shot : screenshots) {
+				String shotFileNamePosted = shot.getOriginalFilename(); // AttachmentUtil.getFileName(shot.getHeaders());
+				logger.info("Found screenshot image shotFileNamePosted = " + shotFileNamePosted);
+				logger.info("shotFileNamePosted = " + shotFileNamePosted);
+				if (!shotFileNamePosted.equals("")) {
+					shotFileNamePosted = "shot" + i + "_" + shotFileNamePosted;
+					String shotfilepath = AttachmentUtil.saveFile(shot, tempDir + shotFileNamePosted);
+					logger.info("shotfilepath saved to = " + shotfilepath);
+					shotfilepath = endpointUrl.toString().replace("http:", "") + "/images/" + prevProduct.getUuid() + "/"
+							+ shotFileNamePosted;
+					screenshotsFilenames += shotfilepath + ",";
+					i++;
+				}
 			}
 		}
 		if (screenshotsFilenames.length() > 0)
@@ -1130,8 +1136,8 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> deleteVxF(@PathVariable("vxfid") int vxfid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 
 		VxFMetadata vxf = (VxFMetadata) vxfService.getVxFById(vxfid);
 
@@ -1244,6 +1250,61 @@ public class ArtifactsAPIController {
 		return ResponseEntity.ok().body("{}");
 	}
 
+	@DeleteMapping(value = "/admin/vxfs/{vxfid}/softdelete", produces = "application/json")
+	public ResponseEntity<?> softDeleteVxF(@PathVariable("vxfid") int vxfid, HttpServletRequest request)
+			throws ForbiddenException {
+
+
+		VxFMetadata vxf = (VxFMetadata) vxfService.getVxFById(vxfid);
+
+		if (!checkUserIDorIsAdmin(vxf.getOwner().getId())) {
+			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
+																			// ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		// Get the OnBoarded Descriptors to OffBoard them
+		List<VxFOnBoardedDescriptor> vxfobds = vxf.getVxfOnBoardedDescriptors();
+		if (vxf.isCertified()) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("vxf with id=" + vxfid + " is Certified and will not be deleted");
+		}
+		try
+		{
+			busController.deletedVxF(vxf);
+			// remove from categories
+			for (Category c : vxf.getCategories()) {
+				if (c.getProducts().contains(vxf)) {
+					c.getProducts().remove(vxf);
+					categoryService.updateCategoryInfo(c);
+				}
+			}
+	
+			vxf.getCategories().clear();
+	
+			// remove from onboard descriptos
+			for (VxFOnBoardedDescriptor vxfobd_tmp : vxfobds) {
+				VxFOnBoardedDescriptor sm = vxfOBDService.getVxFOnBoardedDescriptorByID(vxfobd_tmp.getId());
+				vxfOBDService.deleteVxFOnBoardedDescriptor(sm);
+	
+			}
+			vxf.getVxfOnBoardedDescriptors().clear();
+	
+			PortalUser owner = usersService.findById(vxf.getOwner().getId());
+			owner.getProducts().remove(vxf);
+			usersService.updateUserInfo(owner, false);
+			vxf.setOwner(null);
+	
+			// check also if deleted from consistuent VNFs
+			vxfService.deleteProduct(vxf);
+		}
+		catch(Exception e)
+		{
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("vxf with id=" + vxfid + " could not be deleted. Please check for possible dependencies.");			
+		}
+		return ResponseEntity.ok().body("{}");
+	}
+	
+	
 	@GetMapping(value = "/vxfs/{vxfid}", produces = "application/json")
 	public ResponseEntity<?> getVxFMetadataByID(@PathVariable("vxfid") int vxfid) throws ForbiddenException {
 		logger.info("getVxFMetadataByID  vxfid=" + vxfid);
@@ -1355,8 +1416,8 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> getApps(@RequestParam(name = "categoryid", required = false) Long categoryid,
 			HttpServletRequest request) {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 
 		if (u != null) {
@@ -1615,8 +1676,8 @@ public class ArtifactsAPIController {
 			e.printStackTrace();
 		}
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 
 		if (u == null) {
@@ -1817,8 +1878,8 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> deleteExperiment(@PathVariable("appid") int appid, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
+		// Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
+		// SecurityContextHolder.setContext((SecurityContext) attr);
 
 		// Get the OnBoarded Descriptors to OffBoard them
 		Set<ExperimentOnBoardDescriptor> expobds = null;
@@ -1952,6 +2013,83 @@ public class ArtifactsAPIController {
 		return ResponseEntity.ok().body("{}");
 	}
 
+	@DeleteMapping(value = "/admin/experiments/{appid}/softdelete", produces = "application/json")
+	public ResponseEntity<?> softdeleteExperiment(@PathVariable("appid") int appid, HttpServletRequest request)
+			throws ForbiddenException {
+
+
+		// Get the OnBoarded Descriptors to OffBoard them
+		Set<ExperimentOnBoardDescriptor> expobds = null;
+
+		ExperimentMetadata nsd = (ExperimentMetadata) nsdService.getProductByID(appid);
+
+		if (!checkUserIDorIsAdmin(nsd.getOwner().getId())) {
+			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
+																			// ResponseEntity.status(HttpStatus.FORBIDDEN);
+		}
+		
+		// If the NSD is Valid exit
+		if (nsd.isValid()) {
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("ExperimentMetadata with id=" + appid + " is Validated and will not be deleted");
+		}
+		
+		try
+		{
+			expobds = nsd.getExperimentOnBoardDescriptors();
+		}
+		catch(Exception e)
+		{
+			centralLogger.log(CLevel.INFO, "Unable to retrieve experiment onboard descriptors for NSD "+nsd.getUuid(), compname);			
+		}
+		
+		try
+		{
+			busController.deletedExperiment(nsd);
+	
+			// Remove NS dependencies
+			for (DeploymentDescriptor d : deploymentDescriptorService.getDeploymentsByExperimentId(nsd.getId())) {
+				d.setExperiment(null);
+				// Clear VxFPlacement to be able to delete the related VxFs also after NSD
+				// deletion.
+				d.getVxfPlacements().clear();
+				deploymentDescriptorService.updateDeploymentDescriptor(d);
+			}
+			// nsd.getDeploymentDescriptors().clear();
+	
+			// Remove NSD from the categories
+			for (Category c : nsd.getCategories()) {
+				if (c.getProducts().contains(nsd)) {
+					c.getProducts().remove(nsd);
+					categoryService.updateCategoryInfo(c);
+				}
+			}
+			nsd.getCategories().clear();
+	
+			// Remove NSD from OnBoarded descriptors
+			for (ExperimentOnBoardDescriptor expobd_tmp : expobds) {
+				ExperimentOnBoardDescriptor sm = nsdOBDService.getExperimentOnBoardDescriptorByID(expobd_tmp.getId());
+				nsdOBDService.deleteExperimentOnBoardDescriptor(sm);
+			}
+			nsd.getExperimentOnBoardDescriptors().clear();
+	
+			// Remove NSD from Portal Users
+			PortalUser owner = usersService.findById(nsd.getOwner().getId());
+			owner.getProducts().remove(nsd);
+			usersService.updateUserInfo(owner, false);
+			nsd.setOwner(null);
+	
+			// Delete NSD from Products
+			nsdService.deleteProduct(nsd);
+		}
+		catch(Exception e)
+		{
+			return (ResponseEntity<?>) ResponseEntity.badRequest()
+					.body("ExperimentMetadata with id=" + appid + " could not be deleted. Please check for possible dependencies.");			
+		}
+		return ResponseEntity.ok().body("{}");
+	}
+	
 	@GetMapping(value = "/admin/properties", produces = "application/json")
 	public ResponseEntity<?> getProperties() throws ForbiddenException {
 
@@ -2074,7 +2212,7 @@ public class ArtifactsAPIController {
 			return ResponseEntity.ok(deployments);
 		} else {
 
-			return (ResponseEntity<?>) ResponseEntity.notFound();
+			return ResponseEntity.notFound().build();
 		}
 
 	}
@@ -2161,11 +2299,9 @@ public class ArtifactsAPIController {
 			HttpServletRequest request) {
 
 		logger.info("AddDeployment request received:" + deployment.toJSON());
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
 
 		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-
+		
 		if (u != null) {
 			logger.info("addDeployment for userid: " + u.getId());
 
@@ -2300,186 +2436,134 @@ public class ArtifactsAPIController {
 		return (ResponseEntity<?>) ResponseEntity.notFound();
 
 	}
+	
+	@Autowired
+	private SessionFactory  sessionFactory;
 
 	@PutMapping(value = "/admin/deployments/{id}", produces = "application/json", consumes = "application/json")
+	@Transactional
 	public ResponseEntity<?> updateDeployment(@PathVariable("id") int id,
 			@Valid @RequestBody DeploymentDescriptor receivedDeployment) {
+	    // Open a new session and begin a transaction
+	    Session session = sessionFactory.openSession();
+	    Transaction transaction = session.beginTransaction();
 
-		PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-
-		if ((u != null)) {
-
-			if ((u.getRoles().contains(UserRoleType.ROLE_ADMIN))
-					|| u.getApikey().equals(receivedDeployment.getMentor().getApikey())) // only admin or Deployment
-																							// Mentor can alter a
-																							// deployment
-			{
-				DeploymentDescriptor aDeployment = deploymentDescriptorService
-						.getDeploymentByID(receivedDeployment.getId());
-
-				// PortalUser deploymentOwner =
-				// portalRepositoryRef.getUserByID(d.getOwner().getId());
-				// d.setOwner(deploymentOwner); // reattach from the DB model
-
-				//ExperimentMetadata baseApplication = (ExperimentMetadata) portalRepositoryRef
-				//		.getProductByID(d.getExperiment().getId());
-				//d.setExperiment(baseApplication); // reattach from the DB model
-				//
-				//DeploymentDescriptor deployment = portalRepositoryRef.updateDeploymentDescriptor(d);
-				//List<DeploymentDescriptor> deployments = deploymentOwner.getDeployments();
-				//for (DeploymentDescriptor deploymentDescriptor : deployments) {
-				//	logger.info("Deployment id = " + deploymentDescriptor.getId() );
-				//}
-				//if ( ! deployments.contains(deployment) ) {
-				//	deploymentOwner.getDeployments().add(deployment);
-				//	deploymentOwner = portalRepositoryRef.updateUserInfo(  u);					 
-				//}
-
-				aDeployment.setName(receivedDeployment.getName());
-				aDeployment.setFeedback(receivedDeployment.getFeedback());
-				aDeployment.setStartDate(receivedDeployment.getStartDate());
-				aDeployment.setEndDate(receivedDeployment.getEndDate());
-
-				logger.info("Previous Status is :" + aDeployment.getStatus() + ",New Status is:"
-						+ receivedDeployment.getStatus() + " and Instance Id is " + aDeployment.getInstanceId());
-
-				// prevDeployment =
-				// portalRepositoryRef.updateDeploymentDescriptor(prevDeployment);
-				if (receivedDeployment.getStatus() != aDeployment.getStatus()) {
-					aDeployment.setStatus(receivedDeployment.getStatus());
-					centralLogger.log(CLevel.INFO,
-							"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus(),
-							compname);
-					logger.info(
-							"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus());
-					aDeployment.getExperimentFullDetails();
-					aDeployment.getInfrastructureForAll();
-
-					logger.info("updateDeployment for id: " + aDeployment.getId());
-
-					// String adminemail =
-					// PortalRepository.getPropertyByName("adminEmail").getValue();
-					// if ((adminemail != null) && (!adminemail.equals(""))) {
-					// String subj = "[5GinFIREPortal] Deployment Request";
-					// EmailUtil.SendRegistrationActivationEmail(prevDeployment.getOwner().getEmail(),
-					// "5GinFIREPortal Deployment Request for experiment: " +
-					// prevDeployment.getName() + "\n<br/>Status: " +
-					// prevDeployment.getStatus().name()+ "\n<br/>Feedback: " +
-					// prevDeployment.getFeedback() + "\n\n<br/><br/> The 5GinFIRE team" ,
-					// subj);
-					// }
-
-					DeploymentDescriptor dd = deploymentDescriptorService.getDeploymentByID(receivedDeployment.getId()); // rereading
-																															// this,
-																															// seems
-																															// to
-																															// keep
-																															// the
-																															// DB
-																															// connection
-
-					if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED
-							&& aDeployment.getInstanceId() == null) {
-						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails()
-								.getExperimentOnBoardDescriptors()) {
+	    try {
+			PortalUser u = usersService.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+	
+			if ((u != null)) {
+	
+				if ((u.getRoles().contains(UserRoleType.ROLE_ADMIN))
+						|| u.getApikey().equals(receivedDeployment.getMentor().getApikey())) // only admin or Deployment
+																								// Mentor can alter a
+																								// deployment
+				{
+					DeploymentDescriptor aDeployment = deploymentDescriptorService
+							.getDeploymentByID(receivedDeployment.getId());
+		
+					aDeployment.setName(receivedDeployment.getName());
+					aDeployment.setFeedback(receivedDeployment.getFeedback());
+					aDeployment.setStartDate(receivedDeployment.getStartDate());
+					aDeployment.setEndDate(receivedDeployment.getEndDate());
+	
+					logger.info("Previous Status is :" + aDeployment.getStatus() + ",New Status is:"
+							+ receivedDeployment.getStatus() + " and Instance Id is " + aDeployment.getInstanceId());
+	
+					if (receivedDeployment.getStatus() != aDeployment.getStatus()) {
+						aDeployment.setStatus(receivedDeployment.getStatus());
+						centralLogger.log(CLevel.INFO,
+								"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus(),
+								compname);
+						logger.info(
+								"Status change of deployment " + aDeployment.getName() + " to " + aDeployment.getStatus());
+						aDeployment.getExperimentFullDetails();
+						aDeployment.getInfrastructureForAll();
+	
+						logger.info("updateDeployment for id: " + aDeployment.getId());
+	
+						if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.SCHEDULED
+								&& aDeployment.getInstanceId() == null) {
+							for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails()
+									.getExperimentOnBoardDescriptors()) {
+								aDeployment.setStatus(receivedDeployment.getStatus());
+								centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
+										+ " to " + aDeployment.getStatus(), compname);
+								logger.info("Status change of deployment " + aDeployment.getName() + " to "
+										+ aDeployment.getStatus());
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);								
+								logger.info("NS status change is now " + aDeployment.getStatus());
+								aDeployment = deploymentDescriptorService.getDeploymentByIdEager( aDeployment.getId() );
+								busController.scheduleExperiment(aDeployment);
+							}
+						} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING
+								&& aDeployment.getInstanceId() == null) {
+							for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : aDeployment.getExperimentFullDetails()
+									.getExperimentOnBoardDescriptors()) {
+								aDeployment.setStatus(receivedDeployment.getStatus());
+								centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
+										+ " to " + aDeployment.getStatus(), compname);
+								logger.info("Status change of deployment " + aDeployment.getName() + " to "
+										+ aDeployment.getStatus());
+								aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+								logger.info("NS status change is now " + aDeployment.getStatus());
+	
+								busController.deployExperiment(aDeployment);
+							}
+						} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED
+								&& aDeployment.getInstanceId() != null) {
 							aDeployment.setStatus(receivedDeployment.getStatus());
-							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
-									+ " to " + aDeployment.getStatus(), compname);
+							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
+									+ aDeployment.getStatus(), compname);
 							logger.info("Status change of deployment " + aDeployment.getName() + " to "
 									+ aDeployment.getStatus());
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now " + aDeployment.getStatus());
-							busController.scheduleExperiment(aDeployment);
-						}
-					} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.RUNNING
-							&& aDeployment.getInstanceId() == null) {
-						for (ExperimentOnBoardDescriptor tmpExperimentOnBoardDescriptor : dd.getExperimentFullDetails()
-								.getExperimentOnBoardDescriptors()) {
+							busController.completeExperiment(aDeployment);
+						} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED
+								&& aDeployment.getInstanceId() == null) {
 							aDeployment.setStatus(receivedDeployment.getStatus());
-							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName()
-									+ " to " + aDeployment.getStatus(), compname);
+							centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
+									+ aDeployment.getStatus(), compname);
 							logger.info("Status change of deployment " + aDeployment.getName() + " to "
 									+ aDeployment.getStatus());
 							aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
 							logger.info("NS status change is now " + aDeployment.getStatus());
-
-							busController.deployExperiment(aDeployment);
+							busController.rejectExperiment(aDeployment);
+							logger.info("Deployment Rejected");
+						} else {
+							return (ResponseEntity<?>) ResponseEntity.badRequest().body("Inconsistent status change");
 						}
-					} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.COMPLETED
-							&& aDeployment.getInstanceId() != null) {
-						aDeployment.setStatus(receivedDeployment.getStatus());
-						centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus(), compname);
-						logger.info("Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus());
-						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
-						logger.info("NS status change is now " + aDeployment.getStatus());
-						busController.completeExperiment(aDeployment);
-					} else if (receivedDeployment.getStatus() == DeploymentDescriptorStatus.REJECTED
-							&& aDeployment.getInstanceId() == null) {
-						aDeployment.setStatus(receivedDeployment.getStatus());
-						centralLogger.log(CLevel.INFO, "Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus(), compname);
-						logger.info("Status change of deployment " + aDeployment.getName() + " to "
-								+ aDeployment.getStatus());
-						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
-						logger.info("NS status change is now " + aDeployment.getStatus());
-						busController.rejectExperiment(aDeployment);
-						logger.info("Deployment Rejected");
 					} else {
-						return (ResponseEntity<?>) ResponseEntity.badRequest().body("Inconsistent status change");
+	
+						logger.info("Previous status is the same so just update deployment info");
+						aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
+						aDeployment = deploymentDescriptorService.getDeploymentByIdEager( aDeployment.getId() );
+						busController.updateDeploymentRequest(aDeployment);
 					}
-				} else {
+			        transaction.commit();
 
-					logger.info("Previous status is the same so just update deployment info");
-					aDeployment = deploymentDescriptorService.updateDeploymentDescriptor(aDeployment);
-					busController.updateDeploymentRequest(aDeployment);
+			        // Return the response
+			        return ResponseEntity.ok(aDeployment);
 				}
-				return ResponseEntity.ok(aDeployment);
+	
 			}
-
-		}
-
-		return (ResponseEntity<?>) ResponseEntity.badRequest().build();
-
+	    } catch (Exception e) {
+	        // If an exception is thrown, rollback the transaction
+	        if (transaction != null && transaction.isActive()) {
+	            transaction.rollback();
+	        }
+	        // Log the exception (optional)
+	        logger.error("Error updating deployment", e);
+	        // Return an error response
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+	    } finally {
+	        // Close the session
+	        if (session != null && session.isOpen()) {
+	            session.close();
+	        }
+	    }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Request failed");
 	}
-
-	//@POST
-	//@Path("/registerresource/")
-	//@Produces("application/json")
-	//@Consumes("application/json")
-	//public Response addANewAnauthSubscribedResource(SubscribedResource sm) {
-	//
-	//	logger.info("Received SubscribedResource for client: " + sm.getUuid() + ", URLs:" + sm.getURL() + ", OwnerID:"
-	//			+ sm.getOwner().getId());
-	//
-	//	PortalUser u = sm.getOwner();
-	//	u = portalRepositoryRef.getUserByID(sm.getOwner().getId());
-	//
-	//	if ((u != null) && (sm.getUuid() != null)) {
-	//
-	//		SubscribedResource checkSM = portalRepositoryRef.getSubscribedResourceByUUID(sm.getUuid());
-	//
-	//		if (checkSM == null) {
-	//			sm.setOwner(u);
-	//			sm.setActive(false);
-	//			u.getSubscribedResources().add(sm);
-	//			u = portalRepositoryRef.updateUserInfo(  u);
-	//			return Response.ok().entity(sm).build();
-	//		} else {
-	//			checkSM.setURL(sm.getURL());// update URL if changed
-	//			// u = portalRepositoryRef.updateUserInfo( u.getId(), u);
-	//			checkSM = portalRepositoryRef.updateSubscribedResourceInfo(checkSM.getId(), checkSM);
-	//			return Response.ok().entity(checkSM).build();
-	//		}
-	//
-	//	} else {
-	//		ResponseBuilder builder = Response.status(Status.INTERNAL_SERVER_ERROR);
-	//		builder.entity("Requested SubscribedResource with rls=" + sm.getURL()
-	//				+ " cannot be registered under not found user");
-	//		throw new WebApplicationException(builder.build());
-	//	}
-	//}
 
 	/********************************************************************************
 	 * 
@@ -3221,17 +3305,27 @@ public class ArtifactsAPIController {
 	public ResponseEntity<?> addInfrastructure(@Valid @RequestBody Infrastructure c, HttpServletRequest request)
 			throws ForbiddenException {
 
-		Object attr = request.getSession().getAttribute("SPRING_SECURITY_CONTEXT");
-		SecurityContextHolder.setContext((SecurityContext) attr);
-
 		if (!checkUserIDorIsAdmin(-1)) {
 			throw new ForbiddenException("The requested page is forbidden");// return (ResponseEntity<?>)
 																			// ResponseEntity.status(HttpStatus.FORBIDDEN)
 																			// ;
+		}		
+		Infrastructure infrastructure = new Infrastructure(); 
+		int MPfoundByName=0;
+		
+		if(c.getMp() != null){
+			MPfoundByName=1;
+			infrastructure.setMp(c.getMp());
 		}
-		Infrastructure u = infrastructureService.addInfrastructure(c);
 
-		if (u != null) {
+		infrastructure.setDatacentername(c.getDatacentername());
+		infrastructure.setEmail(c.getEmail());
+		infrastructure.setVIMid(c.getVIMid());
+		infrastructure.setName(c.getName());
+		infrastructure.setOrganization(c.getOrganization());
+		Infrastructure u = infrastructureService.addInfrastructure(infrastructure);
+		
+		if (u != null && MPfoundByName==1) {
 			return ResponseEntity.ok(u);
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
@@ -3247,16 +3341,19 @@ public class ArtifactsAPIController {
 																			// ;
 		}
 		Infrastructure infrastructure = infrastructureService.getInfrastructureByID(infraid);
-
+		int MPfoundByName=0;
+		if(c.getMp() != null){
+			MPfoundByName=1;
+			infrastructure.setMp(c.getMp());
+		}
 		infrastructure.setDatacentername(c.getDatacentername());
 		infrastructure.setEmail(c.getEmail());
 		infrastructure.setVIMid(c.getVIMid());
 		infrastructure.setName(c.getName());
 		infrastructure.setOrganization(c.getOrganization());
-
 		Infrastructure u = infrastructureService.updateInfrastructureInfo(infrastructure);
 
-		if (u != null) {
+		if (u != null && MPfoundByName==1) {
 			return ResponseEntity.ok(u);
 		} else {
 			return (ResponseEntity<?>) ResponseEntity.badRequest().build();
